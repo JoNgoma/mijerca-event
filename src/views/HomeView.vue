@@ -1,9 +1,27 @@
 <script setup>
-import TheWelcome from '../components/TheWelcome.vue'
+
+
+defineProps({
+  msg: {
+    type: String,
+    required: true,
+  },
+})
 </script>
 
 <template>
+    <!-- <HeaderHome />
   <main>
-    <TheWelcome />
+    <AccueilSection />
+    <MeritSection />
+    <AproposSection />
+    <PilierSection />
+    <TestinonialSection />
+    <CallActionSection />
   </main>
+  <FooterHome /> -->
 </template>
+
+<style scoped>
+
+</style>
