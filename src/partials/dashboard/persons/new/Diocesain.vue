@@ -1,9 +1,22 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useServiceContext } from '@/composables/useServiceContext';
 
 const router = useRouter();
+const { currentService, currentServiceType } = useServiceContext();
 
+
+const breadcrumbService = computed(() => {
+  return currentService.value.name;
+});
+
+$(document).ready(function(){
+      	//-initialize the javascript
+      	App.init();
+      	App.masks();
+      });
+      
 </script>
 
 <template>
@@ -12,8 +25,8 @@ const router = useRouter();
           <h2 class="page-head-title">Nouvelle Unité</h2>
           <nav aria-label="breadcrumb" role="navigation">
             <ol class="breadcrumb page-head-nav">
-              <li class="breadcrumb-item"><a href="#">Dashboard</a></li>
-              <li class="breadcrumb-item"><a href="#">Service diocésain</a></li>
+              <li class="breadcrumb-item"><router-link :to="{ name: 'dashboard' }">Dashboard</router-link></li>
+              <li class="breadcrumb-item"><a href="#">{{ breadcrumbService }}</a></li>
               <li class="breadcrumb-item active">Nouvelle Unité</li>
             </ol>
           </nav>
@@ -22,7 +35,7 @@ const router = useRouter();
           <div class="row">
             <div class="col-lg-6">
               <div class="card card-border-color card-border-color-primary">
-                <div class="card-header card-header-divider">Nouveau noyau diocésain<span class="card-subtitle">Veuillez entrer les coordonnées correspondantes</span></div>
+                <div class="card-header card-header-divider">Nouveau {{ breadcrumbService }}<span class="card-subtitle">Veuillez entrer les coordonnées correspondantes</span></div>
                 <div class="card-body">
                   <form>
                       <div class="form-group row pt-3">
@@ -39,8 +52,10 @@ const router = useRouter();
                       </div>
                     </div>
                     <div class="form-group pt-2">
-                      <label for="inputNumber">Numéro de  téléphone</label>
-                      <input class="form-control" id="inputNumber" type="text" placeholder="0812345678">
+                      <label for="inputNumber" >Numéro de téléphone</label>
+                      <input id="inputNumber" class="form-control" type="text" data-mask="phone-int" placeholder="+243 999 999 999">
+                      <!-- <label for="inputNumber">Numéro de téléphone</label>
+                      <input class="form-control" id="inputNumber" type="text" placeholder="0812345678"> -->
                     </div>
                     <div class="form-group">
                       <label for="inputNames">Noms au complet</label>

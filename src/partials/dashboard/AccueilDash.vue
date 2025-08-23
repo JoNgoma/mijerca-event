@@ -20,9 +20,13 @@ $(document).ready(function(){
                         <div class="widget widget-tile">
                           <div class="chart sparkline" id="spark1"></div>
                           <div class="data-info">
-                            <div class="desc">New Users</div>
-                            <div class="value"><span class="indicator indicator-equal mdi mdi-chevron-right"></span><span class="number" data-toggle="counter" data-end="113">0</span>
+                            <div class="desc">KIN EST</div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="240">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="343">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            </div>
+                            <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
+                            </div> -->
                           </div>
                         </div>
             </div>
@@ -30,9 +34,13 @@ $(document).ready(function(){
                         <div class="widget widget-tile">
                           <div class="chart sparkline" id="spark2"></div>
                           <div class="data-info">
-                            <div class="desc">Monthly Sales</div>
-                            <div class="value"><span class="indicator indicator-positive mdi mdi-chevron-up"></span><span class="number" data-toggle="counter" data-end="80" data-suffix="%">0</span>
+                            <div class="desc">KIN CENTRE</div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="242">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="300">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            </div>
+                            <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
+                            </div> -->
                           </div>
                         </div>
             </div>
@@ -40,9 +48,13 @@ $(document).ready(function(){
                         <div class="widget widget-tile">
                           <div class="chart sparkline" id="spark3"></div>
                           <div class="data-info">
-                            <div class="desc">Impressions</div>
-                            <div class="value"><span class="indicator indicator-positive mdi mdi-chevron-up"></span><span class="number" data-toggle="counter" data-end="532">0</span>
+                            <div class="desc">KIN OUEST</div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="313">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="360">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            </div>
+                            <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
+                            </div> -->
                           </div>
                         </div>
             </div>
@@ -50,11 +62,108 @@ $(document).ready(function(){
                         <div class="widget widget-tile">
                           <div class="chart sparkline" id="spark4"></div>
                           <div class="data-info">
-                            <div class="desc">Downloads</div>
-                            <div class="value"><span class="indicator indicator-negative mdi mdi-chevron-down"></span><span class="number" data-toggle="counter" data-end="113">0</span>
+                            <div class="desc">KINSHASA</div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="795">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
+                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="1003">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            </div>
+                            <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
+                            </div> -->
                           </div>
                         </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-12 col-lg-4">
+              <div class="card">
+                <div class="card-header card-header-divider pb-3">Participation paroisse</div>
+                <div class="card-body pt-5">
+                  <div class="row user-progress user-progress-small">
+                    <div class="col-lg-5"><span class="title">Bootstrap Admin</span></div>
+                    <div class="col-lg-7">
+                      <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 40%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row user-progress user-progress-small">
+                    <div class="col-lg-5"><span class="title">Custom Work</span></div>
+                    <div class="col-lg-7">
+                      <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 65%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row user-progress user-progress-small">
+                    <div class="col-lg-5"><span class="title">Clients Module</span></div>
+                    <div class="col-lg-7">
+                      <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 30%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row user-progress user-progress-small">
+                    <div class="col-lg-5"><span class="title">Email Templates</span></div>
+                    <div class="col-lg-7">
+                      <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 80%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="row user-progress user-progress-small">
+                    <div class="col-lg-5"><span class="title">Plans Module</span></div>
+                    <div class="col-lg-7">
+                      <div class="progress">
+                        <div class="progress-bar bg-success" style="width: 45%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="widget be-loading">
+                <div class="widget-head">
+                  <div class="tools"><span class="icon mdi mdi-chevron-down"></span><span class="icon mdi mdi-refresh-sync toggle-loading"></span><span class="icon mdi mdi-close"></span></div>
+                  <div class="title">Effectif général</div>
+                </div>
+                <div class="widget-chart-container">
+                  <div id="top-sales" style="height: 178px;"></div>
+                  <div class="chart-pie-counter">1798</div>
+                </div>
+                <div class="chart-legend">
+                  <table class="chart-legend">
+                    <tbody>
+                      <tr>
+                        <td class="chart-legend-color"><span data-color="top-sales-color1"></span></td>
+                        <td>KIN EST</td>
+                        <td class="chart-legend-value">583</td>
+                      </tr>
+                      <tr>
+                        <td class="chart-legend-color"><span data-color="top-sales-color2"></span></td>
+                        <td>KIN CENTRE</td>
+                        <td class="chart-legend-value">542</td>
+                      </tr>
+                      <tr>
+                        <td class="chart-legend-color"><span data-color="top-sales-color3"></span></td>
+                        <td>KIN OUEST</td>
+                        <td class="chart-legend-value">673</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                </div>
+                <div class="be-spinner">
+                  <svg width="40px" height="40px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
+                    <circle class="circle" fill="none" stroke-width="4" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="widget widget-calendar">
+                <div id="calendar-widget"></div>
+              </div>
             </div>
           </div>
           <div class="row">
@@ -222,99 +331,6 @@ $(document).ready(function(){
                     </tbody>
                   </table>
                 </div>
-              </div>
-            </div>
-          </div>
-          <div class="row">
-            <div class="col-12 col-lg-4">
-              <div class="card">
-                <div class="card-header card-header-divider pb-3">Current Progress</div>
-                <div class="card-body pt-5">
-                  <div class="row user-progress user-progress-small">
-                    <div class="col-lg-5"><span class="title">Bootstrap Admin</span></div>
-                    <div class="col-lg-7">
-                      <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 40%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row user-progress user-progress-small">
-                    <div class="col-lg-5"><span class="title">Custom Work</span></div>
-                    <div class="col-lg-7">
-                      <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 65%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row user-progress user-progress-small">
-                    <div class="col-lg-5"><span class="title">Clients Module</span></div>
-                    <div class="col-lg-7">
-                      <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 30%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row user-progress user-progress-small">
-                    <div class="col-lg-5"><span class="title">Email Templates</span></div>
-                    <div class="col-lg-7">
-                      <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 80%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="row user-progress user-progress-small">
-                    <div class="col-lg-5"><span class="title">Plans Module</span></div>
-                    <div class="col-lg-7">
-                      <div class="progress">
-                        <div class="progress-bar bg-success" style="width: 45%;"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="widget be-loading">
-                <div class="widget-head">
-                  <div class="tools"><span class="icon mdi mdi-chevron-down"></span><span class="icon mdi mdi-refresh-sync toggle-loading"></span><span class="icon mdi mdi-close"></span></div>
-                  <div class="title">Top Sales</div>
-                </div>
-                <div class="widget-chart-container">
-                  <div id="top-sales" style="height: 178px;"></div>
-                  <div class="chart-pie-counter">36</div>
-                </div>
-                <div class="chart-legend">
-                  <table class="chart-legend">
-                    <tbody>
-                      <tr>
-                        <td class="chart-legend-color"><span data-color="top-sales-color1"></span></td>
-                        <td>Premium Purchases</td>
-                        <td class="chart-legend-value">125</td>
-                      </tr>
-                      <tr>
-                        <td class="chart-legend-color"><span data-color="top-sales-color2"></span></td>
-                        <td>Standard Plans</td>
-                        <td class="chart-legend-value">1569</td>
-                      </tr>
-                      <tr>
-                        <td class="chart-legend-color"><span data-color="top-sales-color3"></span></td>
-                        <td>Services</td>
-                        <td class="chart-legend-value">824</td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                </div>
-                <div class="be-spinner">
-                  <svg width="40px" height="40px" viewBox="0 0 66 66" xmlns="http://www.w3.org/2000/svg">
-                    <circle class="circle" fill="none" stroke-width="4" stroke-linecap="round" cx="33" cy="33" r="30"></circle>
-                  </svg>
-                </div>
-              </div>
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="widget widget-calendar">
-                <div id="calendar-widget"></div>
               </div>
             </div>
           </div>

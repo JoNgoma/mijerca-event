@@ -47,29 +47,17 @@ function logout() {
       </div>
       <a class="be-toggle-top-header-menu collapsed" href="#" data-toggle="collapse" aria-expanded="false" data-target="#be-navbar-collapse">Top Menu</a>
       <div class="navbar-collapse collapse" id="be-navbar-collapse">
-        <ul class="navbar-nav">
-          <li class="nav-item dropdown"><a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown" role="button" aria-expanded="false">Communiqués <span class="mdi mdi-caret-down"></span></a>
-            <div class="dropdown-menu" role="menu"><router-link :to="{ name: 'list' }" class="dropdown-item">Niveau diocésain</router-link><router-link :to="{ name: 'list' }" class="dropdown-item">Niveau décanal</router-link><router-link :to="{ name: 'list' }" class="dropdown-item">Niveau paroissial</router-link><router-link :to="{ name: 'list' }" class="dropdown-item">Tous</router-link></div>
-          </li>
-          <li class="nav-item"><router-link :to="{ name: 'composer' }" class="nav-link" href="index-2.html">New communiqué</router-link></li>
-          <!-- <li class="nav item"><a class="nav-link" href="tables-general.html">Tables</a></li> -->
-        </ul>
+        <!-- Slot dynamique pour le contenu de navigation -->
+        <slot name="navigation">
+          <!-- Contenu par défaut si aucun slot n'est fourni -->
+          <ul class="navbar-nav">
+            <li class="nav-item"><router-link :to="{ name: 'dashboard' }" class="nav-link">Accueil</router-link></li>
+          </ul>
+        </slot>
       </div>
-      <!-- <div class="d-none d-md-flex align-items-center mx-auto">
-        <a class="navbar-brand d-flex align-items-center" href="#">
-          <img :src="logo" alt="logo" style="height: 38px; margin: 0 1em;" />
-          <span class="fw-bold" style="font-size: 1.7rem; letter-spacing: 1.5px; margin-right: 1.3em">
-            MIJERCA
-          </span>
-        </a>
-      </div>
-
-      <div class="page-title">
-        <span>Dashboard</span>
-      </div> -->
 
       <div class="be-right-navbar">
-
+        <!-- ... existing code ... -->
         <ul class="nav navbar-nav float-right be-user-nav">
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" role="button" aria-expanded="false">

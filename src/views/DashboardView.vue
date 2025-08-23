@@ -4,11 +4,16 @@ import HeaderDash from '@/components/dashboard/HeaderDash.vue';
 import FooterDash from '@/components/dashboard/FooterDash.vue';
 import AccueilDash from '@/partials/dashboard/AccueilDash.vue';
 import NavBarDash from '@/components/dashboard/NavBarDash.vue';
+import CommuniquesMenu from '@/components/menus/CommuniquesMenu.vue';
+import NewCommuniqueMenu from '@/components/menus/NewCommuniqueMenu.vue';
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useTopMenu } from '@/composables/useTopMenu'
 import axios from 'axios'
 
 const router = useRouter()
+const { currentMenu } = useTopMenu()
+
 const userData = ref({
   firstName: '',
   name: '',
@@ -135,10 +140,17 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
 
 <template>
 <div class="be-wrapper be-fixed-sidebar">
-      <HeaderDash />
+      <HeaderDash :userData="userData">
+        <template #navigation>
+          <CommuniquesMenu v-if="currentMenu === 'communiques'" />
+          <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />
+          <ul v-else class="navbar-nav">
+            <li class="nav-item"><a class="nav-link" href="#">Accueil</a></li>
+          </ul>
+        </template>
+      </HeaderDash>
       <AssideDash />
       <RouterView />
-      <!-- <AccueilDash /> -->
       <NavBarDash />
     </div>
 </template>
