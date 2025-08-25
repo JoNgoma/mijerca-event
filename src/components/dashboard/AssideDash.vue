@@ -128,27 +128,27 @@ $(document).ready(function(){
                 <a href="#"><i class="icon mdi mdi-layers"></i><span>Camp biblique 2025</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
+                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
                       Administration
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
+                    <router-link :to="{ name: 'rap-day', params: { serviceType: 'rap-day' } }">
                       Finances
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
+                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
                       Informatique
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
+                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
                       Logistique
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
+                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
                       Média
                     </router-link>
                   </li>
@@ -167,10 +167,7 @@ $(document).ready(function(){
             </ul>
           </div>
         </div>
-      </div>
-      
-      <!-- ... existing code ... -->
-      
+      </div>      
     </div>
   </div>
 </template>

@@ -12,10 +12,16 @@ export function useTopMenu() {
         return 'communiques'
       case 'composer':
         return 'new-communique'
-      case 'dashboard':
-        return 'dashboard'
+      case 'rap-day':
+        return 'rap-day'
+      case 'paie':
+        return 'paie'
+      case 'dep-new':
+        return 'dep-new'
+      case 'dep-suivis':
+        return 'dep-suivis'
       default:
-        return 'default'
+        return 'dashboard'
     }
   })
   
