@@ -20,24 +20,26 @@
 
 ##  Vue d’ensemble
 
-MIJERCA Event est conçu pour gérer les événements bibliques comme :
-- Camp biblique *Camp biblique 2025*  
-- JDM  
-- Come to Me  
-- A la montagne  
-- Veillée  
+MIJERCA-Event est une application Vue 3 développée avec Vite, pensée pour :
 
-Chaque événement comprend des activités avec catégories **Membre**, **Finances**, **Informatique**, **Logistique** et **Media**, ainsi qu’une hiérarchie d’organes (diocésains → décanaux → paroissiaux → jeunes).
+- Gérer plusieurs événements annuels 
+- Organiser des activités par catégorie (Membre, Finances, Informatique, Logistique, Média)
+- Gérer les services (diocésain, décanal, paroissial, jeunes)
+- Organiser les paiements par **secteurs (Kin-Est, Kin-Centre, Kin-Ouest)**
+- Déclarer des dépenses : *Nouvelle dépense* & *Suivi des dépenses*
+- Afficher des **rapports financiers (journaliers & globaux)** dynamiques
+- Être installable comme **Progressive Web App** (mode hors-ligne, installation mobile…)
 
 ---
 
 ##  Fonctionnalités clés
 
--  **Dashboard** : Statistiques globales d’un coup d’œil.  
--  **Gestion des événements & activités**.  
--  **Gestion du personnel** selon la hiérarchie du MIJERCA.  
--  **Module Finance** : confirmation des paiements, rapports globaux.  
--  **Administration complète des utilisateurs**.  
+-  **Dashboard** avec statistiques globales
+-  **Gestion événements & activités**
+-  **Administration des services hiérarchisés**
+-  **Paiement segmenté** par secteur (Kin Est, Centre, Ouest)
+-  **Module Dépenses** : création et suivi
+-  **Rapports financiers** : journaliers et globaux
 -  **PWA-ready** : installation sur mobile, fonctionnement hors ligne (cache via Service Worker), icône sur écran d’accueil.
 
 ---
@@ -67,11 +69,11 @@ git clone https://github.com/JoNgoma/mijerca-event.git
 cd mijerca-event
 
 # Installer les dépendances
-npm install
+pnpm install
 # ou
 yarn install
 
 # Lancer le serveur de dev
-npm run dev
+pnpm dev
 # ou
 yarn dev
