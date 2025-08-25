@@ -38,7 +38,7 @@ $(document).ready(function(){
           <nav aria-label="breadcrumb" role="navigation">
             <ol class="breadcrumb page-head-nav">
               <li class="breadcrumb-item"><router-link :to="{ name: 'dashboard' }">Dashboard</router-link></li>
-              <li class="breadcrumb-item"><a href="#">Paiement par paroisse</a></li>
+              <li class="breadcrumb-item"><a href="#">Finances</a></li>
               <li class="breadcrumb-item active">{{ pageTitle }}</li>
             </ol>
           </nav>
