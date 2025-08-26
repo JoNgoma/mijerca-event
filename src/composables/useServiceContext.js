@@ -56,6 +56,46 @@ const serviceTypes = {
     name: 'Liste des dépenses',
     icon: 'mdi mdi-currency-usd',
     description: 'Suivis des sorties'
+  },
+   'services': {
+    name: 'Administration',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Listes de services'
+  },
+  'adm-select': {
+    name: 'Services sectionné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Descrition du services'
+  },
+  'dortoir': {
+    name: 'Dortoirs',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Gestion des dortoirs'
+  },
+  'carrefour': {
+    name: 'Carrefours',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Gestion des dortoirs'
+  },
+  'affect': {
+    name: 'Affectation logistique',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Mis en place'
+  },
+  'badge-preview': {
+    name: 'Modèle badge',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Visualisation badge'
+  },
+  'badge-editor': {
+    name: 'Editeur badge',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Edidtion et création badge'
+  },
+  'a4-generator': {
+    name: 'Générateur impression',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Impression badge en A4'
   }
 
 }

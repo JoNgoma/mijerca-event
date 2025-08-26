@@ -110,7 +110,14 @@ $(document).ready(function(){
                       <!-- <td>Adds a search bar to filter options</td> -->
                     </tr>
                   </table>
-                  <div class="row pt-8">
+                  <div class="form-group">
+                      <label>Montant total</label>
+                    <div class="input-group">
+                          <input readonly="readonly" value="150 $" class="form-control" type="text">
+                          <div class="input-group-append"><span class="input-group-text">.00</span></div>
+                        </div>
+                    </div>
+                  <div class="row pt-3">
                       <div class="col-12 d-flex justify-content-end">
                         <button class="btn btn-secondary mr-4">Retour</button>
                         <button class="btn btn-primary" type="submit">Enregistrer</button>

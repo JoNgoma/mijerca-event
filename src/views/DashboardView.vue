@@ -6,6 +6,8 @@ import AccueilDash from '@/partials/dashboard/AccueilDash.vue';
 import NavBarDash from '@/components/dashboard/NavBarDash.vue';
 import CommuniquesMenu from '@/components/menus/CommuniquesMenu.vue';
 import NewCommuniqueMenu from '@/components/menus/NewCommuniqueMenu.vue';
+import AdmMenu from '@/components/menus/AdmMenu.vue';
+import LogMenu from '@/components/menus/LogMenu.vue';
 import FinancesMenu from '@/components/menus/FinancesMenu.vue';
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
@@ -143,12 +145,14 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
 <div class="be-wrapper be-fixed-sidebar">
       <HeaderDash :userData="userData">
         <template #navigation>
-          <ul class="navbar-nav">
-            <li class="nav-item"><router-link class="nav-link" :to="{ name: 'dashboard' }">Accueil</router-link></li>
-          </ul>
           <CommuniquesMenu v-if="currentMenu === 'communiques'" />
           <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />
           <FinancesMenu v-else-if="currentMenu === 'rap-day' || currentMenu === 'paie' || currentMenu === 'dep-new'  || currentMenu === 'dep-suivis'" />
+          <AdmMenu v-else-if="currentMenu === 'services' ||currentMenu === 'adm-select'" />
+          <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
+          <ul v-else class="navbar-nav">
+            <li class="nav-item"><router-link class="nav-link" :to="{ name: 'dashboard' }">Accueil</router-link></li>
+          </ul>
         </template>
       </HeaderDash>
       <AssideDash />

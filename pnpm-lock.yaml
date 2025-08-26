@@ -26,6 +26,9 @@ importers:
       vue-toastification:
         specifier: 2.0.0-rc.5
         version: 2.0.0-rc.5(vue@3.5.18)
+      vue3-draggable-resizable:
+        specifier: ^1.6.5
+        version: 1.6.5
     devDependencies:
       '@eslint/js':
         specifier: ^9.31.0
@@ -1440,6 +1443,9 @@ packages:
     peerDependencies:
       vue: ^3.0.2
 
+  vue3-draggable-resizable@1.6.5:
+    resolution: {integrity: sha512-31142E31fGNnq3HKqvmFLSsqIbhck7TyGuQWhUKrDw6DOcGAuRx4ddRjaxvT6fe7dgeKH53qAh+i0ZlWtPLl2g==}
+
   vue@3.5.18:
     resolution: {integrity: sha512-7W4Y4ZbMiQ3SEo+m9lnoNpV9xG7QVMLa+/0RFwwiAVkeYoyGXqWE85jabU4pllJNUzqfLShJ5YLptewhCWUgNA==}
     peerDependencies:
@@ -2785,6 +2791,8 @@ snapshots:
   vue-toastification@2.0.0-rc.5(vue@3.5.18):
     dependencies:
       vue: 3.5.18
+
+  vue3-draggable-resizable@1.6.5: {}
 
   vue@3.5.18:
     dependencies:

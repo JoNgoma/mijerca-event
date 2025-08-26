@@ -10,6 +10,15 @@ import Paie from '@/partials/dashboard/biblic/Paie.vue'
 import RapDay from '@/partials/dashboard/biblic/RapDay.vue'
 import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
 import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
+import AdmServices from '@/partials/dashboard/biblic/AdmServices.vue'
+import LogDor from '@/partials/dashboard/biblic/LogDor.vue'
+import LogCar from '@/partials/dashboard/biblic/LogCar.vue'
+import LogAffect from '@/partials/dashboard/biblic/LogAffect.vue'
+import AdmSelectService from '@/partials/dashboard/biblic/AdmSelectService.vue'
+import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vue'
+import BadgePreview from '@/partials/dashboard/biblic/informatique/BadgePreview.vue'
+import A4Generator from '@/partials/dashboard/biblic/informatique/A4Generator.vue'
+import PersonSelector from '@/partials/dashboard/biblic/informatique/PersonSelector.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -73,6 +82,21 @@ const router = createRouter({
                   component: NewBiblic
                 },
                 {
+                  path: '',
+                  meta: { requiresAuth: true },
+                  children: [
+                    {
+                      path: ':serviceType',
+                      name: 'services',
+                      component: AdmServices
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'adm-select',
+                      component: AdmSelectService
+                    },
+                  ]},
+                {
                   path: 'finances',
               meta: { requiresAuth: true },
               children: [
@@ -99,7 +123,7 @@ const router = createRouter({
                       name: 'dep-suivis',
                       component: DepSuivis
                     },
-                  ]}
+                  ]},
               ]
                 },
                 {
@@ -108,7 +132,52 @@ const router = createRouter({
                   component: Paie
                 }
               ]
-                }
+                },
+                {
+                  path: 'logistique',
+                  meta: { requiresAuth: true },
+                  children: [
+                    {
+                      path: ':serviceType',
+                      name: 'log-dortoir',
+                      component: LogDor
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'log-carrefour',
+                      component: LogCar
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'log-affect',
+                      component: LogAffect
+                    },
+                  ]},
+                  {
+                  path: 'informatique',
+                  meta: { requiresAuth: true },
+                  children: [
+                    {
+                      path: ':serviceType',
+                      name: 'info-badge-editor',
+                      component: BadgeEditor
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'info-badge-preview',
+                      component: BadgePreview
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'info-person-selector',
+                      component: PersonSelector
+                    },
+                    {
+                      path: ':serviceType',
+                      name: 'info-a4-generator',
+                      component: A4Generator
+                    },
+                  ]},
               ]
             }
       ]

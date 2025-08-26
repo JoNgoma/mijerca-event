@@ -123,12 +123,11 @@ $(document).ready(function(){
                   <i class="icon mdi mdi-book"></i><span>Nouveau</span>
                 </router-link>
               </li>
-              
               <li class="parent">
                 <a href="#"><i class="icon mdi mdi-layers"></i><span>Camp biblique 2025</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
+                    <router-link :to="{ name: 'services', params: { serviceType: 'services' } }">
                       Administration
                     </router-link>
                   </li>
@@ -138,13 +137,13 @@ $(document).ready(function(){
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
-                      Informatique
+                    <router-link :to="{ name: 'log-dortoir', params: { serviceType: 'dortoir' } }">
+                      Logistique
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
-                      Logistique
+                    <router-link :to="{ name: 'info-badge-editor', params: { serviceType: 'badge-editor' } }">
+                      Informatique
                     </router-link>
                   </li>
                   <li>
