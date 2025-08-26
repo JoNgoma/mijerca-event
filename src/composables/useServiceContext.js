@@ -96,7 +96,27 @@ const serviceTypes = {
     name: 'Générateur impression',
     icon: 'mdi mdi-currency-usd',
     description: 'Impression badge en A4'
-  }
+  },
+  'doyenne-paroisse': {
+    name: 'Paroisse et doyenné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'KIN EST'
+  },
+  'kin-est': {
+    name: 'Paroisse et doyenné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'KIN EST'
+  },
+  'kin-centre': {
+    name: 'Paroisse et doyenné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'KIN CENTRE'
+  },
+  'kin-ouest': {
+    name: 'Paroisse et doyenné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'KIN OUEST'
+  },
 
 }
 

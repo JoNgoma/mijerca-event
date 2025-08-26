@@ -146,23 +146,18 @@ $(document).ready(function(){
                       Informatique
                     </router-link>
                   </li>
-                  <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'journalier' } }">
-                      Média
-                    </router-link>
-                  </li>
                   <!-- <li>
-                    <router-link :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }">
-                      Nouvelle Unité
+                    <router-link :to="{ name: 'med-list', params: { serviceType: 'média' } }">
+                      Média
                     </router-link>
                   </li> -->
                 </ul>
               </li>
               
               <li class="divider">Gestion des paroisses</li>
-              <li><a href="documentation.html"><i class="icon mdi mdi-pin"></i><span>KIN EST</span></a></li>
-              <li><a href="documentation.html"><i class="icon mdi mdi-pin"></i><span>KIN CENTRE</span></a></li>
-              <li><a href="documentation.html"><i class="icon mdi mdi-pin"></i><span>KIN OUEST</span></a></li>
+              <li><router-link :to="{ name: 'sec-new', params: { serviceType: 'kin-est' } }"><i class="icon mdi mdi-pin"></i><span>KIN EST</span></router-link></li>
+              <li><router-link :to="{ name: 'sec-new', params: { serviceType: 'kin-centre' } }"><i class="icon mdi mdi-pin"></i><span>KIN CENTRE</span></router-link></li>
+              <li><router-link :to="{ name: 'sec-new', params: { serviceType: 'kin-ouest' } }"><i class="icon mdi mdi-pin"></i><span>KIN OUEST</span></router-link></li>
             </ul>
           </div>
         </div>

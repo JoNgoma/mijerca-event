@@ -1,5 +1,6 @@
 
 import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
+import Error404 from '@/partials/dashboard/Error404.vue'
 import NewUnity from '@/partials/dashboard/persons/new/NewUnity.vue'
 import Analytic from '@/partials/dashboard/persons/analytic/Analytic.vue'
 import DetailInfo from '@/partials/dashboard/persons/info/DetailInfo.vue'
@@ -19,6 +20,7 @@ import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vu
 import BadgePreview from '@/partials/dashboard/biblic/informatique/BadgePreview.vue'
 import A4Generator from '@/partials/dashboard/biblic/informatique/A4Generator.vue'
 import PersonSelector from '@/partials/dashboard/biblic/informatique/PersonSelector.vue'
+import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -179,8 +181,24 @@ const router = createRouter({
                     },
                   ]},
               ]
-            }
+            },
+            {
+                  path: 'secteur',
+                  meta: { requiresAuth: true },
+                  children: [
+                    {
+                      path: ':serviceType',
+                      name: 'sec-new',
+                      component: ParDoyNew
+                    },
+                  ]
+                }
       ]
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: Error404
     }
   ],
 })
