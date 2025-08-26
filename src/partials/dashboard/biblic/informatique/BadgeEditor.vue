@@ -9,10 +9,10 @@ const router = useRouter();
 
 // Textes à placer avec couleurs
 const fields = ref([
-  { label: "Nom", key: "name", x: 400, y: 50, color: "#000000", fontSize: 14 },
-  { label: "Paroisse", key: "church", x: 400, y: 120, color: "#000000", fontSize: 14 },
-  { label: "Carrefour", key: "site", x: 400, y: 200, color: "#000000", fontSize: 14 },
-  { label: "Dortoir", key: "sleep", x: 400, y: 280, color: "#000000", fontSize: 14 }
+  { label: "Nom", key: "name", x: 50, y: 450, color: "#3B5998", fontSize: 18 },
+  { label: "Paroisse", key: "church", x: 50, y: 480, color: "#E74C3C", fontSize: 16 },
+  { label: "Carrefour", key: "site", x: 50, y: 510, color: "#000000", fontSize: 14 },
+  { label: "Dortoir", key: "sleep", x: 50, y: 540, color: "#000000", fontSize: 14 }
 ]);
 
 const selectedFieldIndex = ref(0);
@@ -90,7 +90,7 @@ loadSavedLayout();
                   :key="index"
                   :x="field.x"
                   :y="field.y"
-                  :w="150"
+                  :w="180"
                   :h="40"
                   :draggable="true"
                   :resizable="false"
@@ -233,11 +233,10 @@ loadSavedLayout();
 <style scoped>
 .badge-editor {
   position: relative;
-  width: 400px;
-  height: 600px;
+  width: 400px;   /* à ajuster selon ton image */
+  height: 600px;  /* idem */
   border: 2px solid #ddd;
   border-radius: 8px;
-  overflow: hidden;
   box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
@@ -249,6 +248,7 @@ loadSavedLayout();
 }
 
 .text-field {
+  font-size: 14pt;
   font-weight: bold;
   background: rgba(255,255,255,0.8);
   text-align: center;

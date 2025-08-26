@@ -122,15 +122,15 @@ const generateBadges = () => {
                 </div>
                 <div class="col-md-6">
                   <div class="form-check">
-                    <input
+                    <!-- <input
                       class="form-check-input"
                       type="checkbox"
                       id="selectAllCheck"
                       v-model="selectAll"
                       @change="toggleSelectAll"
-                    />
+                    /> -->
                     <label class="form-check-label" for="selectAllCheck">
-                      Sélectionner tout ({{ filteredPersons.length }} personnes)
+                      Nombre total de jeunes : {{ filteredPersons.length }}
                     </label>
                   </div>
                 </div>

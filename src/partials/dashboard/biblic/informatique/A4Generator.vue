@@ -76,10 +76,12 @@ const printAllPages = () => {
   // Afficher toutes les pages pour l'impression
   const printWindow = window.open('', '_blank');
   const printContent = generatePrintContent();
-  
   printWindow.document.write(printContent);
   printWindow.document.close();
+  setTimeout(() => {
   printWindow.print();
+  }, 500);
+  
 };
 
 // Générer le contenu pour l'impression
@@ -92,7 +94,7 @@ const generatePrintContent = () => {
       <style>
         @page {
           size: A4;
-          margin: 5mm;
+          margin: 2mm;
         }
         body {
           margin: 0;
@@ -105,8 +107,7 @@ const generatePrintContent = () => {
           display: grid;
           grid-template-columns: 1fr 1fr;
           grid-template-rows: 1fr 1fr;
-          gap: 5mm;
-          padding: 5mm;
+          gap: 4mm;
           page-break-after: always;
           box-sizing: border-box;
         }
@@ -151,7 +152,7 @@ const generatePrintContent = () => {
         const value = getPersonValue(person, field.key);
         content += `
           <div class="text" style="
-            top: ${field.y}px; 
+            top: ${field.y-10}px; 
             left: ${field.x}px;
             color: ${field.color || '#000000'};
             font-size: ${field.fontSize || 14}pt;
@@ -257,10 +258,10 @@ onMounted(() => {
                         :key="i"
                         class="text"
                         :style="{ 
-                          top: (field.y * 0.6) + 'px', 
-                          left: (field.x * 0.6) + 'px',
+                          top: (field.y * 0.91) + 'px', 
+                          left: (field.x * 0.91) + 'px',
                           color: field.color || '#000000',
-                          fontSize: ((field.fontSize || 14) * 0.6) + 'pt'
+                          fontSize: ((field.fontSize || 14) * 0.91) + 'pt'
                         }"
                       >
                         {{ getPersonValue(person, field.key) }}
@@ -345,7 +346,7 @@ onMounted(() => {
             <i class="mdi mdi-arrow-left me-2"></i>
             Retour à la sélection
           </button>
-          <button 
+          <!-- <button 
             @click="printCurrentPage" 
             class="btn btn-info btn-lg"
             type="button"
@@ -353,7 +354,7 @@ onMounted(() => {
           >
             <i class="mdi mdi-printer me-2"></i>
             Imprimer cette page
-          </button>
+          </button> -->
           <button 
             @click="printAllPages" 
             class="btn btn-success btn-lg"

@@ -67,10 +67,10 @@ onMounted(() => {
                     :key="i"
                     class="text"
                     :style="{ 
-                      top: field.y + 'px', 
+                      top: field.y+3 + 'px', 
                       left: field.x + 'px',
                       color: field.color || '#000000',
-                      fontSize: (field.fontSize || 14) + 'pt'
+                      fontSize: (field.fontSize || 14) + 'pt',
                     }"
                   >
                     {{ person[field.key] || field.label }}
@@ -135,7 +135,7 @@ onMounted(() => {
 
 .text {
   position: absolute;
-  font-weight: bold;
+  /* font-weight: bold; */
   text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
   pointer-events: none;
   white-space: nowrap;
