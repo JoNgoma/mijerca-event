@@ -1,6 +1,9 @@
 #  MIJERCA Event — Application Web & PWA
 
-**Progressive Web App de gestion des événements du MIJERCA** — Application Vue 3 (Vite) avec administration d’événements, gestion du personnel, finances, et plus.
+**Progressive Web App de gestion des événements du MIJERCA** — Application web destinée à l’organisation des camps bibliques annuels du **MIJERCA** (Ministère des Jeunes du Renouveau Catholique).  
+Elle centralise la planification, depuis la gestion des inscriptions des jeunes regroupés par paroisse, doyenné et secteur, jusqu’au suivi global de l’événement.  
+De plus, cette application **web** prend en charge la génération personnalisée des badges ainsi que le suivi financier tout au long des activités.
+
 
 ---
 
@@ -34,13 +37,20 @@ MIJERCA-Event est une application Vue 3 développée avec Vite, pensée pour :
 
 ##  Fonctionnalités clés
 
--  **Dashboard** avec statistiques globales
--  **Gestion événements & activités**
--  **Administration des services hiérarchisés**
--  **Paiement segmenté** par secteur (Kin Est, Centre, Ouest)
--  **Module Dépenses** : création et suivi
--  **Rapports financiers** : journaliers et globaux
--  **PWA-ready** : installation sur mobile, fonctionnement hors ligne (cache via Service Worker), icône sur écran d’accueil.
+| Fonctionnalité | Description |
+|----------------|-------------|
+| **Dashboard** | Vue globale avec statistiques en temps réel |
+| **Gestion événements & activités** | Création, mise à jour et suivi des activités |
+| **Administration des services hiérarchisés** | Gestion par secteurs, paroisses et noyaux |
+| **Paiement segmenté** | Organisation des paiements par secteur (*Kin-Est, Kin-Centre, Kin-Ouest*) |
+| **Module Dépenses** | Création et suivi des dépenses en temps réel |
+| **Rapports financiers** | Génération de rapports journaliers et globaux |
+| **Customisation & impression des badges** | Personnalisation (nom, carrefour, chef, QR code) + impression A4 |
+| **Gestion des participants** | Recherche rapide, filtres avancés et suivi des inscrits |
+| **Gestion des carrefours & responsables** | Affectation automatique et suivi des chefs |
+| **Support multi-écrans** | Responsive design (desktop, tablette, mobile) |
+| **PWA-ready** | Installation mobile, fonctionnement hors-ligne (Service Worker, manifest) |
+
 
 ---
 
