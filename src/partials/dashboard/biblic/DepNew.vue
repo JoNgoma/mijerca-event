@@ -73,7 +73,7 @@ $(document).ready(function(){
                       </div>
                     </div>
                     <div class="form-group pt-2">
-                      <label>Entrer le montant par personne</label>
+                      <label>Entrer le montant</label>
                     <div class="input-group mb-3">
                           <input class="form-control" type="text">
                           <div class="input-group-append"><span class="input-group-text">.00</span></div>

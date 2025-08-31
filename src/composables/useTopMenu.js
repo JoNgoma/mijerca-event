@@ -36,12 +36,16 @@ export function useTopMenu() {
         return 'badge-preview'
       case 'info-a4-generator':
         return 'a4-generator'
-      case 'kin-est':
+      case 'sec-kin':
         return 'kin-est'
-      case 'kin-centre':
-        return 'kin-centre'
-      case 'kin-ouest':
-        return 'kin-ouest'
+      case 'sec-paroisse':
+        return 'kin-est'
+      case 'sec-new':
+        return 'new-noy&par'
+      // case 'kin-centre':
+      //   return 'kin-centre'
+      // case 'kin-ouest':
+        // return 'kin-ouest'
       default:
         return 'dashboard'
     }

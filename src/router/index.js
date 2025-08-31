@@ -21,6 +21,8 @@ import BadgePreview from '@/partials/dashboard/biblic/informatique/BadgePreview.
 import A4Generator from '@/partials/dashboard/biblic/informatique/A4Generator.vue'
 import PersonSelector from '@/partials/dashboard/biblic/informatique/PersonSelector.vue'
 import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
+import DoyStat from '@/partials/dashboard/paroisses/DoyStat.vue'
+import Paroisse from '@/partials/dashboard/paroisses/Paroisse.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
@@ -188,6 +190,16 @@ const router = createRouter({
                   children: [
                     {
                       path: ':serviceType',
+                      name: 'sec-kin',
+                      component: DoyStat,
+                    },
+                    {
+                      path: ':serviceType/paroisse',
+                      name: 'sec-paroisse',
+                      component: Paroisse
+                    },
+                    {
+                      path: ':serviceType/new-doy&par',
                       name: 'sec-new',
                       component: ParDoyNew
                     },

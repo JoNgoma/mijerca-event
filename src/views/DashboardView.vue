@@ -9,6 +9,7 @@ import NewCommuniqueMenu from '@/components/menus/NewCommuniqueMenu.vue';
 import AdmMenu from '@/components/menus/AdmMenu.vue';
 import LogMenu from '@/components/menus/LogMenu.vue';
 import FinancesMenu from '@/components/menus/FinancesMenu.vue';
+import ParoisseMenu from '@/components/menus/ParoisseMenu.vue';
 import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTopMenu } from '@/composables/useTopMenu'
@@ -150,6 +151,7 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
           <FinancesMenu v-else-if="currentMenu === 'rap-day' || currentMenu === 'paie' || currentMenu === 'dep-new'  || currentMenu === 'dep-suivis'" />
           <AdmMenu v-else-if="currentMenu === 'services' ||currentMenu === 'adm-select'" />
           <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
+          <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par'" />
           <ul v-else class="navbar-nav">
             <li class="nav-item"><router-link class="nav-link" :to="{ name: 'dashboard' }">Accueil</router-link></li>
           </ul>

@@ -1,6 +1,8 @@
 <script setup>
+import { useRoute } from 'vue-router';
 import { useServiceContext } from '@/composables/useServiceContext'
 
+const route = useRoute();
 const { serviceTypes } = useServiceContext()
 
 // on ne garde que ceux qui commencent par "kin"
@@ -8,13 +10,17 @@ const secteurs = Object.keys(serviceTypes)
   .filter(k => k.startsWith('kin-'))
   .map(k => ({ key: k, ...serviceTypes[k] }))
 
-  const rapports = Object.keys(serviceTypes)
+const rapports = Object.keys(serviceTypes)
   .filter(k => k.startsWith('rap-'))
   .map(k => ({ key: k, ...serviceTypes[k] }))
 
-  const depenses = Object.keys(serviceTypes)
+const depenses = Object.keys(serviceTypes)
   .filter(k => k.startsWith('dep-'))
   .map(k => ({ key: k, ...serviceTypes[k] }))
+
+const isActive = (routeName) => {
+  return route.name === routeName;
+};
 </script>
 
 <template>
@@ -29,6 +35,7 @@ const secteurs = Object.keys(serviceTypes)
           :key="rapport.key"
           :to="{ name: 'rap-day', params: { serviceType: rapport.key } }"
           class="dropdown-item"
+          :class="{ 'text-primary': isActive('rap-day') }"
         >
           {{ rapport.name }}
         </router-link>
@@ -44,6 +51,7 @@ const secteurs = Object.keys(serviceTypes)
           :key="secteur.key"
           :to="{ name: 'paie', params: { serviceType: secteur.key } }"
           class="dropdown-item"
+          :class="{ 'text-primary': isActive('paie') }"
         >
           {{ secteur.name }}
         </router-link>
@@ -59,6 +67,7 @@ const secteurs = Object.keys(serviceTypes)
             :key="depense.key"
             :to="{ name: depense.key, params: { serviceType: depense.key } }" 
             class="dropdown-item"
+            :class="{ 'text-primary': isActive(depense.key) }"
           >
             {{ depense.name }}
           </router-link>

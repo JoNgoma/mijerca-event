@@ -8,7 +8,6 @@ $(document).ready(function(){
       	App.init();
       	// App.dataTables();
       	App.dashboard();
-
       });
 </script>
 

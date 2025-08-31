@@ -102,20 +102,28 @@ const serviceTypes = {
     icon: 'mdi mdi-currency-usd',
     description: 'KIN EST'
   },
-  'kin-est': {
+  'sec-kin': {
     name: 'Paroisse et doyenné',
     icon: 'mdi mdi-currency-usd',
-    description: 'KIN EST'
+    description: 'Info KIN EST'
   },
-  'kin-centre': {
+  'est': {
+    position: 'est',
     name: 'Paroisse et doyenné',
     icon: 'mdi mdi-currency-usd',
-    description: 'KIN CENTRE'
+    description: 'Info KIN EST'
   },
-  'kin-ouest': {
+  'centre': {
+    position: 'centre',
     name: 'Paroisse et doyenné',
     icon: 'mdi mdi-currency-usd',
-    description: 'KIN OUEST'
+    description: 'Info KIN CENTRE'
+  },
+  'ouest': {
+    position: 'ouest',
+    name: 'Paroisse et doyenné',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Info KIN OUEST'
   },
 
 }
