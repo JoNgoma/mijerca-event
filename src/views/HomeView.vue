@@ -1,4 +1,6 @@
 <script setup>
+import { RouterView } from 'vue-router';
+
 
 
 defineProps({
@@ -10,16 +12,7 @@ defineProps({
 </script>
 
 <template>
-    <!-- <HeaderHome />
-  <main>
-    <AccueilSection />
-    <MeritSection />
-    <AproposSection />
-    <PilierSection />
-    <TestinonialSection />
-    <CallActionSection />
-  </main>
-  <FooterHome /> -->
+    <RouterView />
 </template>
 
 <style scoped>

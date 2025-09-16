@@ -25,10 +25,35 @@ import DoyStat from '@/partials/dashboard/paroisses/DoyStat.vue'
 import Paroisse from '@/partials/dashboard/paroisses/Paroisse.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+import HomeView from '../views/HomeView.vue'
+import HomeAccueil from '../partials/home/HomeAccueil.vue'
+import Signjeune from '../partials/home/Signjeune.vue'
+import LoginPage from '@/views/auth/LoginPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '',
+      component: HomeView,
+      children: [
+        {
+          path: '',
+          name: 'home',
+          component: HomeAccueil
+        },
+        {
+          path: 'sign-up',
+          name: 'signUp',
+          component: Signjeune
+        },
+        {
+          path: 'login',
+          name: 'login',
+          component: LoginPage
+        },
+      ],
+    },
     {
       path: '/admin',
       component: DashboardView,
@@ -214,5 +239,24 @@ const router = createRouter({
     }
   ],
 })
+
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('token')
+
+  // Vérifie si une des routes dans la pile a requiresAuth
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      return next({ name: 'login' })
+    }
+  }
+
+  // 🔄 Si on est connecté et on essaie d’aller sur login, redirige vers dashboard
+  if (isAuthenticated && (to.name === 'login' || to.name === 'signUp')) {
+    return next({ name: 'dashboard' })
+  }
+
+  next()
+})
+
 
 export default router

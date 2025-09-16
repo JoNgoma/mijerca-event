@@ -139,7 +139,12 @@ const apiBaseUrl = import.meta.env.VITE_API_BASE_URL
 //   const paceElements = document.querySelectorAll('.pace');
 //   paceElements.forEach(el => el.remove());
 // });
-
+$(document).ready(function(){
+      	//-initialize the javascript
+      	App.init();
+      	App.dashboard();
+      
+      });
 </script>
 
 <template>

@@ -1,14 +1,12 @@
 <script setup>
 import AssideDash from '@/components/dashboard/AssideDash.vue';
 import HeaderDash from '@/components/dashboard/HeaderDash.vue';
-import FooterDash from '@/components/dashboard/FooterDash.vue';
-import AccueilDash from '@/partials/dashboard/AccueilDash.vue';
 import NavBarDash from '@/components/dashboard/NavBarDash.vue';
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { RouterView } from 'vue-router'
 
-import axios from 'axios'
+// import axios from 'axios'
 
 const router = useRouter()
 const userData = ref({
