@@ -1,15 +1,131 @@
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRoute } from 'vue-router';
+import { useServiceContext } from '@/composables/useServiceContext';
 
-const router = useRouter();
+const route = useRoute();
+const { currentService } = useServiceContext();
+
+const sectorService = computed(() => route.params.serviceType || currentService.value.position);
+
+const sector = computed(() => {
+  if (sectorService.value === "est") return "KIN EST";
+  if (sectorService.value === "centre") return "KIN CENTRE";
+  if (sectorService.value === "ouest") return "KIN OUEST";
+  return "KIN EST";
+});
+
+const descr = computed(() => currentService.value.description);
+
+// ==========================
+// Données dynamiques
+// ==========================
+const API_URL = import.meta.env.VITE_API_BASE_URL;
+const token = localStorage.getItem("token");
+
+const sectorId = ref(null);
+const doyennes = ref([]);
+const totalSecteur = ref(0);
+const widgetData = ref({
+  est: { frere: 0, soeur: 0 },
+  centre: { frere: 0, soeur: 0 },
+  ouest: { frere: 0, soeur: 0 },
+  total: { frere: 0, soeur: 0, est: 0, centre: 0, ouest: 0, total: 0 }
+});
+
+// ==========================
+// Charger ID secteur courant
+// ==========================
+async function fetchSectorId() {
+  try {
+    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const sec = data.member?.find(s => s.name === sector.value);
+    if (sec) {
+      sectorId.value = sec.id;
+      await fetchDoyennes();
+      await fetchWidgetData();
+    }
+  } catch (err) {
+    console.error("Erreur récupération secteur", err);
+  }
+}
+
+// ==========================
+// Récupérer doyennes, paroisses, personnes
+// ==========================
+async function fetchDoyennes() {
+  if (!sectorId.value) return;
+  try {
+    const res = await fetch(`${API_URL}/people?sector=/sectors/${sectorId.value}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const people = (await res.json()).member || [];
+    // grouper par doyenné
+    const doyMap = {};
+    people.forEach(p => {
+      const doyId = p.doyenne;
+      if (!doyMap[doyId]) doyMap[doyId] = { name: p.doyenneName, paroisses: [], totalEffectif: 0 };
+      const effectif = p.paroisse ? 1 : 0;
+      doyMap[doyId].paroisses.push({ id: p.paroisse, name: p.paroisseName, effectif });
+      doyMap[doyId].totalEffectif += effectif;
+    });
+    doyennes.value = Object.values(doyMap);
+    totalSecteur.value = people.length;
+  } catch (err) {
+    console.error("Erreur récupération doyennés et personnes", err);
+  }
+}
+
+// ==========================
+// Récupérer données pour widgets (KIN EST / CENTRE / OUEST)
+// ==========================
+async function fetchWidgetData() {
+  try {
+    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
+    const people = (await res.json()).member || [];
+    widgetData.value.est.frere = people.filter(p => p.sector === "/api/sectors/1" && p.gender === "Frère").length;
+    widgetData.value.est.soeur = people.filter(p => p.sector === "/api/sectors/1" && p.gender === "Soeur").length;
+
+    widgetData.value.centre.frere = people.filter(p => p.sector === "/api/sectors/2" && p.gender === "Frère").length;
+    widgetData.value.centre.soeur = people.filter(p => p.sector === "/api/sectors/2" && p.gender === "Soeur").length;
+
+    widgetData.value.ouest.frere = people.filter(p => p.sector === "/api/sectors/3" && p.gender === "Frère").length;
+    widgetData.value.ouest.soeur = people.filter(p => p.sector === "/api/sectors/3" && p.gender === "Soeur").length;
+
+    widgetData.value.total.frere = people.filter(p => p.gender === "Frère").length;
+    widgetData.value.total.soeur = people.filter(p => p.gender === "Soeur").length;
+
+    widgetData.value.total.est = (widgetData.value.est.frere + widgetData.value.est.soeur);
+    widgetData.value.total.centre = (widgetData.value.centre.frere + widgetData.value.centre.soeur);
+    widgetData.value.total.ouest = (widgetData.value.ouest.frere + widgetData.value.ouest.soeur);
+
+    widgetData.value.total.total = (widgetData.value.total.est + widgetData.value.total.centre + widgetData.value.total.ouest);
+
+    console.log(" Data:", widgetData.value.est.frere);
+  } catch (err) {
+    console.error("Erreur récupération widget", err);
+  }
+}
+
+// ==========================
+// Montage et watch route
+// ==========================
+onMounted(() => {
+  fetchSectorId();
+});
+
+watch(() => route.params.serviceType, () => {
+  fetchSectorId();
+});
 $(document).ready(function(){
-      	//-initialize the javascript
       	App.init();
-      	// App.dataTables();
       	App.dashboard();
       });
 </script>
+
 
 <template>
     <div class="be-content">
@@ -20,9 +136,9 @@ $(document).ready(function(){
                           <div class="chart sparkline" id="spark1"></div>
                           <div class="data-info">
                             <div class="desc">KIN EST</div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="240">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.est.frere">{{widgetData.est.frere}}</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="343">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.est.soeur">{{widgetData.est.soeur}}</span><span class="indicator-negative mdi mdi-gender-male"></span>
                             </div>
                             <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
                             </div> -->
@@ -34,9 +150,9 @@ $(document).ready(function(){
                           <div class="chart sparkline" id="spark2"></div>
                           <div class="data-info">
                             <div class="desc">KIN CENTRE</div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="242">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.centre.frere">{{widgetData.centre.frere}}</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="300">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.centre.soeur">{{widgetData.centre.soeur}}</span><span class="indicator-negative mdi mdi-gender-male"></span>
                             </div>
                             <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
                             </div> -->
@@ -48,9 +164,9 @@ $(document).ready(function(){
                           <div class="chart sparkline" id="spark3"></div>
                           <div class="data-info">
                             <div class="desc">KIN OUEST</div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="313">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.ouest.frere">{{widgetData.ouest.frere}}</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="360">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.ouest.soeur">{{widgetData.ouest.soeur}}</span><span class="indicator-negative mdi mdi-gender-male"></span>
                             </div>
                             <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
                             </div> -->
@@ -62,9 +178,9 @@ $(document).ready(function(){
                           <div class="chart sparkline" id="spark4"></div>
                           <div class="data-info">
                             <div class="desc">KINSHASA</div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="795">0</span><span class="indicator-equal mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.total.frere">{{widgetData.total.frere}}</span><span class="indicator-equal mdi mdi-gender-male"></span>
                             </div>
-                            <div class="value"><span class="number indicator" data-toggle="counter" data-end="1003">0</span><span class="indicator-negative mdi mdi-gender-male"></span>
+                            <div class="value"><span class="number indicator" data-toggle="counter" :data-end="widgetData.total.soeur">{{widgetData.total.soeur}}</span><span class="indicator-negative mdi mdi-gender-male"></span>
                             </div>
                             <!-- <div class="value"><span class="number indicator" data-toggle="counter" data-end="2050">0</span><span class="indicator-positive mdi mdi-chevron-down"></span>
                             </div> -->
@@ -128,7 +244,7 @@ $(document).ready(function(){
                 </div>
                 <div class="widget-chart-container">
                   <div id="top-sales" style="height: 178px;"></div>
-                  <div class="chart-pie-counter">1798</div>
+                  <div class="chart-pie-counter">{{widgetData.total.total}}</div>
                 </div>
                 <div class="chart-legend">
                   <table class="chart-legend">
@@ -136,17 +252,17 @@ $(document).ready(function(){
                       <tr>
                         <td class="chart-legend-color"><span data-color="top-sales-color1"></span></td>
                         <td>KIN EST</td>
-                        <td class="chart-legend-value">583</td>
+                        <td class="chart-legend-value">{{widgetData.total.est}}</td>
                       </tr>
                       <tr>
                         <td class="chart-legend-color"><span data-color="top-sales-color2"></span></td>
                         <td>KIN CENTRE</td>
-                        <td class="chart-legend-value">542</td>
+                        <td class="chart-legend-value">{{widgetData.total.centre}}</td>
                       </tr>
                       <tr>
                         <td class="chart-legend-color"><span data-color="top-sales-color3"></span></td>
                         <td>KIN OUEST</td>
-                        <td class="chart-legend-value">673</td>
+                        <td class="chart-legend-value">{{widgetData.total.ouest}}</td>
                       </tr>
                     </tbody>
                   </table>

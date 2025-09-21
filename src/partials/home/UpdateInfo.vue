@@ -214,6 +214,12 @@ async function registerUser(roleValues, isResponsible) {
 
         <!-- Formulaire -->
         <form class="card-body" @submit.prevent="handleSubmit">
+          <!-- Téléphone -->
+          <div class="form-group">
+            <label for="inputPhone">Numéro de téléphone</label>
+            <input id="inputPhone" required class="form-control" type="text" disabled @input="formatPhone" v-model="phoneNumber" placeholder="0899 999 999" />
+          </div>
+
           <!-- Genre -->
           <div class="form-group">
             <label class="col-12 col-sm-3 col-form-label text-sm-right pt-4">Sélectionner le genre</label>
@@ -229,12 +235,6 @@ async function registerUser(roleValues, isResponsible) {
             </div>
           </div>
 
-          <!-- Téléphone -->
-          <div class="form-group">
-            <label for="inputPhone">Numéro de téléphone</label>
-            <input id="inputPhone" required class="form-control" type="text" @input="formatPhone" v-model="phoneNumber" placeholder="0899 999 999" />
-          </div>
-
           <!-- Nom complet -->
           <div class="form-group">
             <label for="inputNames">Noms au complet</label>
@@ -243,21 +243,21 @@ async function registerUser(roleValues, isResponsible) {
 
           <!-- Secteur / Doyenné / Paroisse -->
           <div class="form-group">
-            <label>Sélectionner le secteur</label>
+            <label>Votre secteur</label>
             <select class="form-control" v-model="sector">
               <option v-for="s in sectors" :key="s.id" :value="s.name">{{ s.name }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Sélectionner le doyenné</label>
+            <label>Votre doyenné</label>
             <select class="form-control" v-model="doyenne">
               <option v-for="d in filteredDoyennes" :key="d.id" :value="d.name">{{ d.name }}</option>
             </select>
           </div>
 
           <div class="form-group">
-            <label>Sélectionner la paroisse</label>
+            <label>Votre paroisse</label>
             <select class="form-control" v-model="paroisse">
               <option v-for="p in filteredParoisses" :key="p.id" :value="p.name">{{ p.name }}</option>
             </select>
@@ -275,17 +275,13 @@ async function registerUser(roleValues, isResponsible) {
           <div class="form-group">
             <button class="btn btn-block btn-primary btn-xl" type="submit" :disabled="isLoading">
               <span v-if="isLoading" class="spinner-border spinner-border-sm"></span>
-              <span v-else>S'inscrire</span>
+              <span v-else>Mettre à jour</span>
             </button>
           </div>
           <div class="form-group text-center">
             <p class="mb-1">
               Retour à l'accueil ?
-              <a href="/">Revenir plus tard</a>
-            </p>
-            <p class="mb-1">
-              Etes-vous déjà enregistrer ?
-              <a href="/update-info">Voir mes infos</a>
+              <a href="/">Retourner</a>
             </p>
           </div>
           <!-- Error -->

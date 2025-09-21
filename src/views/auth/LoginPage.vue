@@ -18,9 +18,10 @@
             <label for="inputUsername">Téléphone</label>
             <input
               type="text"
+              @input="formatPhone"
               id="inputUsername"
               class="form-control"
-              placeholder="0810000000"
+              placeholder="0899 999 999"
               v-model="username"
               required
             />
@@ -59,7 +60,7 @@
           <div class="form-group text-center">
             <p class="mb-1">
               Pas de compte ?
-              <router-link to="/sign-up">S'inscrire</router-link>
+              <router-link :to="{ name: 'home' }">Revenir plus tard</router-link>
             </p>
             <router-link to="/forget-pwd" class="link">Mot de passe oublié ?</router-link>
           </div>
@@ -86,6 +87,18 @@ const password = ref("")
 const error = ref("")
 const isLoading = ref(false)
 const router = useRouter()
+const formatPhone = () => {
+  let digits = username.value.replace(/\D/g, '');
+  digits = digits.slice(0, 10);
+  if (digits.length > 4 && digits.length <= 7) {
+    username.value = digits.slice(0, 4) + ' ' + digits.slice(4);
+  } else if (digits.length > 7) {
+    username.value =
+      digits.slice(0, 4) + ' ' + digits.slice(4, 7) + ' ' + digits.slice(7);
+  } else {
+    username.value = digits;
+  }
+}
 
 async function handleLogin() {
   isLoading.value = true
@@ -97,7 +110,7 @@ async function handleLogin() {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        username: username.value,
+        username: username.value.replace(/\s+/g, ''),
         password: password.value
       })
     })
@@ -108,11 +121,14 @@ async function handleLogin() {
 
     const data = await response.json()
     const token = data.token
+    const roles = data.roles || [] // <-- Assure-toi que ton API renvoie un tableau de rôles
 
     localStorage.setItem("token", token)
-    localStorage.setItem("userPhone", username.value)
+    localStorage.setItem("userPhone", username.value.replace(/\s+/g, ''))
+    localStorage.setItem("roles", JSON.stringify(roles)) // <-- Ajouté
 
-    router.push({ name: "dashboard" })
+    // router.push({ name: "dashboard" })
+    window.location.href = '/admin/dashboard' // recharge la page complète
   } catch (err) {
     error.value = "Connexion échouée. Vérifiez vos identifiants."
     console.error(err)

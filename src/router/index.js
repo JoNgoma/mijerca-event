@@ -1,262 +1,140 @@
-
-import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
-import Error404 from '@/partials/dashboard/Error404.vue'
-import NewUnity from '@/partials/dashboard/persons/new/NewUnity.vue'
-import Analytic from '@/partials/dashboard/persons/analytic/Analytic.vue'
-import DetailInfo from '@/partials/dashboard/persons/info/DetailInfo.vue'
-import ListInfo from '@/partials/dashboard/persons/info/ListInfo.vue'
-import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
-import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
-import Paie from '@/partials/dashboard/biblic/Paie.vue'
-import RapDay from '@/partials/dashboard/biblic/RapDay.vue'
-import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
-import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
-import AdmServices from '@/partials/dashboard/biblic/AdmServices.vue'
-import LogDor from '@/partials/dashboard/biblic/LogDor.vue'
-import LogCar from '@/partials/dashboard/biblic/LogCar.vue'
-import LogAffect from '@/partials/dashboard/biblic/LogAffect.vue'
-import AdmSelectService from '@/partials/dashboard/biblic/AdmSelectService.vue'
-import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vue'
-import BadgePreview from '@/partials/dashboard/biblic/informatique/BadgePreview.vue'
-import A4Generator from '@/partials/dashboard/biblic/informatique/A4Generator.vue'
-import PersonSelector from '@/partials/dashboard/biblic/informatique/PersonSelector.vue'
-import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
-import DoyStat from '@/partials/dashboard/paroisses/DoyStat.vue'
-import Paroisse from '@/partials/dashboard/paroisses/Paroisse.vue'
-import DashboardView from '@/views/DashboardView.vue'
 import { createRouter, createWebHistory } from 'vue-router'
+
+// Home
 import HomeView from '../views/HomeView.vue'
 import HomeAccueil from '../partials/home/HomeAccueil.vue'
 import Signjeune from '../partials/home/Signjeune.vue'
 import LoginPage from '@/views/auth/LoginPage.vue'
 
+// Dashboard
+import DashboardView from '@/views/DashboardView.vue'
+import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
+import PersonsView from '@/views/PersonsView.vue'
+import NewUnity from '@/partials/dashboard/persons/new/NewUnity.vue'
+import AnalyticPerson from '@/partials/dashboard/persons/analytic/AnalyticPerson.vue'
+import ListInfo from '@/partials/dashboard/persons/info/ListInfo.vue'
+import DetailInfo from '@/partials/dashboard/persons/info/DetailInfo.vue'
+import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
+
+// Biblic
+import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
+import AdmServices from '@/partials/dashboard/biblic/AdmServices.vue'
+import AdmSelectService from '@/partials/dashboard/biblic/AdmSelectService.vue'
+import RapDay from '@/partials/dashboard/biblic/RapDay.vue'
+import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
+import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
+import Paie from '@/partials/dashboard/biblic/Paie.vue'
+
+// Logistique
+import LogDor from '@/partials/dashboard/biblic/LogDor.vue'
+import LogCar from '@/partials/dashboard/biblic/LogCar.vue'
+import LogAffect from '@/partials/dashboard/biblic/LogAffect.vue'
+
+// Informatique
+import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vue'
+import BadgePreview from '@/partials/dashboard/biblic/informatique/BadgePreview.vue'
+import PersonSelector from '@/partials/dashboard/biblic/informatique/PersonSelector.vue'
+import A4Generator from '@/partials/dashboard/biblic/informatique/A4Generator.vue'
+
+// Paroisses
+import DoyStat from '@/partials/dashboard/paroisses/DoyStat.vue'
+import KinParoisse from '@/partials/dashboard/paroisses/KinParoisse.vue'
+import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
+
+// 404
+import PageError404 from '@/partials/dashboard/PageError404.vue'
+import UpdateInfo from '../partials/home/UpdateInfo.vue'
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    // ----- HOME -----
     {
       path: '',
       component: HomeView,
       children: [
-        {
-          path: '',
-          name: 'home',
-          component: HomeAccueil
-        },
-        {
-          path: 'sign-up',
-          name: 'signUp',
-          component: Signjeune
-        },
-        {
-          path: 'login',
-          name: 'login',
-          component: LoginPage
-        },
+        { path: '', name: 'home', component: HomeAccueil },
+        { path: 'sign-up', name: 'signUp', component: Signjeune },
+        { path: 'update-info', name: 'updateInfo', component: UpdateInfo },
+        { path: 'login', name: 'login', component: LoginPage },
       ],
     },
+
+    // ----- DASHBOARD -----
     {
       path: '/admin',
       component: DashboardView,
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true }, // Tous les enfants héritent
       children: [
-        {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: AccueilDash
-        },
+        { path: 'dashboard', name: 'dashboard', component: AccueilDash },
+
+        // ---- Persons ----
         {
           path: 'persons',
-          meta: { requiresAuth: true },
+          component: PersonsView,
           children: [
-            {
-              path: ':serviceType/new-unit',
-              name: 'new-unit',
-              component: NewUnity
-            },
-            {
-              path: ':serviceType/analytic',
-              name: 'analytic',
-              component: Analytic
-            },
+            { path: ':serviceType/new-unit', name: 'new-unit', component: NewUnity },
+            { path: ':serviceType/analytic', name: 'analytic', component: AnalyticPerson },
             {
               path: ':serviceType/news',
-              meta: { requiresAuth: true },
               children: [
-                {
-                  path: 'list',
-                  name: 'list',
-                  component: ListInfo
-                },
-                {
-                  path: 'detail',
-                  name: 'detail',
-                  component: DetailInfo
-                },
-                {
-                  path: 'compose',
-                  name: 'composer',
-                  component: NewInfo
-                },
-              ]
+                { path: 'list', name: 'list', component: ListInfo },
+                { path: 'detail', name: 'detail', component: DetailInfo },
+                { path: 'compose', name: 'composer', component: NewInfo },
+              ],
             },
-          ]
+          ],
         },
-        {
-              path: 'biblic',
-              meta: { requiresAuth: true },
-              children: [
-                {
-                  path: 'new',
-                  name: 'new-camp',
-                  component: NewBiblic
-                },
-                {
-                  path: '',
-                  meta: { requiresAuth: true },
-                  children: [
-                    {
-                      path: ':serviceType',
-                      name: 'services',
-                      component: AdmServices
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'adm-select',
-                      component: AdmSelectService
-                    },
-                  ]},
-                {
-                  path: 'finances',
-              meta: { requiresAuth: true },
-              children: [
-                {
-                  path: '',
-              meta: { requiresAuth: true },
-              children: [
-                {
-                  path: ':serviceType',
-                  name: 'rap-day',
-                  component: RapDay
-                },
-                {
-                  path: 'out',
-                  meta: { requiresAuth: true },
-                  children: [
-                    {
-                      path: ':serviceType',
-                      name: 'dep-new',
-                      component: DepNew
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'dep-suivis',
-                      component: DepSuivis
-                    },
-                  ]},
-              ]
-                },
-                {
-                  path: 'paie/:serviceType',
-                  name: 'paie',
-                  component: Paie
-                }
-              ]
-                },
-                {
-                  path: 'logistique',
-                  meta: { requiresAuth: true },
-                  children: [
-                    {
-                      path: ':serviceType',
-                      name: 'log-dortoir',
-                      component: LogDor
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'log-carrefour',
-                      component: LogCar
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'log-affect',
-                      component: LogAffect
-                    },
-                  ]},
-                  {
-                  path: 'informatique',
-                  meta: { requiresAuth: true },
-                  children: [
-                    {
-                      path: ':serviceType',
-                      name: 'info-badge-editor',
-                      component: BadgeEditor
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'info-badge-preview',
-                      component: BadgePreview
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'info-person-selector',
-                      component: PersonSelector
-                    },
-                    {
-                      path: ':serviceType',
-                      name: 'info-a4-generator',
-                      component: A4Generator
-                    },
-                  ]},
-              ]
-            },
-            {
-                  path: 'secteur',
-                  meta: { requiresAuth: true },
-                  children: [
-                    {
-                      path: ':serviceType',
-                      name: 'sec-kin',
-                      component: DoyStat,
-                    },
-                    {
-                      path: ':serviceType/paroisse',
-                      name: 'sec-paroisse',
-                      component: Paroisse
-                    },
-                    {
-                      path: ':serviceType/new-doy&par',
-                      name: 'sec-new',
-                      component: ParDoyNew
-                    },
-                  ]
-                }
-      ]
+
+        // ---- Biblic ----
+        { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
+        { path: 'biblic/services/:serviceType', name: 'services', component: AdmServices },
+        { path: 'biblic/services/:serviceType/select', name: 'adm-select', component: AdmSelectService },
+
+        // Finances
+        { path: 'biblic/finances/:serviceType', name: 'rap-day', component: RapDay },
+        { path: 'biblic/finances/out/:serviceType', name: 'dep-new', component: DepNew },
+        { path: 'biblic/finances/out/:serviceType/suivis', name: 'dep-suivis', component: DepSuivis },
+        { path: 'biblic/finances/paie/:serviceType', name: 'paie', component: Paie },
+
+        // Logistique
+        { path: 'biblic/logistique/dortoir/:serviceType', name: 'log-dortoir', component: LogDor },
+        { path: 'biblic/logistique/carrefour/:serviceType', name: 'log-carrefour', component: LogCar },
+        { path: 'biblic/logistique/affect/:serviceType', name: 'log-affect', component: LogAffect },
+
+        // Informatique
+        { path: 'biblic/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
+        { path: 'biblic/informatique/badge-preview/:serviceType', name: 'info-badge-preview', component: BadgePreview },
+        { path: 'biblic/informatique/person-selector/:serviceType', name: 'info-person-selector', component: PersonSelector },
+        { path: 'biblic/informatique/a4-generator/:serviceType', name: 'info-a4-generator', component: A4Generator },
+
+        // Secteur / Paroisses
+        { path: 'secteur/:serviceType', name: 'sec-kin', component: DoyStat },
+        { path: 'secteur/:serviceType/paroisse', name: 'sec-paroisse', component: KinParoisse },
+        { path: 'secteur/:serviceType/new-doypar', name: 'sec-new', component: ParDoyNew },
+      ],
     },
-    {
-      path: '/:pathMatch(.*)*',
-      name: 'NotFound',
-      component: Error404
-    }
+
+    // ----- 404 -----
+    { path: '/:pathMatch(.*)*', name: 'NotFound', component: PageError404 },
   ],
 })
 
+// ----- Navigation guard -----
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!localStorage.getItem('token')
 
-  // Vérifie si une des routes dans la pile a requiresAuth
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!isAuthenticated) {
-      return next({ name: 'login' })
-    }
+  // Si route requiert auth
+  if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
+    return next({ name: 'login' })
   }
 
-  // 🔄 Si on est connecté et on essaie d’aller sur login, redirige vers dashboard
-  if (isAuthenticated && (to.name === 'login' || to.name === 'signUp')) {
+  // Redirection si déjà connecté
+  if (isAuthenticated && to.name === 'login') {
     return next({ name: 'dashboard' })
   }
 
   next()
 })
-
 
 export default router

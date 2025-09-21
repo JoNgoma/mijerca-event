@@ -1,23 +1,27 @@
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
 const serviceTypes = {
   'diocesain': {
+    position: 'diocesain',
     name: 'Service diocésain',
     icon: 'mdi mdi-face',
     description: 'Gestion du service diocésain'
   },
   'decanal': {
+    position: 'decanal',
     name: 'Noyau décanal',
     icon: 'mdi mdi-face',
     description: 'Gestion du noyau décanal'
   },
   'paroissial': {
+    position: 'paroissial',
     name: 'Noyau paroissial',
     icon: 'mdi mdi-face',
     description: 'Gestion du noyau paroissial'
   },
   'jeunes': {
+    position: 'jeune',
     name: 'Jeunes',
     icon: 'mdi mdi-face',
     description: 'Gestion des jeunes'
