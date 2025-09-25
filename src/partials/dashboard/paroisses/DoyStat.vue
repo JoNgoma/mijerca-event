@@ -6,7 +6,6 @@ import { useServiceContext } from '@/composables/useServiceContext';
 const route = useRoute();
 const { currentService } = useServiceContext();
 
-// const pageTitle = computed(() => currentService.value.name);
 const sectorService = computed(() => route.params.serviceType || currentService.value.position);
 
 const sector = computed(() => {
@@ -28,7 +27,23 @@ const sectorId = ref(null);
 const doyennes = ref([]);
 const totalSecteur = ref(0);
 
-// Charger ID secteur courant
+// ==========================
+// SSE pour temps réel
+// ==========================
+const messages = ref([]);
+const connectSse = () => {
+  const evtSource = new EventSource(`${API_URL}/sse/updates`);
+  evtSource.onmessage = e => {
+    const msg = JSON.parse(e.data);
+    messages.value.push(msg);
+  };
+  evtSource.onerror = () => evtSource.close(); // reconnect si nécessaire
+  return evtSource;
+};
+
+// ==========================
+// Fetch sector + doyennes + paroisses + personnes
+// ==========================
 async function fetchSectorId() {
   try {
     const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, {
@@ -45,41 +60,30 @@ async function fetchSectorId() {
   }
 }
 
-// Charger doyennés + paroisses + personnes
 async function fetchDoyennes() {
   if (!sectorId.value) return;
   try {
-    const res = await fetch(`${API_URL}/doyennes?sector=/sectors/${sectorId.value}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const res = await fetch(`${API_URL}/doyennes?sector=/sectors/${sectorId.value}`, { headers: { Authorization: `Bearer ${token}` } });
     const data = await res.json();
     const secDoyenne = data.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
 
-    // Récup paroisses
-    const paroissesRes = await fetch(`${API_URL}/paroisses?sector=/sectors/${sectorId.value}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const paroissesRes = await fetch(`${API_URL}/paroisses?sector=/sectors/${sectorId.value}`, { headers: { Authorization: `Bearer ${token}` } });
     const paroissesData = await paroissesRes.json();
     const secParoisses = paroissesData.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
 
-    // Récup personnes
-    const peopleRes = await fetch(`${API_URL}/people?sector=/sectors/${sectorId.value}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const peopleRes = await fetch(`${API_URL}/people?sector=/sectors/${sectorId.value}`, { headers: { Authorization: `Bearer ${token}` } });
     const peopleData = await peopleRes.json();
     const people = peopleData.member || [];
 
-    // Construire la structure
-    doyennes.value = secDoyenne
-    .map(d => {
+    doyennes.value = secDoyenne.map(d => {
       const paroisses = secParoisses
         .filter(p => p.doyenne === `/api/doyennes/${d.id}`)
-        .map(p => {
-          const effectif = people.filter(pe => pe.paroisse === `/api/paroisses/${p.id}`).length;
-          return { id: p.id, name: p.name, effectif };
-        });
+        .map(p => ({
+          id: p.id,
+          name: p.name,
+          effectif: people.filter(pe => pe.paroisse === `/api/paroisses/${p.id}`).length
+        }));
 
-      // Mettre la paroisse doyenné en premier
       const idx = paroisses.findIndex(p => p.name === d.name);
       if (idx > 0) {
         const [p] = paroisses.splice(idx, 1);
@@ -90,24 +94,45 @@ async function fetchDoyennes() {
       return { ...d, paroisses, totalEffectif };
     });
 
-    // Total du secteur = uniquement personnes de ce secteur
-    totalSecteur.value = people.filter(
-      pe => pe.sector === `/api/sectors/${sectorId.value}`
-    ).length;
+    totalSecteur.value = people.filter(pe => pe.sector === `/api/sectors/${sectorId.value}`).length;
   } catch (err) {
     console.error("Erreur récupération doyennés, paroisses et personnes", err);
   }
 }
 
+// ==========================
+// Watch SSE pour mise à jour temps réel
+// ==========================
+watch(messages, (newMessages) => {
+  newMessages.forEach(msg => {
+    if(msg.type === 'doyenne' && msg.sector === sectorId.value){
+      // Ajouter si pas déjà présent
+      if (!doyennes.value.some(d => d.id === msg.id)) {
+        doyennes.value.push({ ...msg, paroisses: [], totalEffectif: 0 });
+      }
+    }
+    if(msg.type === 'paroisse' && msg.sector === sectorId.value){
+      const doy = doyennes.value.find(d => d.id === msg.doyenneId);
+      if(doy){
+        doy.paroisses.push({ id: msg.id, name: msg.name, effectif: 0 });
+        doy.totalEffectif = doy.paroisses.reduce((acc, p) => acc + p.effectif, 0);
+      }
+    }
+  });
+});
+
+// ==========================
+// Initialisation
+// ==========================
 onMounted(() => {
   fetchSectorId();
+  connectSse();
 });
 
 // 🔑 Relancer dès que le param change
-watch(() => route.params.serviceType, () => {
-  fetchSectorId();
-});
+watch(() => route.params.serviceType, () => fetchSectorId());
 </script>
+
 
 <template>
   <div class="be-content">
@@ -145,7 +170,7 @@ watch(() => route.params.serviceType, () => {
                       <tr v-for="(p, index) in d.paroisses" :key="p.id">
                         <td v-if="index === 0" :rowspan="d.paroisses.length + 1"
                             class="align-middle fw-bold bg-light">
-                          Doyenné de {{ d.name }}
+                          Doyenné {{ d.name }}
                         </td>
                         <td>{{ p.name }}</td>
                         <td>{{ p.effectif }}</td>

@@ -1,11 +1,12 @@
 <script setup>
-import { ref, onMounted, watch } from "vue"
+import { ref, onMounted, onUnmounted, watch } from "vue"
 import axios from "axios"
 import { useRouter } from "vue-router"
 import logo from "/assets/img/mijerca.jpg"
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
+// 🔹 Variables formulaire
 const gender = ref("Soeur")
 const phoneNumber = ref("")
 const fullName = ref("")
@@ -31,17 +32,21 @@ const error = ref("")
 const isLoading = ref(false)
 const router = useRouter()
 
+// 🔹 Pour SSE
+let eventSource = null
+const newPeople = ref([]) // si tu veux stocker les nouvelles entrées reçues
+
 // 🔹 Formatage du numéro
 const formatPhone = () => {
-  let digits = phoneNumber.value.replace(/\D/g, '');
-  digits = digits.slice(0, 10);
+  let digits = phoneNumber.value.replace(/\D/g, '')
+  digits = digits.slice(0, 10)
   if (digits.length > 4 && digits.length <= 7) {
-    phoneNumber.value = digits.slice(0, 4) + ' ' + digits.slice(4);
+    phoneNumber.value = digits.slice(0, 4) + ' ' + digits.slice(4)
   } else if (digits.length > 7) {
     phoneNumber.value =
-      digits.slice(0, 4) + ' ' + digits.slice(4, 7) + ' ' + digits.slice(7);
+      digits.slice(0, 4) + ' ' + digits.slice(4, 7) + ' ' + digits.slice(7)
   } else {
-    phoneNumber.value = digits;
+    phoneNumber.value = digits
   }
 }
 
@@ -57,11 +62,30 @@ onMounted(async () => {
     doyennes.value = doyenneRes.data.member
     paroisses.value = paroisseRes.data.member
 
-    if(sectors.value.length) sector.value = sectors.value[0].name
+    if (sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
   } catch (err) {
     console.error("Erreur chargement données :", err)
   }
+
+  // 🔹 SSE
+  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
+
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    console.log("📥 Nouvel enregistrement :", data)
+    newPeople.value.push(data)
+    // Ici tu peux appeler loadData() ou autre pour recharger la liste
+  }
+
+  eventSource.onerror = (err) => {
+    console.error("❌ SSE error", err)
+    eventSource.close()
+  }
+})
+
+onUnmounted(() => {
+  if (eventSource) eventSource.close()
 })
 
 // 🔹 Watchers pour filtrage
@@ -136,7 +160,6 @@ async function registerUser(roleValues, isResponsible) {
 
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
 
-    // 🔹 Création personne
     const personPayload = {
       gender: gender.value,
       phoneNumber: cleanedNumber,
@@ -151,19 +174,15 @@ async function registerUser(roleValues, isResponsible) {
     const personRes = await axios.post(
       `${API_URL}/people`, 
       personPayload,{
-        headers: {
-          "Content-Type": "application/ld+json"
-        }
-  })
+        headers: { "Content-Type": "application/ld+json" }
+    })
     const personUrl = personRes.data["@id"] || personRes.data.id
 
-    // 🔹 Si responsable, créer également l'utilisateur
     if (isResponsible) {
       const rolesArray = []
       if(roleValues.isDicoces) rolesArray.push("ROLE_DIOCESE")
       if(roleValues.isDecanal) rolesArray.push("ROLE_DECANAL")
       if(roleValues.isNoyau) rolesArray.push("ROLE_NOYAU")
-      // Noyau inclus automatiquement
       if(roleValues.isDecanal && !rolesArray.includes("ROLE_NOYAU")) rolesArray.unshift("ROLE_NOYAU")
       if(roleValues.isDicoces && !rolesArray.includes("ROLE_NOYAU")) rolesArray.unshift("ROLE_NOYAU")
       if(roleValues.isDicoces && !rolesArray.includes("ROLE_DECANAL")) rolesArray.splice(1,0,"ROLE_DECANAL")
@@ -178,9 +197,7 @@ async function registerUser(roleValues, isResponsible) {
       await axios.post(
         `${API_URL}/users`, 
         userPayload,{
-        headers: {
-          "Content-Type": "application/ld+json"
-        }
+        headers: { "Content-Type": "application/ld+json" }
       })
       alert("Inscription réussie !\nVotre mot de passe initial est : mijerca2025")
       router.push({ name: "home" })
@@ -216,8 +233,10 @@ async function registerUser(roleValues, isResponsible) {
         <form class="card-body" @submit.prevent="handleSubmit">
           <!-- Genre -->
           <div class="form-group">
-            <label class="col-12 col-sm-3 col-form-label text-sm-right pt-4">Sélectionner le genre</label>
-            <div class="col-12 col-sm-8 col-lg-6 d-flex">
+            <label class="col-12 col-lg-12 col-form-label text-lg-left pt-4">
+            Sélectionner le genre
+          </label>
+          <div class="col-12 col-sm-8 col-lg-6 d-flex">
               <label class="custom-control custom-radio custom-radio-icon custom-control-inline me-2">
                 <input class="custom-control-input" type="radio" name="radio-icon" value="Soeur" v-model="gender" />
                 <span class="custom-control-label"><i class="mdi mdi-female"></i></span>

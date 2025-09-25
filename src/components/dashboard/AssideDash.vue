@@ -53,10 +53,10 @@ onMounted(async () => {
               <!-- Dashboard -->
               <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_NOYAU')" 
                   :class="{ active: isActiveRoute('dashboard') }">
-                <router-link :to="{ name: 'dashboard' }">
+                <a href="/admin/dashboard">
                   <i class="icon mdi mdi-home"></i>
                   <span>Dashboard</span>
-                </router-link>
+                </a>
               </li>
 
               <!-- Administration pour ROLE_ADMIN -->

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import axios from "axios";
 import { useServiceContext } from "@/composables/useServiceContext";
 
@@ -22,7 +22,12 @@ const allParoisses = ref([]);   // liste complète paroisses
 const sectorId = ref(null);
 const nameService = ref(currentService.value.name)
 
+// SSE
+let eventSource = null
+
+// ==========================
 // Déterminer le secteur actif
+// ==========================
 const sectorName = computed(() => {
   switch (currentService.value?.position) {
     case "est": return "KIN EST";
@@ -51,9 +56,6 @@ async function fetchCurrentUser() {
       });
       currentPerson.value = personRes.data.member?.[0] || null;
     }
-
-    console.log("✅ User:", currentUser.value);
-    console.log("✅ Personne:", currentPerson.value);
   } catch (err) {
     console.error("❌ Erreur récupération user", err);
   }
@@ -63,21 +65,12 @@ async function fetchCurrentUser() {
 // Récupérer toutes les paroisses et doyennes
 // ==========================
 async function fetchAllParoisses() {
-  try {
-    const res = await axios.get(`${API_URL}/paroisses`, { headers: { Authorization: `Bearer ${token}` } });
-    allParoisses.value = res.data.member || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération toutes paroisses", err);
-  }
+  try { allParoisses.value = (await axios.get(`${API_URL}/paroisses`, { headers: { Authorization: `Bearer ${token}` } })).data.member || []; }
+  catch (err) { console.error("❌ Erreur récupération toutes paroisses", err); }
 }
-
 async function fetchAllDoyennes() {
-  try {
-    const res = await axios.get(`${API_URL}/doyennes`, { headers: { Authorization: `Bearer ${token}` } });
-    allDoyennes.value = res.data.member || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération toutes doyennes", err);
-  }
+  try { allDoyennes.value = (await axios.get(`${API_URL}/doyennes`, { headers: { Authorization: `Bearer ${token}` } })).data.member || []; }
+  catch (err) { console.error("❌ Erreur récupération toutes doyennes", err); }
 }
 
 // ==========================
@@ -109,44 +102,33 @@ async function fetchSectorId() {
 // Fetch doyennes (noyau décanal)
 async function fetchDoyennes() {
   try {
-    const res = await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
-    doyennes.value = res.data.member?.filter(p => p.doyenne === currentPerson.value.doyenne && p.isDecanal) || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération doyennes", err);
-  }
+    doyennes.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.doyenne === currentPerson.value.doyenne && p.isDecanal) || [];
+  } catch (err) { console.error("❌ Erreur récupération doyennes", err); }
 }
 
 // ==========================
 // Fetch paroisses (noyau paroissial)
 async function fetchParoisses() {
   try {
-    const res = await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
-    paroisses.value = res.data.member?.filter(p => p.paroisse === currentPerson.value.paroisse && p.isNoyau) || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération paroisses", err);
-  }
+    paroisses.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.paroisse === currentPerson.value.paroisse && p.isNoyau) || [];
+  } catch (err) { console.error("❌ Erreur récupération paroisses", err); }
 }
 
 // ==========================
 // Fetch diocèses (isDioces=true)
 async function fetchDioceses() {
   try {
-    const res = await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
-    dioceses.value = res.data.member?.filter(p => p.isDicoces) || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération diocèses", err);
-  }
+    dioceses.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.isDicoces) || [];
+  } catch (err) { console.error("❌ Erreur récupération diocèses", err); }
 }
 
 // ==========================
 // Fetch toutes les personnes
+// ==========================
 async function fetchPeople() {
   try {
-    const res = await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
-    allPeople.value = res.data.member?.filter(p => p.paroisse === currentPerson.value.paroisse) || [];
-  } catch (err) {
-    console.error("❌ Erreur récupération personnes", err);
-  }
+    allPeople.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.paroisse === currentPerson.value.paroisse) || [];
+  } catch (err) { console.error("❌ Erreur récupération personnes", err); }
 }
 
 // ==========================
@@ -172,7 +154,7 @@ const jeunes = computed(() => {
 });
 
 // ==========================
-// Montage
+// Montage SSE
 // ==========================
 onMounted(async () => {
   await fetchCurrentUser();
@@ -181,9 +163,38 @@ onMounted(async () => {
   // Initialiser DataTables après que les données soient chargées
   window.App?.init();
   window.App?.dataTables();
+
+  // === SSE ===
+  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`);
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data);
+
+    // Ajouter les nouvelles personnes selon secteur et localisation
+    if (!currentPerson.value) return;
+
+    // Diocèse
+    if (data.isDicoces && LocalisationService.value === "diocesain") dioceses.value.push(data);
+
+    // Doyenne
+    if (data.isDecanal && LocalisationService.value === "decanal") doyennes.value.push(data);
+
+    // Paroisse
+    if (data.isNoyau && LocalisationService.value === "paroissial") paroisses.value.push(data);
+
+    // Jeune
+    if (data.paroisse === currentPerson.value.paroisse && LocalisationService.value === "jeune") allPeople.value.push(data);
+  };
+
+  eventSource.onerror = (err) => {
+    console.error("❌ SSE error", err);
+    eventSource.close();
+  };
+});
+
+onUnmounted(() => {
+  if (eventSource) eventSource.close();
 });
 </script>
-
 
 <template>
   <div class="be-content">

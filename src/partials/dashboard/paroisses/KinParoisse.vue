@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useServiceContext } from '@/composables/useServiceContext'
 
 const { currentService } = useServiceContext()
 
+// ==========================
 // Déterminer le secteur actif
+// ==========================
 const sectorService = computed(() => currentService.value.position)
 let sectorName = 'KIN EST'
 if (sectorService.value === 'est') sectorName = 'KIN EST'
@@ -16,11 +18,18 @@ const descr = computed(() => currentService.value.description)
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const token = localStorage.getItem('token')
 
+// ==========================
 // Données
+// ==========================
 const jeunes = ref([])
 const paroisses = ref([])
 const doyennes = ref([])
 const sectorId = ref(null)
+
+// ==========================
+// SSE
+// ==========================
+let eventSource = null
 
 // ==========================
 // Récupérer doyennés et paroisses
@@ -48,7 +57,6 @@ async function fetchDoyennes() {
     });
     const data = await res.json();
     doyennes.value = data.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
-
   } catch (err) {
     console.error("Erreur récupération doyennés", err);
   }
@@ -69,49 +77,66 @@ async function fetchParoisses() {
 // ==========================
 // Récupérer personnes
 // ==========================
+function formatPerson(p) {
+  let statut = 'Jeune'
+  if (p.isDicoces) statut = 'Noyau diocésain'
+  else if (p.isDecanal) statut = 'Noyau décanal'
+  else if (p.isNoyau) statut = 'Noyau paroissial'
+
+  const doyenne = doyennes.value.find(d => d['@id'] === p.doyenne)?.name || p.doyenne?.split('/').pop() || ''
+  const paroisse = paroisses.value.find(pa => pa['@id'] === p.paroisse)?.name || p.paroisse?.split('/').pop() || ''
+
+  return {
+    id: p.id,
+    doyenne,
+    paroisse,
+    nom: `${p.gender} ${p.fullName}`,
+    tel: p.phoneNumber,
+    statut
+  }
+}
+
 async function fetchPeople() {
   try {
-    const res = await fetch(`${API_URL}/people`, { 
-      headers: { Authorization: `Bearer ${token}` } 
-    })
+    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })
     const data = await res.json()
-    jeunes.value = data.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
-
-    // Filtrer par secteur
-    const sectorMembers = jeunes.value
-    jeunes.value = sectorMembers.map(p => {
-      // Déterminer statut selon priorité
-      let statut = 'Jeune'
-      console.log("Status : ", p);
-      if (p.isDicoces) statut = 'Noyau diocésain'
-      else if (p.isDecanal) statut = 'Noyau décanal'
-      else if (p.isNoyau) statut = 'Noyau paroissial'
-
-      // Extraire nom doyenné et paroisse depuis URI ou fallback
-      const doyenne = doyennes.value.find(d => d['@id'] === p.doyenne)?.name || p.doyenne?.split('/').pop() || ''
-      const paroisse = paroisses.value.find(pa => pa['@id'] === p.paroisse)?.name || p.paroisse?.split('/').pop() || ''
-
-      return {
-        id: p.id,
-        doyenne,
-        paroisse,
-        nom: `${p.gender} ${p.fullName}`,
-        tel: p.phoneNumber,
-        statut
-      }
-    })
+    jeunes.value = data.member
+      ?.filter(s => s.sector === `/api/sectors/${sectorId.value}`)
+      .map(formatPerson) || []
   } catch (err) {
     console.error('Erreur récupération des jeunes', err)
   }
 }
 
 // ==========================
-// Montage
+// Montage / SSE
 // ==========================
-onMounted(() => {
+onMounted(async () => {
   window.App.init();
   window.App.dataTables();
-  fetchSectorId().then(() => fetchPeople())
+
+  await fetchSectorId()
+  await fetchPeople()
+
+  // SSE
+  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    console.log("📥 Nouvel enregistrement :", data)
+
+    // Ajouter à la liste si c'est pour ce secteur
+    if (data.sector?.includes(sectorId.value)) {
+      jeunes.value.push(formatPerson(data))
+    }
+  }
+  eventSource.onerror = (err) => {
+    console.error("❌ SSE error", err)
+    eventSource.close()
+  }
+})
+
+onUnmounted(() => {
+  if (eventSource) eventSource.close()
 })
 
 // ==========================
@@ -140,9 +165,8 @@ const filteredJeunes = computed(() => {
 const selectedJeune = ref(null)
 function openModal(jeune) { selectedJeune.value = jeune }
 function closeModal() { selectedJeune.value = null }
+
 </script>
-
-
 
 <template>
   <div class="be-content">

@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import { useServiceContext } from '@/composables/useServiceContext';
 
@@ -7,7 +7,6 @@ const route = useRoute();
 const { currentService } = useServiceContext();
 
 const sectorService = computed(() => route.params.serviceType || currentService.value.position);
-
 const sector = computed(() => {
   if (sectorService.value === "est") return "KIN EST";
   if (sectorService.value === "centre") return "KIN CENTRE";
@@ -15,7 +14,7 @@ const sector = computed(() => {
   return "KIN EST";
 });
 
-const descr = computed(() => currentService.value.description);
+// const descr = computed(() => currentService.value.description);
 
 // ==========================
 // Données dynamiques
@@ -32,6 +31,9 @@ const widgetData = ref({
   ouest: { frere: 0, soeur: 0 },
   total: { frere: 0, soeur: 0, est: 0, centre: 0, ouest: 0, total: 0 }
 });
+
+// SSE
+let eventSource = null;
 
 // ==========================
 // Charger ID secteur courant
@@ -63,7 +65,6 @@ async function fetchDoyennes() {
       headers: { Authorization: `Bearer ${token}` }
     });
     const people = (await res.json()).member || [];
-    // grouper par doyenné
     const doyMap = {};
     people.forEach(p => {
       const doyId = p.doyenne;
@@ -80,51 +81,100 @@ async function fetchDoyennes() {
 }
 
 // ==========================
-// Récupérer données pour widgets (KIN EST / CENTRE / OUEST)
+// Récupérer données pour widgets
 // ==========================
 async function fetchWidgetData() {
   try {
     const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
     const people = (await res.json()).member || [];
-    widgetData.value.est.frere = people.filter(p => p.sector === "/api/sectors/1" && p.gender === "Frère").length;
-    widgetData.value.est.soeur = people.filter(p => p.sector === "/api/sectors/1" && p.gender === "Soeur").length;
 
-    widgetData.value.centre.frere = people.filter(p => p.sector === "/api/sectors/2" && p.gender === "Frère").length;
-    widgetData.value.centre.soeur = people.filter(p => p.sector === "/api/sectors/2" && p.gender === "Soeur").length;
+    const sectorsMap = {
+      est: "/api/sectors/1",
+      centre: "/api/sectors/2",
+      ouest: "/api/sectors/3"
+    };
 
-    widgetData.value.ouest.frere = people.filter(p => p.sector === "/api/sectors/3" && p.gender === "Frère").length;
-    widgetData.value.ouest.soeur = people.filter(p => p.sector === "/api/sectors/3" && p.gender === "Soeur").length;
+    Object.keys(sectorsMap).forEach(s => {
+      widgetData.value[s].frere = people.filter(p => p.sector === sectorsMap[s] && p.gender === "Frère").length;
+      widgetData.value[s].soeur = people.filter(p => p.sector === sectorsMap[s] && p.gender === "Soeur").length;
+    });
 
     widgetData.value.total.frere = people.filter(p => p.gender === "Frère").length;
     widgetData.value.total.soeur = people.filter(p => p.gender === "Soeur").length;
+    widgetData.value.total.est = widgetData.value.est.frere + widgetData.value.est.soeur;
+    widgetData.value.total.centre = widgetData.value.centre.frere + widgetData.value.centre.soeur;
+    widgetData.value.total.ouest = widgetData.value.ouest.frere + widgetData.value.ouest.soeur;
+    widgetData.value.total.total = widgetData.value.total.est + widgetData.value.total.centre + widgetData.value.total.ouest;
 
-    widgetData.value.total.est = (widgetData.value.est.frere + widgetData.value.est.soeur);
-    widgetData.value.total.centre = (widgetData.value.centre.frere + widgetData.value.centre.soeur);
-    widgetData.value.total.ouest = (widgetData.value.ouest.frere + widgetData.value.ouest.soeur);
-
-    widgetData.value.total.total = (widgetData.value.total.est + widgetData.value.total.centre + widgetData.value.total.ouest);
-
-    console.log(" Data:", widgetData.value.est.frere);
   } catch (err) {
     console.error("Erreur récupération widget", err);
   }
 }
 
 // ==========================
-// Montage et watch route
+// Montage SSE
 // ==========================
-onMounted(() => {
-  fetchSectorId();
+onMounted(async () => {
+  await fetchSectorId();
+
+  // Initialiser dashboard
+  window.App?.init();
+  window.App?.dashboard();
+
+  // === SSE pour mise à jour live ===
+  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`);
+  eventSource.onmessage = (event) => {
+    const p = JSON.parse(event.data);
+
+    // Mettre à jour doyennes si secteur correspond
+    if (p.sector === `/sectors/${sectorId.value}`) {
+      // mettre à jour doyennes
+      const doy = doyennes.value.find(d => d.name === p.doyenneName);
+      if (doy) {
+        doy.paroisses.push({ id: p.paroisse, name: p.paroisseName, effectif: 1 });
+        doy.totalEffectif += 1;
+      } else {
+        doyennes.value.push({ name: p.doyenneName, paroisses: [{ id: p.paroisse, name: p.paroisseName, effectif: 1 }], totalEffectif: 1 });
+      }
+      totalSecteur.value += 1;
+    }
+
+    // Mettre à jour widgets
+    const sectorMap = { "KIN EST": "est", "KIN CENTRE": "centre", "KIN OUEST": "ouest" };
+    const key = sectorMap[p.sectorName];
+    if (key) {
+      if (p.gender === "Frère") widgetData.value[key].frere += 1;
+      if (p.gender === "Soeur") widgetData.value[key].soeur += 1;
+
+      widgetData.value.total.frere = widgetData.value.est.frere + widgetData.value.centre.frere + widgetData.value.ouest.frere;
+      widgetData.value.total.soeur = widgetData.value.est.soeur + widgetData.value.centre.soeur + widgetData.value.ouest.soeur;
+      widgetData.value.total.est = widgetData.value.est.frere + widgetData.value.est.soeur;
+      widgetData.value.total.centre = widgetData.value.centre.frere + widgetData.value.centre.soeur;
+      widgetData.value.total.ouest = widgetData.value.ouest.frere + widgetData.value.ouest.soeur;
+      widgetData.value.total.total = widgetData.value.total.est + widgetData.value.total.centre + widgetData.value.total.ouest;
+    }
+  };
+
+  eventSource.onerror = (err) => {
+    console.error("❌ SSE error", err);
+    eventSource.close();
+  };
+});
+
+onUnmounted(() => {
+  if (eventSource) eventSource.close();
 });
 
 watch(() => route.params.serviceType, () => {
   fetchSectorId();
 });
 $(document).ready(function(){
+      	//-initialize the javascript
       	App.init();
       	App.dashboard();
       });
 </script>
+
 
 
 <template>

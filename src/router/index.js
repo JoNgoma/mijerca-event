@@ -3,11 +3,10 @@ import { createRouter, createWebHistory } from 'vue-router'
 // Home
 import HomeView from '../views/HomeView.vue'
 import HomeAccueil from '../partials/home/HomeAccueil.vue'
-import Signjeune from '../partials/home/Signjeune.vue'
-import LoginPage from '@/views/auth/LoginPage.vue'
 
 // Dashboard
 import DashboardView from '@/views/DashboardView.vue'
+import LoginPage from '@/views/auth/LoginPage.vue'
 import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
 import PersonsView from '@/views/PersonsView.vue'
 import NewUnity from '@/partials/dashboard/persons/new/NewUnity.vue'
@@ -44,6 +43,7 @@ import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
 // 404
 import PageError404 from '@/partials/dashboard/PageError404.vue'
 import UpdateInfo from '../partials/home/UpdateInfo.vue'
+import SignJeune from '../partials/home/SignJeune.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -54,7 +54,7 @@ const router = createRouter({
       component: HomeView,
       children: [
         { path: '', name: 'home', component: HomeAccueil },
-        { path: 'sign-up', name: 'signUp', component: Signjeune },
+        { path: 'sign-up', name: 'signUp', component: SignJeune },
         { path: 'update-info', name: 'updateInfo', component: UpdateInfo },
         { path: 'login', name: 'login', component: LoginPage },
       ],
@@ -115,8 +115,19 @@ const router = createRouter({
       ],
     },
 
-    // ----- 404 -----
-    { path: '/:pathMatch(.*)*', name: 'NotFound', component: PageError404 },
+    // 404 - front only
+{
+  path: '/:pathMatch(.*)*',
+  name: 'NotFound',
+  component: PageError404,
+  beforeEnter: (to, from, next) => {
+    // Si l'URL commence par /api ou /sse, laisse Symfony gérer
+    if (to.path.startsWith('/api') || to.path.startsWith('/sse')) {
+      return next(false); // Annule la navigation côté Vue
+    }
+    next(); // Sinon affiche la page 404 front
+  }
+},
   ],
 })
 

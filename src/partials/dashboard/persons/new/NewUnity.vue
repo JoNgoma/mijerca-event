@@ -163,6 +163,7 @@ const fullName = ref("")
 const sector = ref("")
 const doyenne = ref("")
 const paroisse = ref("")
+
 // =========================
 // Listes et filtres
 // =========================
@@ -177,6 +178,12 @@ const filteredParoisses = ref([])
 // =========================
 const error = ref("")
 const isLoading = ref(false)
+
+// =========================
+// SSE
+// =========================
+let eventSource = null
+const newPeople = ref([]) // stocke les nouvelles personnes reçues via SSE
 
 // =========================
 // Formatage numéro
@@ -221,27 +228,8 @@ async function loadData() {
     sectors.value = sectorRes.data.member
     doyennes.value = doyenneRes.data.member
     paroisses.value = paroisseRes.data.member
-
-    // Appliquer restrictions selon service
-    // if (isDioces) {
-    //   sectors.value = sectors.value.filter(s => s.name === currentService.value.sector)
-    // }
-    // if (isDecanal) {
-    //   doyennes.value = doyennes.value.filter(d => d.name === currentService.value.doyenne)
-    // }
-    // if (isNoyau) {
-    //   paroisses.value = paroisses.value.filter(p => p.name === currentService.value.paroisse)
-    // }
-
-    // Initialisation valeurs
-    // if (isDioces && sectors.value.length) {
-    //   sector.value = currentService.value.sector
-    // } else if (sectors.value.length) {
-    //   sector.value = sectors.value[0].name
-    // }
     filterDoyennes()
 
-    // Activer watchers après chargement
     stopSectorWatcher = watch(sector, filterDoyennes)
     stopDoyenneWatcher = watch(doyenne, filterParoisses)
   } catch (err) {
@@ -250,20 +238,34 @@ async function loadData() {
 }
 
 // =========================
-// Gestion montage / démontage
+// Montage / démontage
 // =========================
 onMounted(() => {
   loadData()
+
+  // SSE
+  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
+  eventSource.onmessage = (event) => {
+    const data = JSON.parse(event.data)
+    console.log("📥 Nouvel enregistrement :", data)
+    newPeople.value.push(data)
+    // Ici tu peux recharger automatiquement les listes si nécessaire
+    // loadData()
+  }
+  eventSource.onerror = (err) => {
+    console.error("❌ SSE error", err)
+    eventSource.close()
+  }
 })
 
-// Nettoyage complet quand le composant est démonté
 onUnmounted(() => {
   if (stopSectorWatcher) stopSectorWatcher()
   if (stopDoyenneWatcher) stopDoyenneWatcher()
+  if (eventSource) eventSource.close()
   resetForm()
 })
 
-// Relancer quand on change de param route (ex: /nouvelle-unite/est -> /nouvelle-unite/ouest)
+// Relancer quand on change de route
 onBeforeRouteUpdate((to, from, next) => {
   resetForm()
   loadData()
@@ -280,9 +282,6 @@ function resetForm() {
   sector.value = ""
   doyenne.value = ""
   paroisse.value = ""
-  // sectors.value = []
-  // doyennes.value = []
-  // paroisses.value = []
   filteredDoyennes.value = []
   filteredParoisses.value = []
   error.value = ""
@@ -296,21 +295,29 @@ async function handleSubmit(e) {
   e.preventDefault()
   error.value = ""
   isLoading.value = true
+
   try {
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
-    if (!/^\d{10}$/.test(cleanedNumber)) { error.value = "Numéro invalide"; isLoading.value = false; return }
-    if (!fullName.value.trim()) { error.value = "Veuillez saisir le nom complet"; isLoading.value = false; return }
+    if (!/^\d{10}$/.test(cleanedNumber)) { 
+      error.value = "Numéro invalide"; 
+      isLoading.value = false; 
+      return 
+    }
+    if (!fullName.value.trim()) { 
+      error.value = "Veuillez saisir le nom complet"; 
+      isLoading.value = false; 
+      return 
+    }
 
     const sectorObj = sectors.value.find(s => s.name === sector.value)
     const doyenneObj = doyennes.value.find(d => d.name === doyenne.value)
     const paroisseObj = paroisses.value.find(p => p.name === paroisse.value)
 
-    // Construire le payload attendu par ton backend
     const payload = {
       gender: gender.value,
       fullName: fullName.value.trim(),
       phoneNumber: cleanedNumber,
-      isNoyau: isNoyau, // par ex. lié au switch
+      isNoyau: isNoyau,
       isDecanal: isDecanal,
       isDicoces: isDioces,
       updatedAt: new Date().toISOString(),
@@ -319,62 +326,53 @@ async function handleSubmit(e) {
       paroisse: paroisseObj ? paroisseObj["@id"] : ""
     }
 
-    console.log("📤 Payload envoyé à /people :", payload)
-
     const personRes = await axios.post(`${API_URL}/people`, payload, {
       headers: { "Content-Type": "application/ld+json" }
     })
 
-    // console.log("✅ Réponse /people :", personRes.data)
-
     if (isDioces || isDecanal || isNoyau) {
-      let userPayload
-      if (isDioces)
-        {
-      userPayload = {
-        username: cleanedNumber,
-        roles: ["ROLE_DIOCESE", "ROLE_DECANAL", "ROLE_NOYAU"],
-        password: "mijerca2025",
-        person: personRes.data["@id"] || personRes.data.id
-      }
-    } else if (isDecanal)
-        {
-      userPayload = {
-        username: cleanedNumber,
-        roles: ["ROLE_DECANAL", "ROLE_NOYAU"],
-        password: "mijerca2025",
-        person: personRes.data["@id"] || personRes.data.id
-      }
-    }
-    else if (isNoyau)
-        {
-      userPayload = {
-        username: cleanedNumber,
-        roles: ["ROLE_NOYAU"],
-        password: "mijerca2025",
-        person: personRes.data["@id"] || personRes.data.id
-      }
-    }
+      let rolesArray = []
+      if (isDioces) rolesArray = ["ROLE_DIOCESE","ROLE_DECANAL","ROLE_NOYAU"]
+      else if (isDecanal) rolesArray = ["ROLE_DECANAL","ROLE_NOYAU"]
+      else if (isNoyau) rolesArray = ["ROLE_NOYAU"]
 
-      console.log("📤 Payload envoyé à /users :", userPayload)
+      const userPayload = {
+        username: cleanedNumber,
+        roles: rolesArray,
+        password: "mijerca2025",
+        person: personRes.data["@id"] || personRes.data.id
+      }
 
-      const userRes = await axios.post(`${API_URL}/users`, userPayload, {
+      await axios.post(`${API_URL}/users`, userPayload, {
         headers: { "Content-Type": "application/ld+json" }
       })
 
-      console.log("✅ Réponse /users :", userRes.data)
       alert("Responsable ajouté ! Mot de passe initial : mijerca2025")
     } else {
       alert("Jeune ajouté avec succès !")
     }
+
     resetForm()
-    // router.push({ name: "dashboard" })
   } catch (err) {
     console.error("❌ Erreur handleSubmit :", err.response?.data || err)
-    error.value = "Erreur lors de l'enregistrement"
+
+    // ✅ Gestion des erreurs Symfony / ApiPlatform
+    if (err.response?.data?.violations) {
+      // Tableau de violations => concaténation des messages
+      error.value = err.response.data.violations
+        .map((v) => `${v.propertyPath} : ${v.message}`)
+        .join(", ")
+    } else if (err.response?.data?.message) {
+      // Cas général
+      error.value = err.response.data.message
+    } else {
+      error.value = "Erreur lors de l'enregistrement"
+    }
   } finally {
     isLoading.value = false
   }
 }
+
 </script>
+
 

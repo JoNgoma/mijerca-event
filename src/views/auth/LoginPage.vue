@@ -77,7 +77,6 @@
 
 <script setup>
 import { ref } from "vue"
-import { useRouter } from "vue-router"
 import logo from "/assets/img/mijerca.jpg"
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
@@ -86,7 +85,6 @@ const username = ref("")
 const password = ref("")
 const error = ref("")
 const isLoading = ref(false)
-const router = useRouter()
 const formatPhone = () => {
   let digits = username.value.replace(/\D/g, '');
   digits = digits.slice(0, 10);
@@ -114,7 +112,7 @@ async function handleLogin() {
         password: password.value
       })
     })
-
+    console.log("Connexion :", username.value.replace(/\s+/g, ''), password.value);
     if (!response.ok) {
       throw new Error("Connexion échouée")
     }

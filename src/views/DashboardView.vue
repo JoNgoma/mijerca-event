@@ -40,7 +40,7 @@ $(document).ready(function(){
           <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
           <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par' ||currentMenu === 'kin-paroisse'" />
           <ul v-else class="navbar-nav">
-            <li class="nav-item"><router-link class="nav-link" :to="{ name: 'dashboard' }">Accueil</router-link></li>
+            <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Accueil</a></li>
           </ul>
         </template>
       </HeaderDash>
