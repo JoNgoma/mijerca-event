@@ -1,11 +1,14 @@
 <script setup>
 import { ref, onMounted, watch } from "vue"
 import axios from "axios"
-import { useRouter } from "vue-router"
+import { useRouter, useRoute } from "vue-router"
 import logo from "/assets/img/mijerca.jpg"
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
+const router = useRouter()
+const route = useRoute()
 
+// 🔹 Form data
 const gender = ref("Soeur")
 const phoneNumber = ref("")
 const fullName = ref("")
@@ -22,30 +25,46 @@ const filteredParoisses = ref([])
 
 const showModal = ref(false)
 const roles = ref([
-  { key: "isNoyau", label: "Noyau", value: false },
-  { key: "isDecanal", label: "Décanal", value: false },
-  { key: "isDicoces", label: "Diocès", value: false },
+  { key: "isNoyau", label: "Noyau Paroissial", value: false },
+  { key: "isDecanal", label: "Noyau décanal", value: false },
+  { key: "isDicoces", label: "Noyau diocèse", value: false },
 ])
 
 const error = ref("")
 const isLoading = ref(false)
-const router = useRouter()
 
-// 🔹 Formatage du numéro
+// 🔹 Formatage téléphone
 const formatPhone = () => {
-  let digits = phoneNumber.value.replace(/\D/g, '');
-  digits = digits.slice(0, 10);
-  if (digits.length > 4 && digits.length <= 7) {
-    phoneNumber.value = digits.slice(0, 4) + ' ' + digits.slice(4);
-  } else if (digits.length > 7) {
-    phoneNumber.value =
-      digits.slice(0, 4) + ' ' + digits.slice(4, 7) + ' ' + digits.slice(7);
+  let digits = phoneNumber.value.replace(/\D/g, '')
+  digits = digits.slice(0, 10)
+  if (digits.length > 7) {
+    phoneNumber.value = digits.slice(0,4) + ' ' + digits.slice(4,7) + ' ' + digits.slice(7)
+  } else if (digits.length > 4) {
+    phoneNumber.value = digits.slice(0,4) + ' ' + digits.slice(4)
   } else {
-    phoneNumber.value = digits;
+    phoneNumber.value = digits
   }
 }
 
-// 🔹 Chargement des données
+// 🔹 Filtrage doyennés et paroisses
+function filterDoyennes() {
+  const selectedSector = sectors.value.find(s => s.name === sector.value)
+  filteredDoyennes.value = selectedSector
+    ? doyennes.value.filter(d => d.sector === selectedSector["@id"])
+    : []
+  doyenne.value = filteredDoyennes.value[0]?.name || ""
+  filterParoisses()
+}
+
+function filterParoisses() {
+  const selectedDoyenne = filteredDoyennes.value.find(d => d.name === doyenne.value)
+  filteredParoisses.value = selectedDoyenne
+    ? paroisses.value.filter(p => p.doyenne === selectedDoyenne["@id"])
+    : []
+  paroisse.value = filteredParoisses.value[0]?.name || ""
+}
+
+// 🔹 Chargement données secteurs/doyennés/paroisses et personne
 onMounted(async () => {
   try {
     const [sectorRes, doyenneRes, paroisseRes] = await Promise.all([
@@ -53,146 +72,82 @@ onMounted(async () => {
       axios.get(`${API_URL}/doyennes`),
       axios.get(`${API_URL}/paroisses`)
     ])
-    sectors.value = sectorRes.data.member
-    doyennes.value = doyenneRes.data.member
-    paroisses.value = paroisseRes.data.member
+    sectors.value = sectorRes.data.member || []
+    doyennes.value = doyenneRes.data.member || []
+    paroisses.value = paroisseRes.data.member || []
 
     if(sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
-  } catch (err) {
-    console.error("Erreur chargement données :", err)
+
+    // 🔹 Charger les infos de la personne à modifier
+    const personId = route.query.id
+    if(personId) {
+      const res = await axios.get(`${API_URL}/people/${personId}`)
+      const p = res.data
+      if(p) {
+        gender.value = p.gender
+        fullName.value = p.fullName
+        phoneNumber.value = p.phoneNumber.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')
+        sector.value = sectors.value.find(s => s["@id"] === p.sector)?.name || ""
+        filterDoyennes()
+        doyenne.value = filteredDoyennes.value.find(d => d["@id"] === p.doyenne)?.name || ""
+        filterParoisses()
+        paroisse.value = filteredParoisses.value.find(pa => pa["@id"] === p.paroisse)?.name || ""
+        
+        // 🔹 Définir les rôles
+        roles.value.forEach(r => r.value = !!p[r.key])
+        
+        // 🔹 Définir isResponsable si au moins un rôle est true
+        isResponsable.value = roles.value.some(r => r.value)
+      }
+    }
+  } catch(err) {
+    console.error("Erreur chargement :", err)
+    error.value = "Erreur lors du chargement des données."
   }
 })
 
-// 🔹 Watchers pour filtrage
+// 🔹 Watchers
 watch(sector, filterDoyennes)
 watch(doyenne, filterParoisses)
 
-function filterDoyennes() {
-  const selectedSector = sectors.value.find(s => s.name === sector.value)
-  if (!selectedSector) {
-    filteredDoyennes.value = []
-    doyenne.value = ""
-    return
-  }
-  filteredDoyennes.value = doyennes.value.filter(d => d.sector === selectedSector["@id"])
-  if (filteredDoyennes.value.length) {
-    doyenne.value = filteredDoyennes.value[0].name
-  } else {
-    doyenne.value = ""
-  }
-  filterParoisses()
-}
-
-function filterParoisses() {
-  const selectedDoyenne = filteredDoyennes.value.find(d => d.name === doyenne.value)
-  if (!selectedDoyenne) {
-    filteredParoisses.value = []
-    paroisse.value = ""
-    return
-  }
-  filteredParoisses.value = paroisses.value.filter(p => p.doyenne === selectedDoyenne["@id"])
-  if(filteredParoisses.value.length) {
-    paroisse.value = filteredParoisses.value[0].name
-  } else {
-    paroisse.value = ""
-  }
-}
-
-// 🔹 Gestion formulaire
+// 🔹 Update personne
 async function handleSubmit() {
-  fullName.value = fullName.value.trim()
-  if (isResponsable.value) {
-    showModal.value = true
-    return
-  }
-  await registerUser({ isNoyau: false, isDecanal: false, isDicoces: false }, false)
-}
-
-function cancelModal() {
-  showModal.value = false
-}
-
-async function submitModal() {
-  showModal.value = false
-  const roleValues = roles.value.reduce((acc, role) => {
-    acc[role.key] = role.value
-    return acc
-  }, {})
-  await registerUser(roleValues, true)
-}
-
-async function registerUser(roleValues, isResponsible) {
   isLoading.value = true
+  error.value = ""
+
   try {
     const sectorObj = sectors.value.find(s => s.name === sector.value)
-    const sectorUrl = sectorObj ? sectorObj["@id"] : ""
-
     const doyenneObj = doyennes.value.find(d => d.name === doyenne.value)
-    const doyenneUrl = doyenneObj ? doyenneObj["@id"] : ""
-
     const paroisseObj = paroisses.value.find(p => p.name === paroisse.value)
-    const paroisseUrl = paroisseObj ? paroisseObj["@id"] : ""
-
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
 
-    // 🔹 Création personne
-    const personPayload = {
+    const payload = {
       gender: gender.value,
-      phoneNumber: cleanedNumber,
       fullName: fullName.value,
-      sector: sectorUrl,
-      doyenne: doyenneUrl,
-      paroisse: paroisseUrl,
-      ...roleValues,
-      updatedAt: new Date().toISOString(),
+      phoneNumber: cleanedNumber,
+      sector: sectorObj ? sectorObj["@id"] : null,
+      doyenne: doyenneObj ? doyenneObj["@id"] : null,
+      paroisse: paroisseObj ? paroisseObj["@id"] : null,
+      ...roles.value.reduce((acc, r) => { acc[r.key] = r.value; return acc }, {}),
+      updatedAt: new Date().toISOString()
     }
 
-    const personRes = await axios.post(
-      `${API_URL}/people`, 
-      personPayload,{
-        headers: {
-          "Content-Type": "application/ld+json"
-        }
-  })
-    const personUrl = personRes.data["@id"] || personRes.data.id
-
-    // 🔹 Si responsable, créer également l'utilisateur
-    if (isResponsible) {
-      const rolesArray = []
-      if(roleValues.isDicoces) rolesArray.push("ROLE_DIOCESE")
-      if(roleValues.isDecanal) rolesArray.push("ROLE_DECANAL")
-      if(roleValues.isNoyau) rolesArray.push("ROLE_NOYAU")
-      // Noyau inclus automatiquement
-      if(roleValues.isDecanal && !rolesArray.includes("ROLE_NOYAU")) rolesArray.unshift("ROLE_NOYAU")
-      if(roleValues.isDicoces && !rolesArray.includes("ROLE_NOYAU")) rolesArray.unshift("ROLE_NOYAU")
-      if(roleValues.isDicoces && !rolesArray.includes("ROLE_DECANAL")) rolesArray.splice(1,0,"ROLE_DECANAL")
-
-      const userPayload = {
-        username: cleanedNumber,
-        roles: rolesArray,
-        password: "mijerca2025",
-        person: personUrl
-      }
-
-      await axios.post(
-        `${API_URL}/users`, 
-        userPayload,{
-        headers: {
-          "Content-Type": "application/ld+json"
+    const personId = route.query.id
+    if (personId) {
+      await axios.patch(`${API_URL}/people/${personId}`, payload, {
+        headers: { 
+          "Content-Type": "application/merge-patch+json",
+          "Accept": "application/ld+json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
       })
-      alert("Inscription réussie !\nVotre mot de passe initial est : mijerca2025")
+      alert("Mise à jour réussie !")
       router.push({ name: "home" })
-      return
     }
-
-    alert("Inscription réussie !")
-    router.push({ name: "home" })
-
   } catch (err) {
-    error.value = "Erreur lors de l'inscription."
-    console.error(err)
+    console.error("Erreur update :", err)
+    error.value = "Erreur lors de la mise à jour."
   } finally {
     isLoading.value = false
   }
@@ -222,7 +177,7 @@ async function registerUser(roleValues, isResponsible) {
 
           <!-- Genre -->
           <div class="form-group">
-            <label class="col-12 col-sm-3 col-form-label text-sm-right pt-4">Sélectionner le genre</label>
+            <label class="col-12 col-sm-3 col-form-label text-sm-right pt-4">Votre genre</label>
             <div class="col-12 col-sm-8 col-lg-6 d-flex">
               <label class="custom-control custom-radio custom-radio-icon custom-control-inline me-2">
                 <input class="custom-control-input" type="radio" name="radio-icon" value="Soeur" v-model="gender" />

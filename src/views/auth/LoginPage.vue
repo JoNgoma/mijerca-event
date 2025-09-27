@@ -85,6 +85,7 @@ const username = ref("")
 const password = ref("")
 const error = ref("")
 const isLoading = ref(false)
+
 const formatPhone = () => {
   let digits = username.value.replace(/\D/g, '');
   digits = digits.slice(0, 10);
@@ -98,9 +99,33 @@ const formatPhone = () => {
   }
 }
 
+// Fonction pour vérifier si le token a expiré
+function checkTokenExpiry() {
+  const token = localStorage.getItem("token")
+  const tokenTime = localStorage.getItem("token_time")
+  if (!token || !tokenTime) return false
+
+  const age = Date.now() - parseInt(tokenTime)
+  const oneDay = 24 * 60 * 60 * 1000 // 24h en ms
+
+  if (age > oneDay) {
+    localStorage.removeItem("token")
+    localStorage.removeItem("token_time")
+    localStorage.removeItem("userPhone")
+    localStorage.removeItem("roles")
+    return false
+  }
+
+  return true
+}
+
 async function handleLogin() {
   isLoading.value = true
   error.value = ""
+
+  // Si un token existe mais a expiré, le supprimer
+  checkTokenExpiry()
+
   try {
     const response = await fetch(`${API_URL}/login`, {
       method: "POST",
@@ -112,21 +137,24 @@ async function handleLogin() {
         password: password.value
       })
     })
-    console.log("Connexion :", username.value.replace(/\s+/g, ''), password.value);
+
     if (!response.ok) {
       throw new Error("Connexion échouée")
     }
 
     const data = await response.json()
     const token = data.token
-    const roles = data.roles || [] // <-- Assure-toi que ton API renvoie un tableau de rôles
+    const roles = data.roles || []
 
+    // Sauvegarder le token et l'heure de connexion
     localStorage.setItem("token", token)
+    localStorage.setItem("token_time", Date.now())
     localStorage.setItem("userPhone", username.value.replace(/\s+/g, ''))
-    localStorage.setItem("roles", JSON.stringify(roles)) // <-- Ajouté
+    localStorage.setItem("roles", JSON.stringify(roles))
 
-    // router.push({ name: "dashboard" })
-    window.location.href = '/admin/dashboard' // recharge la page complète
+    // Redirection
+    window.location.href = '/admin/dashboard'
+
   } catch (err) {
     error.value = "Connexion échouée. Vérifiez vos identifiants."
     console.error(err)

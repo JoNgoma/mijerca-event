@@ -42,8 +42,9 @@ import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
 
 // 404
 import PageError404 from '@/partials/dashboard/PageError404.vue'
-import UpdateInfo from '../partials/home/UpdateInfo.vue'
-import SignJeune from '../partials/home/SignJeune.vue'
+import UpdateInfo from '@/partials/home/UpdateInfo.vue'
+import SignJeune from '@/partials/home/SignJeune.vue'
+import HomeEvents from '@/partials/home/HomeEvents.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -54,6 +55,7 @@ const router = createRouter({
       component: HomeView,
       children: [
         { path: '', name: 'home', component: HomeAccueil },
+        { path: 'events', name: 'events', component: HomeEvents },
         { path: 'sign-up', name: 'signUp', component: SignJeune },
         { path: 'update-info', name: 'updateInfo', component: UpdateInfo },
         { path: 'login', name: 'login', component: LoginPage },

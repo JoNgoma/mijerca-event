@@ -299,7 +299,7 @@ async function handleSubmit(e) {
   try {
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
     if (!/^\d{10}$/.test(cleanedNumber)) { 
-      error.value = "Numéro invalide"; 
+      error.value = "Numéro de téléphone invalide"; 
       isLoading.value = false; 
       return 
     }
@@ -327,7 +327,10 @@ async function handleSubmit(e) {
     }
 
     const personRes = await axios.post(`${API_URL}/people`, payload, {
-      headers: { "Content-Type": "application/ld+json" }
+      headers: { 
+        "Content-Type": "application/ld+json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+       }
     })
 
     if (isDioces || isDecanal || isNoyau) {

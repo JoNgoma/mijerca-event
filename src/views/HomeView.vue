@@ -1,20 +1,16 @@
 <script setup>
-import { RouterView } from 'vue-router';
+import { RouterView, useRoute } from 'vue-router'
+import HeaderHome from '../components/home/HeaderHome.vue'
+import FooterHome from '../components/home/FooterHome.vue'
 
-
-
-defineProps({
-  msg: {
-    type: String,
-    required: true,
-  },
-})
+const route = useRoute()
 </script>
 
 <template>
-    <RouterView />
+  <!-- Afficher header/footer sauf pour sign-up et login -->
+  <HeaderHome v-if="!['signUp', 'login', 'updateInfo'].includes(route.name)" />
+
+  <RouterView :key="route.fullPath" />
+
+  <FooterHome v-if="!['signUp', 'login', 'updateInfo'].includes(route.name)" />
 </template>
-
-<style scoped>
-
-</style>
