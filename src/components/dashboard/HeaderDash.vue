@@ -58,6 +58,11 @@ async function fetchUserData() {
       },
     })
     const data = await res.json()
+    if (res.status === 401) {
+      localStorage.removeItem("token"); // on vide le token
+      window.location.href = "/login";  // redirection vers login
+      return;
+    }
     const user = data.member?.find(u => u.username === username)
     if (user) {
       userData.value = user

@@ -217,7 +217,7 @@ async function registerUser(roleValues, isResponsible) {
       personPayload,
       { headers: { 
         "Content-Type": "application/ld+json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`
+        // "Authorization": `Bearer ${localStorage.getItem("token")}`
        } }
     )
 

@@ -139,7 +139,7 @@ async function handleSubmit() {
         headers: { 
           "Content-Type": "application/merge-patch+json",
           "Accept": "application/ld+json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
       })
       alert("Mise à jour réussie !")

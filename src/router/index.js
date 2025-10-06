@@ -90,25 +90,25 @@ const router = createRouter({
 
         // ---- Biblic ----
         { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
-        { path: 'biblic/services/:serviceType', name: 'services', component: AdmServices },
-        { path: 'biblic/services/:serviceType/select', name: 'adm-select', component: AdmSelectService },
+        { path: ':id_campBiblique/services/:serviceType', name: 'services', component: AdmServices },
+        { path: ':id_campBiblique/services/:serviceType/select', name: 'adm-select', component: AdmSelectService },
 
         // Finances
-        { path: 'biblic/finances/:serviceType', name: 'rap-day', component: RapDay },
-        { path: 'biblic/finances/out/:serviceType', name: 'dep-new', component: DepNew },
-        { path: 'biblic/finances/out/:serviceType/suivis', name: 'dep-suivis', component: DepSuivis },
-        { path: 'biblic/finances/paie/:serviceType', name: 'paie', component: Paie },
+        { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: RapDay },
+        { path: ':id_campBiblique/finances/out/:serviceType', name: 'dep-new', component: DepNew },
+        { path: ':id_campBiblique/finances/out/:serviceType/suivis', name: 'dep-suivis', component: DepSuivis },
+        { path: ':id_campBiblique/finances/paie/:serviceType', name: 'paie', component: Paie },
 
         // Logistique
-        { path: 'biblic/logistique/dortoir/:serviceType', name: 'log-dortoir', component: LogDor },
-        { path: 'biblic/logistique/carrefour/:serviceType', name: 'log-carrefour', component: LogCar },
-        { path: 'biblic/logistique/affect/:serviceType', name: 'log-affect', component: LogAffect },
+        { path: ':id_campBiblique/logistique/dortoir/:serviceType', name: 'log-dortoir', component: LogDor },
+        { path: ':id_campBiblique/logistique/carrefour/:serviceType', name: 'log-carrefour', component: LogCar },
+        { path: ':id_campBiblique/logistique/affect/:serviceType', name: 'log-affect', component: LogAffect },
 
         // Informatique
-        { path: 'biblic/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
-        { path: 'biblic/informatique/badge-preview/:serviceType', name: 'info-badge-preview', component: BadgePreview },
-        { path: 'biblic/informatique/person-selector/:serviceType', name: 'info-person-selector', component: PersonSelector },
-        { path: 'biblic/informatique/a4-generator/:serviceType', name: 'info-a4-generator', component: A4Generator },
+        { path: ':id_campBiblique/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
+        { path: ':id_campBiblique/informatique/badge-preview/:serviceType', name: 'info-badge-preview', component: BadgePreview },
+        { path: ':id_campBiblique/informatique/person-selector/:serviceType', name: 'info-person-selector', component: PersonSelector },
+        { path: ':id_campBiblique/informatique/a4-generator/:serviceType', name: 'info-a4-generator', component: A4Generator },
 
         // Secteur / Paroisses
         { path: 'secteur/:serviceType', name: 'sec-kin', component: DoyStat },

@@ -1,44 +1,66 @@
 <script setup>
-import { onMounted } from 'vue';
-import { useRoute } from 'vue-router';
-import { useAuth } from '@/composables/useAuth';
+import { ref, onMounted, watch } from 'vue'
+import axios from 'axios'
+import { useRoute } from 'vue-router'
+import { useAuth } from '@/composables/useAuth'
+import { useServiceContext } from '@/composables/useServiceContext'
 
-const route = useRoute();
+const route = useRoute()
+const { currentService, idCamp } = useServiceContext()
 
-// 🔹 Utilisation du composable auth
-const { hasRole, loadFromApi } = useAuth();
+// Composable auth
+const { hasRole, loadFromApi } = useAuth()
 
-// 🔹 Vérifier si un lien est actif (optionnel : comparer les params)
+// Liste dynamique des camps
+const camps = ref([])
+
+// Vérifier si un lien est actif
 const isActiveRoute = (routeName, params = {}) => {
   if (route.name === routeName) {
     if (Object.keys(params).length > 0) {
       return Object.entries(params).every(
         ([key, value]) => route.params[key] === value
-      );
+      )
     }
-    return true;
+    return true
   }
-  return false;
-};
+  return false
+}
 
-// 🔹 Etat des menus ouverts (pour les sous-menus)
-// const openMenus = ref({
-//   service: false,
-//   noyauDecanal: false,
-//   noyauParoissial: false,
-//   jeunes: false,
-//   campBiblique: false
-// });
+// Récupérer la liste des activités dynamiquement
+const fetchCamps = async () => {
+  try {
+    const { data } = await axios.get(
+      `${import.meta.env.VITE_API_BASE_URL}/camp_bibliques`,
+      {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      }
+    )
+    // Ici on récupère bien le tableau member
+    camps.value = Array.isArray(data.member) ? data.member : []
+  } catch (err) {
+    console.error("Erreur lors du fetch des camps:", err)
+  }
+}
 
-// 🔹 Charger l'utilisateur et initialiser les menus
+// Initialisation
 onMounted(async () => {
-  await loadFromApi(); // récupère l'user et ses rôles depuis API
+  await loadFromApi()
+  await fetchCamps()
 
-  // Initialisation de JS tiers si nécessaire
   if (window.App && typeof window.App.init === 'function') {
-    window.App.init();
+    window.App.init()
   }
-});
+})
+
+// 🔄 Watch : actualise la liste dès qu'un nouveau camp est ajouté
+watch(idCamp, async (newVal, oldVal) => {
+  if (newVal && newVal !== oldVal) {
+    await fetchCamps()
+  }
+})
 </script>
 
 <template>
@@ -58,7 +80,6 @@ onMounted(async () => {
                   <span>Dashboard</span>
                 </a>
               </li>
-
               <!-- Administration pour ROLE_ADMIN -->
               <li v-if="
               hasRole('ROLE_ADMIN') || 
@@ -75,7 +96,7 @@ onMounted(async () => {
                       <router-link 
                         :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }"
                         :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'diocesain' }) }"
-                      >Nouvelle Unité</router-link>
+                      >Nouveau membre</router-link>
                     </li>
                     <li>
                       <router-link 
@@ -100,7 +121,7 @@ onMounted(async () => {
                       <router-link 
                         :to="{ name: 'new-unit', params: { serviceType: 'decanal' } }"
                         :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'decanal' }) }"
-                      >Nouvelle Unité</router-link>
+                      >Nouveau membre</router-link>
                     </li>
                     <li>
                       <router-link 
@@ -125,7 +146,7 @@ onMounted(async () => {
                       <router-link 
                         :to="{ name: 'new-unit', params: { serviceType: 'paroissial' } }"
                         :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'paroissial' }) }"
-                      >Nouvelle Unité</router-link>
+                      >Nouveau membre</router-link>
                     </li>
                     <li>
                       <router-link 
@@ -150,7 +171,7 @@ onMounted(async () => {
                       <router-link 
                         :to="{ name: 'new-unit', params: { serviceType: 'jeunes' } }"
                         :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'jeunes' }) }"
-                      >Nouvelle Unité</router-link>
+                      >Nouveau membre</router-link>
                     </li>
                     <li>
                       <router-link 
@@ -161,60 +182,78 @@ onMounted(async () => {
                   </ul>
                 </li>
 
-              <!-- Camp Biblique -->
-               <li v-if="
-                hasRole('ROLE_ADMIN') || 
-                hasRole('ROLE_DIOCESE') || 
-                hasRole('ROLE_DECANAL') || 
-                hasRole('ROLE_NOYAU')" 
-              class="divider">Camp biblique</li>
-              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')">
-                <router-link :to="{ name: 'new-camp' }" :class="{ 'text-primary': isActiveRoute('new-camp') }">
-                  <i class="icon mdi mdi-book"></i><span>Nouveau</span>
-                </router-link>
-              </li>
+              <!-- Activité -->
               <li v-if="
                 hasRole('ROLE_ADMIN') || 
                 hasRole('ROLE_DIOCESE') || 
                 hasRole('ROLE_DECANAL') || 
-                hasRole('ROLE_NOYAU')"  
-              class="parent">
-                <a href="#"><i class="icon mdi mdi-layers"></i><span>Camp biblique 2025</span></a>
+                hasRole('ROLE_NOYAU')" 
+                class="divider">Activités
+              </li>
+
+              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')">
+                <router-link :to="{ name: 'new-camp' }" :class="{ 'text-primary': isActiveRoute('new-camp') }">
+                  <i class="icon mdi mdi-book"></i><span>Créer une activité</span>
+                </router-link>
+              </li>
+              <!-- Dynamique : liste des camps -->
+              <template v-if="camps.length && 
+                hasRole('ROLE_ADMIN') || 
+                hasRole('ROLE_DIOCESE') || 
+                hasRole('ROLE_DECANAL') || 
+                hasRole('ROLE_NOYAU')" 
+              >
+              <li 
+                v-for="camp in camps" 
+                :key="camp.id" 
+                class="parent">
+                <a href="#">
+                  <i class="icon mdi mdi-layers"></i>
+                  <span>
+                    {{
+                      camp.name.startsWith('Ecole de responsable') 
+                        ? camp.name.replace('Ecole de responsable', 'Ecores') 
+                        : camp.name
+                    }}
+                  </span>
+                </a>
                 <ul class="sub-menu">
                   <li v-if="hasRole('ROLE_ADMIN')">
-                    <router-link :to="{ name: 'services', params: { serviceType: 'services' } }"
-                                 :class="{ 'text-primary': isActiveRoute('services', { serviceType: 'services' }) }">
+                    <router-link
+                      :to="{ name: 'services', params: { id_campBiblique: camp.id, serviceType: 'services' } }"
+                      :class="{ 'text-primary': isActiveRoute('services', { id_campBiblique: camp.id, serviceType: 'services' }) }"
+                    >
                       Administration
                     </router-link>
                   </li>
-                  <li v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
-                    hasRole('ROLE_DECANAL') || 
-                    hasRole('ROLE_NOYAU')"  >
-                    <router-link :to="{ name: 'rap-day', params: { serviceType: 'rap-day' } }"
-                                 :class="{ 'text-primary': isActiveRoute('rap-day', { serviceType: 'rap-day' }) }">
+                  <li>
+                    <router-link
+                      :to="{ name: 'rap-day', params: { id_campBiblique: camp.id, serviceType: 'rap-day' } }"
+                      :class="{ 'text-primary': isActiveRoute('rap-day', { id_campBiblique: camp.id, serviceType: 'rap-day' }) }"
+                    >
                       Finances
                     </router-link>
                   </li>
-                  <li v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
-                    hasRole('ROLE_DECANAL') || 
-                    hasRole('ROLE_NOYAU')"  >
-                    <router-link :to="{ name: 'log-dortoir', params: { serviceType: 'dortoir' } }"
-                                 :class="{ 'text-primary': isActiveRoute('log-dortoir', { serviceType: 'dortoir' }) }">
+                  <li>
+                    <router-link
+                      :to="{ name: 'log-dortoir', params: { id_campBiblique: camp.id, serviceType: 'dortoir' } }"
+                      :class="{ 'text-primary': isActiveRoute('log-dortoir', { id_campBiblique: camp.id, serviceType: 'dortoir' }) }"
+                    >
                       Hébergement
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'info-badge-editor', params: { serviceType: 'badge-editor' } }"
-                                 :class="{ 'text-primary': isActiveRoute('info-badge-editor', { serviceType: 'badge-editor' }) }">
+                    <router-link
+                      :to="{ name: 'info-badge-editor', params: { id_campBiblique: camp.id, serviceType: 'badge-editor' } }"
+                      :class="{ 'text-primary': isActiveRoute('info-badge-editor', { id_campBiblique: camp.id, serviceType: 'badge-editor' }) }"
+                    >
                       Informatique
                     </router-link>
                   </li>
                 </ul>
               </li>
+
+              </template>
 
               <!-- Gestion des paroisses pour ROLE_NOYAU -->
               <li v-if="

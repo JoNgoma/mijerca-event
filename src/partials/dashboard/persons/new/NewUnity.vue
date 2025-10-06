@@ -138,6 +138,9 @@ import { ref, onMounted, watch, onUnmounted } from 'vue'
 import { useRouter, onBeforeRouteUpdate } from 'vue-router'
 import axios from 'axios'
 import { useServiceContext } from '@/composables/useServiceContext'
+import { useToast } from 'vue-toastification';
+
+const toast = useToast();
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const router = useRouter()
@@ -233,7 +236,8 @@ async function loadData() {
     stopSectorWatcher = watch(sector, filterDoyennes)
     stopDoyenneWatcher = watch(doyenne, filterParoisses)
   } catch (err) {
-    console.error("Erreur chargement données :", err)
+      toast.error("Erreur chargement données", 'error');
+      console.error("Erreur chargement données :", err)
   }
 }
 
@@ -329,7 +333,7 @@ async function handleSubmit(e) {
     const personRes = await axios.post(`${API_URL}/people`, payload, {
       headers: { 
         "Content-Type": "application/ld+json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
        }
     })
 

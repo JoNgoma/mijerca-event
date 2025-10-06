@@ -1,6 +1,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 
+
+
 const serviceTypes = {
   'diocesain': {
     position: 'diocesain',
@@ -37,16 +39,19 @@ const serviceTypes = {
     description: 'Rapport global'
   },
   'kin-est': {
+    sectorName : 'KIN EST',
     name: 'Secteur KIN EST',
     icon: 'mdi mdi-currency-usd',
     description: 'Paiement secteur KIN EST'
   },
   'kin-centre': {
+    sectorName : 'KIN CENTRE',
     name: 'Secteur KIN CENTRE',
     icon: 'mdi mdi-currency-usd',
     description: 'Paiement secteur KIN CENTRE'
   },
   'kin-ouest': {
+    sectorName : 'KIN OUEST',
     name: 'Secteur KIN OUEST',
     icon: 'mdi mdi-currency-usd',
     description: 'Paiement secteur KIN OUEST'
@@ -135,10 +140,17 @@ const serviceTypes = {
 export function useServiceContext() {
   const route = useRoute()
   
+  // Type de service courant (ex: paroissial, rap-day, etc.)
   const currentServiceType = computed(() => {
     return route.params.serviceType || 'diocesain'
   })
+
+  // ID du camp courant si présent dans l’URL
+  const idCamp = computed(() => {
+    return route.params.id_campBiblique || null
+  })
   
+  // Config du service courant
   const currentService = computed(() => {
     return serviceTypes[currentServiceType.value] || serviceTypes.diocesain
   })
@@ -151,6 +163,7 @@ export function useServiceContext() {
     currentServiceType,
     currentService,
     serviceTypes,
-    getServiceConfig
+    getServiceConfig,
+    idCamp // 🔥 ajouté ici
   }
 }

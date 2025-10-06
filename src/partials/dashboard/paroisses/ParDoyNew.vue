@@ -230,7 +230,7 @@ onMounted(() => {
       </nav>
     </div>
 
-    <div class="main-content container-fluid">
+    <div class="main-content container-fluid">A
       <div class="row">
         <!-- Formulaire Doyenné -->
         <div class="col-lg-6">
