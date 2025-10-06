@@ -39,18 +39,21 @@ const serviceTypes = {
     description: 'Rapport global'
   },
   'kin-est': {
+    id:'kin-est',
     sectorName : 'KIN EST',
     name: 'Secteur KIN EST',
     icon: 'mdi mdi-currency-usd',
     description: 'Paiement secteur KIN EST'
   },
   'kin-centre': {
+    id:'kin-centre',
     sectorName : 'KIN CENTRE',
     name: 'Secteur KIN CENTRE',
     icon: 'mdi mdi-currency-usd',
     description: 'Paiement secteur KIN CENTRE'
   },
   'kin-ouest': {
+    id:'kin-ouest',
     sectorName : 'KIN OUEST',
     name: 'Secteur KIN OUEST',
     icon: 'mdi mdi-currency-usd',

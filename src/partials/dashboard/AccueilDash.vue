@@ -137,7 +137,6 @@ async function fetchWidgetData() {
     const secCentre = people.find(s => s.sector === '/api/sectors/2');
     const secOuest = people.find(s => s.sector === '/api/sectors/3');
 
-    console.log("KIN OUEST : ", secOuest);
     updateWidgetData(people);
     updateTimeStats(people, secEst, secCentre, secOuest);
   } catch (err) {

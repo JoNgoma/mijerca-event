@@ -287,8 +287,6 @@ async function handleSubmit(e) {
         removals: [],
         badge: false
       };
-      console.log('Payload participator : ', participatorPayload)
-
       const createPartRes = await axios.post(`${API}/participators`, participatorPayload, {
         headers: { "Content-Type": "application/ld+json" }
       });
@@ -307,7 +305,6 @@ async function handleSubmit(e) {
         status: 'Access CB',
         createdAt: new Date().toISOString()
       };
-      console.log('Payload montant : ', montantPayload)
 
       const montantRes = await axios.post(`${API}/montants`, montantPayload, {
         headers: { "Content-Type": "application/ld+json" }

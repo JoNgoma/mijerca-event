@@ -279,9 +279,9 @@ function closeModal() { selectedJeune.value = null }
               <strong>Statut :</strong>
               <span class="badge"
                 :class="{
-                  'bg-success': selectedJeune.statut === 'Jeune',
+                  'bg-success text-white': selectedJeune.statut === 'Jeune',
                   'bg-primary text-white': selectedJeune.statut === 'Noyau paroissial',
-                  'bg-warning text-dark': selectedJeune.statut === 'Noyau décanal',
+                  'bg-warning text-white': selectedJeune.statut === 'Noyau décanal',
                   'bg-danger text-white': selectedJeune.statut === 'Noyau diocésain'
                 }"
               >

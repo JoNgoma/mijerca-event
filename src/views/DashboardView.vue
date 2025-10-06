@@ -14,12 +14,6 @@ import { useTopMenu } from '@/composables/useTopMenu'
 
 const { currentMenu } = useTopMenu()
 
-const userData = ref({
-  firstName: '',
-  name: '',
-  email: ''
-})
-
 $(document).ready(function(){
       	//-initialize the javascript
       	App.init();
@@ -31,7 +25,7 @@ $(document).ready(function(){
 
 <template>
   <div class="be-wrapper be-fixed-sidebar">
-      <HeaderDash :userData="userData">
+      <HeaderDash >
         <template #navigation>
           <CommuniquesMenu v-if="currentMenu === 'communiques'" />
           <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />

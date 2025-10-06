@@ -19,7 +19,7 @@ import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
 import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
 import AdmServices from '@/partials/dashboard/biblic/AdmServices.vue'
 import AdmSelectService from '@/partials/dashboard/biblic/AdmSelectService.vue'
-import RapDay from '@/partials/dashboard/biblic/RapDay.vue'
+import PageRapport from '@/partials/dashboard/biblic/rapport/PageRapport.vue'
 import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
 import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
 import Paie from '@/partials/dashboard/biblic/Paie.vue'
@@ -94,7 +94,7 @@ const router = createRouter({
         { path: ':id_campBiblique/services/:serviceType/select', name: 'adm-select', component: AdmSelectService },
 
         // Finances
-        { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: RapDay },
+        { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: PageRapport },
         { path: ':id_campBiblique/finances/out/:serviceType', name: 'dep-new', component: DepNew },
         { path: ':id_campBiblique/finances/out/:serviceType/suivis', name: 'dep-suivis', component: DepSuivis },
         { path: ':id_campBiblique/finances/paie/:serviceType', name: 'paie', component: Paie },
