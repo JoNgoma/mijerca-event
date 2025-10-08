@@ -291,20 +291,20 @@ function setFilter(filter){ currentFilter.value=filter; }
               <div class="desc">{{ d.label }}</div>
               <div class="value" v-if="d.k!=='total'">
                 <span class="number indicator" data-toggle="counter" >{{widgetData[d.k].frere}}</span>
-                <span class="indicator-equal mdi mdi-male"></span>
+                <span class="indicator-equal mdi mdi-male-alt"></span>
               </div>
               <div class="value" v-if="d.k!=='total'">
                 <span class="number indicator" data-toggle="counter" :data-end="widgetData[d.k].soeur">{{widgetData[d.k].soeur}}</span>
-                <span class="indicator-negative mdi mdi-female" style="margin: 0 .3rem;"></span>
+                <span class="indicator-negative mdi mdi-female"></span>
               </div>
 
               <div class="value" v-if="d.k==='total'">
                 <span class="number indicator" data-toggle="counter" :data-end="widgetData.total.frere">{{widgetData.total.frere}}</span>
-                <span class="indicator-equal mdi mdi-male"></span>
+                <span class="indicator-equal mdi mdi-male-alt"></span>
               </div>
               <div class="value" v-if="d.k==='total'">
                 <span class="number indicator" data-toggle="counter" :data-end="widgetData.total.soeur">{{widgetData.total.soeur}}</span>
-                <span class="indicator-negative mdi mdi-female" style="margin: 0 .3rem;"></span>
+                <span class="indicator-negative mdi mdi-female"></span>
               </div>
             </div>
           </div>

@@ -25,9 +25,9 @@ import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
 import Paie from '@/partials/dashboard/biblic/Paie.vue'
 
 // Logistique
-import LogDor from '@/partials/dashboard/biblic/LogDor.vue'
-import LogCar from '@/partials/dashboard/biblic/LogCar.vue'
-import LogAffect from '@/partials/dashboard/biblic/LogAffect.vue'
+import LogDor from '@/partials/dashboard/biblic/hebergement/LogDor.vue'
+import LogCar from '@/partials/dashboard/biblic/hebergement/LogCar.vue'
+import LogAffect from '@/partials/dashboard/biblic/hebergement/LogAffect.vue'
 
 // Informatique
 import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vue'
@@ -100,9 +100,9 @@ const router = createRouter({
         { path: ':id_campBiblique/finances/paie/:serviceType', name: 'paie', component: Paie },
 
         // Logistique
-        { path: ':id_campBiblique/logistique/dortoir/:serviceType', name: 'log-dortoir', component: LogDor },
-        { path: ':id_campBiblique/logistique/carrefour/:serviceType', name: 'log-carrefour', component: LogCar },
-        { path: ':id_campBiblique/logistique/affect/:serviceType', name: 'log-affect', component: LogAffect },
+        { path: ':id_campBiblique/logistique/dortoir', name: 'log-dortoir', component: LogDor },
+        { path: ':id_campBiblique/logistique/carrefour', name: 'log-carrefour', component: LogCar },
+        { path: ':id_campBiblique/logistique/affect', name: 'log-affect', component: LogAffect },
 
         // Informatique
         { path: ':id_campBiblique/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },

@@ -90,7 +90,7 @@ const serviceTypes = {
     description: 'Gestion des dortoirs'
   },
   'affect': {
-    name: 'Affectation logistique',
+    name: 'Affectation',
     icon: 'mdi mdi-currency-usd',
     description: 'Mis en place'
   },

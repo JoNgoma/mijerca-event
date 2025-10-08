@@ -14,6 +14,15 @@ const isActive = (routeName) => {
   <ul class="navbar-nav">
     <li class="nav-item">
       <router-link 
+        :to="{ name: 'log-affect', params: { serviceType: 'affect' } }" 
+        class="nav-link"
+        :class="{ 'text-primary': isActive('log-affect') }"
+      >
+        Affectation
+      </router-link>
+    </li>
+    <li class="nav-item">
+      <router-link 
         :to="{ name: 'log-dortoir', params: { serviceType: 'dortoir' } }" 
         class="nav-link"
         :class="{ 'text-primary': isActive('log-dortoir') }"
@@ -28,15 +37,6 @@ const isActive = (routeName) => {
         :class="{ 'text-primary': isActive('log-carrefour') }"
       >
         Carrefours
-      </router-link>
-    </li>
-    <li class="nav-item">
-      <router-link 
-        :to="{ name: 'log-affect', params: { serviceType: 'affect' } }" 
-        class="nav-link"
-        :class="{ 'text-primary': isActive('log-affect') }"
-      >
-        Affectation
       </router-link>
     </li>
   </ul>

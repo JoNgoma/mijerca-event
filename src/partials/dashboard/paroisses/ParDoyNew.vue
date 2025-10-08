@@ -115,7 +115,7 @@ async function saveDoyenne(e) {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/ld+json' },
         body: JSON.stringify({
-          name: doyenneName.value,
+          name: `Paroisse ${doyenneName.value}`,
           doyenne: `/api/doyennes/${newDoyenne.id}`,
           sector: `/api/sectors/${sectorId.value}`,
         }),
