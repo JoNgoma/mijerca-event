@@ -230,7 +230,7 @@ watch(idCamp, async (newVal, oldVal) => {
                       :to="{ name: 'info-badge-editor', params: { id_campBiblique: camp.id, serviceType: 'badge-editor' } }"
                       :class="{ 'text-primary': isActiveRoute('info-badge-editor', { id_campBiblique: camp.id, serviceType: 'badge-editor' }) }"
                     >
-                      Informatique
+                      Secrétariat
                     </router-link>
                   </li>
                 </ul>

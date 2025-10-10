@@ -205,7 +205,7 @@ function closeModal() {
 
           <tbody>
             <tr
-              v-for="(dortoir, index) in dortoirs"
+              v-for="(dortoir) in dortoirs"
               :key="dortoir"
               @click="openModal(dortoir)"
               style="cursor: pointer"
