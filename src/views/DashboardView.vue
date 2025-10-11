@@ -8,7 +8,6 @@ import AdmMenu from '@/components/menus/AdmMenu.vue';
 import LogMenu from '@/components/menus/LogMenu.vue';
 import FinancesMenu from '@/components/menus/FinancesMenu.vue';
 import ParoisseMenu from '@/components/menus/ParoisseMenu.vue';
-import { ref } from 'vue'
 import { useTopMenu } from '@/composables/useTopMenu'
 
 
@@ -18,7 +17,6 @@ $(document).ready(function(){
       	//-initialize the javascript
       	App.init();
       	App.dashboard();
-      
       });
 
 </script>
@@ -30,7 +28,7 @@ $(document).ready(function(){
           <CommuniquesMenu v-if="currentMenu === 'communiques'" />
           <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />
           <FinancesMenu v-else-if="currentMenu === 'rap-day' || currentMenu === 'paie' || currentMenu === 'dep-new'  || currentMenu === 'dep-suivis'" />
-          <AdmMenu v-else-if="currentMenu === 'services' ||currentMenu === 'adm-select'" />
+          <AdmMenu v-else-if="currentMenu === 'services' ||currentMenu === 'manager' ||currentMenu === 'media'" />
           <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
           <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par' ||currentMenu === 'kin-paroisse'" />
           <ul v-else class="navbar-nav">

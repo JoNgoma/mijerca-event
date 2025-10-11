@@ -66,7 +66,7 @@ const router = createRouter({
     {
       path: '/admin',
       component: DashboardView,
-      meta: { requiresAuth: true }, // Tous les enfants héritent
+      meta: { requiresAuth: true },
       children: [
         { path: 'dashboard', name: 'dashboard', component: AccueilDash },
 
@@ -90,8 +90,9 @@ const router = createRouter({
 
         // ---- Biblic ----
         { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
-        { path: ':id_campBiblique/services/:serviceType', name: 'services', component: AdmServices },
-        { path: ':id_campBiblique/services/:serviceType/select', name: 'adm-select', component: AdmSelectService },
+        { path: ':id_campBiblique/:serviceType', name: 'services', component: AdmServices },
+        { path: ':id_campBiblique/services/:serviceType', name: 'manager', component: AdmSelectService },
+        { path: ':id_campBiblique/services/:serviceType', name: 'media', component: AdmSelectService },
 
         // Finances
         { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: PageRapport },
@@ -117,34 +118,64 @@ const router = createRouter({
       ],
     },
 
-    // 404 - front only
-{
-  path: '/:pathMatch(.*)*',
-  name: 'NotFound',
-  component: PageError404,
-  beforeEnter: (to, from, next) => {
-    // Si l'URL commence par /api ou /sse, laisse Symfony gérer
-    if (to.path.startsWith('/api') || to.path.startsWith('/sse')) {
-      return next(false); // Annule la navigation côté Vue
-    }
-    next(); // Sinon affiche la page 404 front
-  }
-},
+    // 404 - FRONT ONLY
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: PageError404,
+      beforeEnter: (to, from, next) => {
+        if (to.path.startsWith('/api') || to.path.startsWith('/sse')) {
+          return next(false)
+        }
+        next()
+      },
+    },
   ],
 })
 
 // ----- Navigation guard -----
 router.beforeEach((to, from, next) => {
-  const isAuthenticated = !!localStorage.getItem('token')
+  const token = localStorage.getItem('token')
+  const roles = JSON.parse(localStorage.getItem('roles') || '[]') // <-- ici
+  const isAuthenticated = !!token
 
-  // Si route requiert auth
+  // Auth obligatoire
   if (to.matched.some(record => record.meta.requiresAuth) && !isAuthenticated) {
     return next({ name: 'login' })
   }
 
-  // Redirection si déjà connecté
+  // Déjà connecté → empêcher retour sur /login
   if (isAuthenticated && to.name === 'login') {
     return next({ name: 'dashboard' })
+  }
+
+  // Vérif rôle pour /admin/*
+  if (to.path.startsWith('/admin')) {
+
+    if (roles.includes('ROLE_ADMIN')) {
+      // Accès total
+      return next()
+    }
+
+    if (roles.includes('ROLE_NOYAU') || roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')) {
+      // Routes autorisées pour ROLE_NOYAU
+      if (roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')){
+        const allowedRoutes = ['dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new']
+      if (allowedRoutes.includes(to.name)) {
+        return next()
+      } else {
+        return 
+      }
+      }
+      const allowedRoutes = ['dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse']
+      if (allowedRoutes.includes(to.name)) {
+        return next()
+      } else {
+        return 
+      }
+    }
+    // Aucun rôle valide → rediriger
+    return 
   }
 
   next()

@@ -1,14 +1,9 @@
 <script setup>
 import { useRoute } from 'vue-router';
-import { useServiceContext } from '@/composables/useServiceContext'
 
 const route = useRoute();
-const { serviceTypes } = useServiceContext()
 
-// on ne garde que ceux qui commencent par "adm-"
-const services = Object.keys(serviceTypes)
-  .filter(k => k.startsWith('adm-'))
-  .map(k => ({ key: k, ...serviceTypes[k] }))
+
 
 const isActive = (routeName) => {
   return route.name === routeName;
@@ -23,24 +18,26 @@ const isActive = (routeName) => {
         class="nav-link"
         :class="{ 'text-primary': isActive('services') }"
       >
-        Tous
+        Services
       </router-link>
     </li>
-    <li class="nav-item dropdown">
-      <a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown" role="button" aria-expanded="false">
-        Services <span class="mdi mdi-caret-down"></span>
-      </a>
-      <div class="dropdown-menu" role="menu">
-        <router-link
-          v-for="service in services"
-          :key="service.key"
-          :to="{ name: service.key, params: { serviceType: service.key } }"
-          class="dropdown-item"
-          :class="{ 'text-primary': isActive(service.key) }"
-        >
-          {{ service.name }}
-        </router-link>
-      </div>
+    <li class="nav-item">
+      <router-link 
+        :to="{ name: 'manager', params: { serviceType: 'manager' } }" 
+        class="nav-link"
+        :class="{ 'text-primary': isActive('manager') }"
+      >
+        Manager
+      </router-link>
+    </li>
+    <li class="nav-item">
+      <router-link 
+        :to="{ name: 'media', params: { serviceType: 'media' } }" 
+        class="nav-link"
+        :class="{ 'text-primary': isActive('media') }"
+      >
+        Média
+      </router-link>
     </li>
   </ul>
 </template>

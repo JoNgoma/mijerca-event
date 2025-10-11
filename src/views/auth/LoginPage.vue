@@ -127,6 +127,7 @@ async function handleLogin() {
   checkTokenExpiry()
 
   try {
+    // 1️⃣ Login
     const response = await fetch(`${API_URL}/login`, {
       method: "POST",
       headers: {
@@ -138,19 +139,39 @@ async function handleLogin() {
       })
     })
 
-    if (!response.ok) {
-      throw new Error("Connexion échouée")
-    }
+    if (!response.ok) throw new Error("Connexion échouée")
 
     const data = await response.json()
     const token = data.token
-    const roles = data.roles || []
 
-    // Sauvegarder le token et l'heure de connexion
+    // Sauvegarder token et heure
     localStorage.setItem("token", token)
     localStorage.setItem("token_time", Date.now())
     localStorage.setItem("userPhone", username.value.replace(/\s+/g, ''))
-    localStorage.setItem("roles", JSON.stringify(roles))
+
+    // 2️⃣ Récupérer les utilisateurs pour trouver le rôle
+    const usersResponse = await fetch(`${API_URL}/users`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    })
+
+    if (!usersResponse.ok) throw new Error("Impossible de récupérer les rôles")
+
+    const usersData = await usersResponse.json()
+    const memberList = usersData.member || []
+
+    // Comparer par username
+    const currentUser = memberList.find(
+      (u) => u.username === username.value.replace(/\s+/g, '')
+    )
+
+    if (currentUser) {
+      localStorage.setItem("roles", JSON.stringify(currentUser.roles || []))
+    } else {
+      localStorage.setItem("roles", JSON.stringify([]))
+    }
 
     // Redirection
     window.location.href = '/admin/dashboard'
@@ -162,6 +183,7 @@ async function handleLogin() {
     isLoading.value = false
   }
 }
+
 </script>
 
 

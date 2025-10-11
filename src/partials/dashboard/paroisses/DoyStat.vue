@@ -23,6 +23,7 @@ const descr = computed(() => currentService.value.description);
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 const token = localStorage.getItem("token");
 
+const isLoading = ref(false)
 const sectorId = ref(null);
 const doyennes = ref([]);
 const totalSecteur = ref(0);
@@ -45,6 +46,7 @@ const connectSse = () => {
 // Fetch sector + doyennes + paroisses + personnes
 // ==========================
 async function fetchSectorId() {
+  isLoading.value = true; // ✅ Début du chargement
   try {
     const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -57,6 +59,8 @@ async function fetchSectorId() {
     }
   } catch (err) {
     console.error("Erreur récupération secteur", err);
+  } finally {
+    isLoading.value = false; // ✅ Fin du chargement
   }
 }
 
@@ -156,7 +160,13 @@ watch(() => route.params.serviceType, () => fetchSectorId());
               </div>
             </div>
             <div class="card-body">
-              <div style="max-height: 44.9rem; overflow-y: auto;">
+              <div v-if="isLoading" class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="visually-hidden"></span>
+                </div>
+                <p>Chargement des données...</p>
+              </div>
+              <div v-else style="max-height: 44.9rem; overflow-y: auto;">
                 <table class="table table-striped table-hover table-fw-widget" id="tableSect">
                   <thead>
                     <tr>

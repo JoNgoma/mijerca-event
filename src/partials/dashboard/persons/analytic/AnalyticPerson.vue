@@ -9,6 +9,7 @@ const LocalisationService = ref(currentService.value.position);
 // Config API
 const API_URL = import.meta.env.VITE_API_BASE_URL;
 const token = localStorage.getItem("token");
+const isLoading = ref(false)
 
 // Données
 const currentUser = ref(null);
@@ -51,10 +52,10 @@ async function fetchCurrentUser() {
     currentUser.value = res.data.member?.find(u => u.username === username);
 
     if (currentUser.value) {
-      const personRes = await axios.get(`${API_URL}/people?phoneNumber=${encodeURIComponent(currentUser.value.username)}`, {
+      const personRes = await axios.get(`${API_URL}/people?phoneNumber=${encodeURIComponent(username)}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      currentPerson.value = personRes.data.member?.[0] || null;
+      currentPerson.value = personRes.data.member?.find(p => p.phoneNumber === username) || null;
     }
   } catch (err) {
     console.error("❌ Erreur récupération user", err);
@@ -78,6 +79,7 @@ async function fetchAllDoyennes() {
 // ==========================
 async function fetchSectorId() {
   try {
+  isLoading.value = true
     const res = await axios.get(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -95,6 +97,8 @@ async function fetchSectorId() {
     }
   } catch (err) {
     console.error("❌ Erreur récupération secteur", err);
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -127,24 +131,50 @@ async function fetchDioceses() {
 // ==========================
 async function fetchPeople() {
   try {
-    allPeople.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.paroisse === currentPerson.value.paroisse) || [];
-  } catch (err) { console.error("❌ Erreur récupération personnes", err); }
+    const res = await axios.get(`${API_URL}/people`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const people = res.data.member || [];
+
+    // Filtrage de base
+    switch (LocalisationService.value) {
+      case "jeune":
+        // Tous les jeunes de la même paroisse
+        allPeople.value = people.filter(p => p.paroisse === currentPerson.value.paroisse);
+        break;
+
+      case "paroissial":
+        // Noyau paroissial avec même paroisse
+        allPeople.value = people.filter(
+          p => p.paroisse === currentPerson.value.paroisse && p.isNoyau
+        );
+        break;
+
+      case "decanal":
+        // Noyau décanal avec même doyenné
+        allPeople.value = people.filter(
+          p => p.doyenne === currentPerson.value.doyenne && p.isDecanal
+        );
+        break;
+
+      case "diocesain":
+        // Tous les diocésains
+        allPeople.value = people.filter(p => p.isDicoces);
+        break;
+
+      default:
+        allPeople.value = [];
+    }
+  } catch (err) {
+    console.error("❌ Erreur récupération personnes", err);
+  }
 }
 
 // ==========================
 // Computed pour l'affichage
 // ==========================
 const jeunes = computed(() => {
-  let selected = [];
-  switch (LocalisationService.value) {
-    case "diocesain": selected = dioceses.value || []; break;
-    case "decanal": selected = doyennes.value || []; break;
-    case "paroissial": selected = paroisses.value || []; break;
-    case "jeune": selected = allPeople.value || []; break;
-    default: selected = [];
-  }
-
-  return selected.map(p => ({
+  return (allPeople.value || []).map(p => ({
     ...p,
     doyenne: allDoyennes.value.find(d => d["@id"] === p.doyenne)?.name || "",
     paroisse: allParoisses.value.find(pa => pa["@id"] === p.paroisse)?.name || "",
@@ -207,7 +237,13 @@ onUnmounted(() => {
             </div>
             <div class="card-body">
               <div style="max-height: 44.9rem; overflow-y: auto;">
-                <table class="table table-striped table-hover table-fw-widget" id="table1">
+                <div v-if="isLoading" class="text-center my-5">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden"></span>
+                  </div>
+                  <p>Chargement des données...</p>
+                </div>
+                <table v-else class="table table-striped table-hover table-fw-widget" id="table1">
                   <thead>
                     <tr>
                       <th>Nom complet</th>
@@ -220,12 +256,11 @@ onUnmounted(() => {
                     <tr
                       v-for="j in jeunes"
                       :key="j.id"
-                      style="cursor: pointer;"
                       :class="{
                         'bg-noyau text-dark': j.isNoyau
                       }"
                     >
-                      <td>{{ j.fullName }}</td>
+                      <td>{{ j.gender }} {{ j.fullName }}</td>
                       <td class="d-none d-md-table-cell">{{ j.doyenne }}</td>
                       <td>{{ j.paroisse }}</td>
                       <td>{{ j.phoneNumber }}</td>

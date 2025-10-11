@@ -17,6 +17,7 @@ const descr = computed(() => currentService.value.description)
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const token = localStorage.getItem('token')
+const isLoading = ref(false)
 
 // ==========================
 // Données
@@ -35,6 +36,7 @@ let eventSource = null
 // Récupérer doyennés et paroisses
 // ==========================
 async function fetchSectorId() {
+  isLoading.value = true
   try {
     const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sectorName)}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -47,8 +49,26 @@ async function fetchSectorId() {
     }
   } catch (err) {
     console.error("Erreur récupération secteur", err);
+  } finally {
+    isLoading.value = false
   }
 }
+
+async function fetchPeople() {
+  isLoading.value = true
+  try {
+    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })
+    const data = await res.json()
+    jeunes.value = data.member
+      ?.filter(s => s.sector === `/api/sectors/${sectorId.value}`)
+      .map(formatPerson) || []
+  } catch (err) {
+    console.error('Erreur récupération des jeunes', err)
+  } finally {
+    isLoading.value = false
+  }
+}
+
 
 async function fetchDoyennes() {
   try {
@@ -96,17 +116,6 @@ function formatPerson(p) {
   }
 }
 
-async function fetchPeople() {
-  try {
-    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })
-    const data = await res.json()
-    jeunes.value = data.member
-      ?.filter(s => s.sector === `/api/sectors/${sectorId.value}`)
-      .map(formatPerson) || []
-  } catch (err) {
-    console.error('Erreur récupération des jeunes', err)
-  }
-}
 
 // ==========================
 // Montage / SSE
@@ -215,7 +224,13 @@ function closeModal() { selectedJeune.value = null }
 
             <div class="card-body">
               <div style="max-height: 40.5rem; overflow-y: auto;">
-                <table class="table table-striped table-hover table-fw-widget" id="tableSect">
+                <div v-if="isLoading" class="text-center my-5">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden"></span>
+                  </div>
+                  <p>Chargement des données...</p>
+                </div>
+                <table v-else class="table table-striped table-hover table-fw-widget" id="tableSect">
                   <thead>
                     <tr>
                       <th class="d-none d-md-table-cell">Doyennés</th>

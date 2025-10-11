@@ -9,7 +9,7 @@ Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 // Variables principales
 // ==========================
 const route = useRoute();
-const { currentService } = useServiceContext();
+const { currentService } = useServiceContext();   
 
 const sectorService = computed(() => route.params.serviceType || currentService.value.position);
 const sector = computed(() => {
@@ -51,7 +51,7 @@ function normalizeRef(ref) {
   try {
     const u = new URL(ref, "http://example.invalid");
     return u.pathname.replace(/\/+$/, "");
-  } catch (e) {
+  } catch {
     return String(ref).replace(/^https?:\/\/[^/]+/, "").replace(/\/+$/, "");
   }
 }
@@ -204,14 +204,14 @@ async function fetchDoyennes() {
 // SSE - live update
 // ==========================
 function initSSE() {
-  try { eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`); } catch(e){ eventSource.value=null; }
+  try { eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`); } catch{ eventSource.value=null; }
   if(!eventSource.value) return;
   eventSource.value.onmessage = async event => {
     const p = JSON.parse(event.data||"{}");
     if(sectorRef.value && normalizeRef(p.sector)===sectorRef.value) await fetchDoyennes();
     updateWidgetData([p]);
   };
-  eventSource.value.onerror = err => { console.error("SSE error:",err); try{eventSource.value.close();}catch(e){} };
+  eventSource.value.onerror = err => { console.error("SSE error:",err); try{eventSource.value.close();}catch{return} };
 }
 
 // ==========================
@@ -276,6 +276,8 @@ watch(widgetData, newVal => {
 // Filtre flow
 // ==========================
 function setFilter(filter){ currentFilter.value=filter; }
+
+
 
 </script>
 
@@ -447,37 +449,6 @@ function setFilter(filter){ currentFilter.value=filter; }
           </div>
         </div>
       </div>  
-      <!-- <div class="row">
-        <div class="col-12 col-lg-6">
-          <div class="card">
-            <div class="card-header">Latest Activity</div>
-            <div class="card-body">
-              <ul class="user-timeline user-timeline-compact">
-                <li class="latest">
-                  <div class="user-timeline-date">Just Now</div>
-                  <div class="user-timeline-title">Create New Page</div>
-                  <div class="user-timeline-description">Vestibulum lectus nulla, maximus in eros non, tristique.</div>
-                </li>
-                <li>
-                  <div class="user-timeline-date">Today - 15:35</div>
-                  <div class="user-timeline-title">Back Up Theme</div>
-                  <div class="user-timeline-description">Vestibulum lectus nulla, maximus in eros non, tristique.</div>
-                </li>
-                <li>
-                  <div class="user-timeline-date">Yesterday - 10:41</div>
-                  <div class="user-timeline-title">Changes In The Structure</div>
-                  <div class="user-timeline-description">Vestibulum lectus nulla, maximus in eros non, tristique.      </div>
-                </li>
-                <li>
-                  <div class="user-timeline-date">Yesterday - 3:02</div>
-                  <div class="user-timeline-title">Fix the Sidebar</div>
-                  <div class="user-timeline-description">Vestibulum lectus nulla, maximus in eros non, tristique.</div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </div> -->
     </div>
   </div>
 </template>

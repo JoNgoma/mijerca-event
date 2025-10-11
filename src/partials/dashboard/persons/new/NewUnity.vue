@@ -336,12 +336,16 @@ async function handleSubmit(e) {
           "Authorization": `Bearer ${localStorage.getItem("token")}`
        }
     })
-
+    const sectorUrl =sectorObj ? sectorObj["@id"] : ""
+    let roleSector ='' 
+    if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST' 
+    else if (sectorUrl=== '/api/sectors/2') roleSector = 'ROLE_CENTRE'
+    else if (sectorUrl=== '/api/sectors/3') roleSector = 'ROLE_OUEST'
     if (isDioces || isDecanal || isNoyau) {
       let rolesArray = []
-      if (isDioces) rolesArray = ["ROLE_DIOCESE","ROLE_DECANAL","ROLE_NOYAU"]
-      else if (isDecanal) rolesArray = ["ROLE_DECANAL","ROLE_NOYAU"]
-      else if (isNoyau) rolesArray = ["ROLE_NOYAU"]
+      if (isDioces) rolesArray = [roleSector, "ROLE_DIOCESE","ROLE_DECANAL","ROLE_NOYAU"]
+      else if (isDecanal) rolesArray = [roleSector, "ROLE_DECANAL","ROLE_NOYAU"]
+      else if (isNoyau) rolesArray = [roleSector, "ROLE_NOYAU"]
 
       const userPayload = {
         username: cleanedNumber,

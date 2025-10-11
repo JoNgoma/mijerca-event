@@ -220,11 +220,14 @@ async function registerUser(roleValues, isResponsible) {
         // "Authorization": `Bearer ${localStorage.getItem("token")}`
        } }
     )
-
+    let roleSector ='' 
+    if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST' 
+    else if (sectorUrl=== '/api/sectors/2') roleSector = 'ROLE_CENTRE'
+    else if (sectorUrl=== '/api/sectors/3') roleSector = 'ROLE_OUEST'
     const personUrl = personRes.data["@id"] || personRes.data.id
 
     if (isResponsible) {
-      const rolesArray = []
+      const rolesArray = [roleSector]
       if(roleValues.isDicoces) rolesArray.push("ROLE_DIOCESE")
       if(roleValues.isDecanal) rolesArray.push("ROLE_DECANAL")
       if(roleValues.isNoyau) rolesArray.push("ROLE_NOYAU")
