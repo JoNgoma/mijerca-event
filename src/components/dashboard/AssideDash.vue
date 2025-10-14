@@ -10,6 +10,11 @@ const { idCamp } = useServiceContext()
 
 // Composable auth
 const { hasRole, loadFromApi } = useAuth()
+const hasCARole = (type = 'SEC', activity = 'CA', year) => {
+  const role = `ROLE_${type}_${activity}${year}`
+  return hasRole(role)
+}
+
 const isLoading = ref(false)
 // Liste dynamique des camps
 const camps = ref([])
@@ -90,7 +95,7 @@ watch(idCamp, async (newVal, oldVal) => {
             <ul class="sidebar-elements">
 
               <!-- Dashboard -->
-              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_NOYAU')" 
+              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_NOYAU')"
                   :class="{ active: isActiveRoute('dashboard') }">
                 <a href="/admin/dashboard">
                   <i class="icon mdi mdi-home"></i>
@@ -100,10 +105,10 @@ watch(idCamp, async (newVal, oldVal) => {
 
               <!-- Administration pour ROLE_ADMIN -->
               <li v-if="
-              hasRole('ROLE_ADMIN') || 
-              hasRole('ROLE_DIOCESE') || 
-              hasRole('ROLE_DECANAL') || 
-              hasRole('ROLE_NOYAU')" 
+              hasRole('ROLE_ADMIN') ||
+              hasRole('ROLE_DIOCESE') ||
+              hasRole('ROLE_DECANAL') ||
+              hasRole('ROLE_NOYAU')"
               class="divider">Administration</li>
 
               <!-- Service diocésain -->
@@ -111,13 +116,13 @@ watch(idCamp, async (newVal, oldVal) => {
                 <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Service diocésain</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'new-unit', params: { serviceType: 'diocesain' } }"
                       :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'diocesain' }) }"
                     >Nouveau membre</router-link>
                   </li>
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'analytic', params: { serviceType: 'diocesain' } }"
                       :class="{ 'text-primary': isActiveRoute('analytic', { serviceType: 'diocesain' }) }"
                     >Voir statistique</router-link>
@@ -130,13 +135,13 @@ watch(idCamp, async (newVal, oldVal) => {
                 <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Noyau décanal</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'new-unit', params: { serviceType: 'decanal' } }"
                       :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'decanal' }) }"
                     >Nouveau membre</router-link>
                   </li>
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'analytic', params: { serviceType: 'decanal' } }"
                       :class="{ 'text-primary': isActiveRoute('analytic', { serviceType: 'decanal' }) }"
                     >Voir statistique</router-link>
@@ -149,13 +154,13 @@ watch(idCamp, async (newVal, oldVal) => {
                 <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Noyau paroissial</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'new-unit', params: { serviceType: 'paroissial' } }"
                       :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'paroissial' }) }"
                     >Nouveau membre</router-link>
                   </li>
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'analytic', params: { serviceType: 'paroissial' } }"
                       :class="{ 'text-primary': isActiveRoute('analytic', { serviceType: 'paroissial' }) }"
                     >Voir statistique</router-link>
@@ -168,13 +173,13 @@ watch(idCamp, async (newVal, oldVal) => {
                 <a href="#"><i class="icon mdi mdi-accounts"></i><span>Jeunes</span></a>
                 <ul class="sub-menu">
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'new-unit', params: { serviceType: 'jeunes' } }"
                       :class="{ 'text-primary': isActiveRoute('new-unit', { serviceType: 'jeunes' }) }"
                     >Nouveau membre</router-link>
                   </li>
                   <li>
-                    <router-link 
+                    <router-link
                       :to="{ name: 'analytic', params: { serviceType: 'jeunes' } }"
                       :class="{ 'text-primary': isActiveRoute('analytic', { serviceType: 'jeunes' }) }"
                     >Voir statistique</router-link>
@@ -199,31 +204,45 @@ watch(idCamp, async (newVal, oldVal) => {
                     <span>{{ camp.name.startsWith('Ecole de responsable') ? camp.name.replace('Ecole de responsable', 'Ecores') : camp.name }}</span>
                   </a>
                   <ul class="sub-menu">
-                    <li v-if="hasRole('ROLE_ADMIN')">
+                    <li v-if="
+                      hasCARole(
+                        'ADM', 
+                        camp.name.startsWith('Ecole de responsable') ? camp.name.replace('Ecole de responsable', 'EC') : 'CA',
+                        '2025') ||
+                       hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'services', params: { id_campBiblique: camp.id, serviceType: 'services' } }"
-                        :class="{ 'text-primary': isActiveRoute('services', { id_campBiblique: camp.id, serviceType: 'services' }) }"
+                        :class="{
+                          'text-primary': ['services', 'manager', 'media'].includes(route.name) &&
+                                          route.params.id_campBiblique === camp.id
+                        }"
                       >
                         Administration
                       </router-link>
                     </li>
-                    <li>
+                    <li v-if="hasCARole('FIN', 'CA', '2025') || hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'rap-day', params: { id_campBiblique: camp.id, serviceType: 'rap-day' } }"
-                        :class="{ 'text-primary': isActiveRoute('rap-day', { id_campBiblique: camp.id, serviceType: 'rap-day' }) }"
+                        :class="{
+                          'text-primary': ['rap-day', 'paie'].includes(route.name) &&
+                                          route.params.id_campBiblique === camp.id
+                        }"
                       >
                         Finances
                       </router-link>
                     </li>
-                    <li>
+                    <li v-if="hasCARole('HEB', 'CA', '2025') || hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'log-affect', params: { id_campBiblique: camp.id, serviceType: 'affect' } }"
-                        :class="{ 'text-primary': isActiveRoute('log-affect', { id_campBiblique: camp.id, serviceType: 'affect' }) }"
+                        :class="{
+                          'text-primary': ['log-affect', 'kin-dortoir', 'log-carrefour'].includes(route.name) &&
+                                          route.params.id_campBiblique === camp.id
+                        }"
                       >
                         Hébergement
                       </router-link>
                     </li>
-                    <li>
+                    <li v-if="hasCARole('SEC', 'CA', '2025') || hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'info-badge-editor', params: { id_campBiblique: camp.id, serviceType: 'badge-editor' } }"
                         :class="{ 'text-primary': isActiveRoute('info-badge-editor', { id_campBiblique: camp.id, serviceType: 'badge-editor' }) }"
@@ -234,25 +253,25 @@ watch(idCamp, async (newVal, oldVal) => {
                   </ul>
                 </li>
               </template>
-              
+
               <!-- Gestion des paroisses pour ROLE_NOYAU -->
               <li v-if="
-                  hasRole('ROLE_ADMIN') || 
-                  hasRole('ROLE_DIOCESE') || 
-                  hasRole('ROLE_DECANAL') || 
-                  hasRole('ROLE_NOYAU')"  
+                  hasRole('ROLE_ADMIN') ||
+                  hasRole('ROLE_DIOCESE') ||
+                  hasRole('ROLE_DECANAL') ||
+                  hasRole('ROLE_NOYAU')"
                   class="divider">Gestion des paroisses
               </li>
               <li v-if="
-                hasRole('ROLE_ADMIN') || 
-                hasRole('ROLE_DIOCESE') || 
-                hasRole('ROLE_EST')"  
+                hasRole('ROLE_ADMIN') ||
+                hasRole('ROLE_DIOCESE') ||
+                hasRole('ROLE_EST')"
               class="parent">
                 <a href="#"><i class="icon mdi mdi-undo"></i><span>KIN EST</span></a>
                 <ul class="sub-menu" v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
-                    hasRole('ROLE_DECANAL') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
+                    hasRole('ROLE_DECANAL') ||
                     hasRole('ROLE_NOYAU')">
                   <li>
                     <router-link :to="{ name: 'sec-kin', params: { serviceType: 'est' } }"
@@ -261,16 +280,16 @@ watch(idCamp, async (newVal, oldVal) => {
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'est' } }" 
+                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'est' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-paroisse', { serviceType: 'est' }) }">
                       Paroisse
                     </router-link>
                   </li>
                   <li v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
                     hasRole('ROLE_DECANAL')" >
-                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'est' } }" 
+                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'est' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-new', { serviceType: 'est' }) }">
                       Nouveau
                     </router-link>
@@ -278,15 +297,15 @@ watch(idCamp, async (newVal, oldVal) => {
                 </ul>
               </li>
               <li v-if="
-                hasRole('ROLE_ADMIN') || 
-                hasRole('ROLE_DIOCESE') || 
-                hasRole('ROLE_CENTRE')"  
+                hasRole('ROLE_ADMIN') ||
+                hasRole('ROLE_DIOCESE') ||
+                hasRole('ROLE_CENTRE')"
               class="parent">
                 <a href="#"><i class="icon mdi mdi-circle-o"></i><span>KIN CENTRE</span></a>
                 <ul class="sub-menu" v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
-                    hasRole('ROLE_DECANAL') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
+                    hasRole('ROLE_DECANAL') ||
                     hasRole('ROLE_NOYAU')">
                   <li>
                     <router-link :to="{ name: 'sec-kin', params: { serviceType: 'centre' } }"
@@ -295,16 +314,16 @@ watch(idCamp, async (newVal, oldVal) => {
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'centre' } }" 
+                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'centre' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-paroisse', { serviceType: 'centre' }) }">
                       Paroisse
                     </router-link>
                   </li>
                   <li v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
                     hasRole('ROLE_DECANAL')" >
-                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'centre' } }" 
+                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'centre' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-new', { serviceType: 'centre' }) }">
                       Nouveau
                     </router-link>
@@ -312,15 +331,15 @@ watch(idCamp, async (newVal, oldVal) => {
                 </ul>
               </li>
               <li v-if="
-                hasRole('ROLE_ADMIN') || 
-                hasRole('ROLE_DIOCESE') || 
-                hasRole('ROLE_OUEST')"  
+                hasRole('ROLE_ADMIN') ||
+                hasRole('ROLE_DIOCESE') ||
+                hasRole('ROLE_OUEST')"
               class="parent">
                 <a href="#"><i class="icon mdi mdi-redo"></i><span>KIN OUEST</span></a>
                 <ul class="sub-menu" v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
-                    hasRole('ROLE_DECANAL') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
+                    hasRole('ROLE_DECANAL') ||
                     hasRole('ROLE_NOYAU')">
                   <li>
                     <router-link :to="{ name: 'sec-kin', params: { serviceType: 'ouest' } }"
@@ -329,16 +348,16 @@ watch(idCamp, async (newVal, oldVal) => {
                     </router-link>
                   </li>
                   <li>
-                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'ouest' } }" 
+                    <router-link :to="{ name: 'sec-paroisse', params: { serviceType: 'ouest' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-paroisse', { serviceType: 'ouest' }) }">
                       Paroisse
                     </router-link>
                   </li>
                   <li v-if="
-                    hasRole('ROLE_ADMIN') || 
-                    hasRole('ROLE_DIOCESE') || 
+                    hasRole('ROLE_ADMIN') ||
+                    hasRole('ROLE_DIOCESE') ||
                     hasRole('ROLE_DECANAL')" >
-                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'ouest' } }" 
+                    <router-link :to="{ name: 'sec-new', params: { serviceType: 'ouest' } }"
                                  :class="{ 'text-primary': isActiveRoute('sec-new', { serviceType: 'ouest' }) }">
                       Nouveau
                     </router-link>
@@ -348,7 +367,7 @@ watch(idCamp, async (newVal, oldVal) => {
             </ul>
           </div>
         </div>
-      </div>      
+      </div>
     </div>
   </div>
 </template>

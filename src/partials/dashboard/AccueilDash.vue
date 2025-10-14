@@ -444,6 +444,9 @@ function setFilter(filter){ currentFilter.value=filter; }
                 </div>
               </div>
 
+              <div class="chart-title text-center mb-2">
+                Graphique du mois encours
+              </div>
               <canvas id="main-chart"></canvas>
             </div>
           </div>
@@ -459,4 +462,10 @@ function setFilter(filter){ currentFilter.value=filter; }
   height: 35rem;   /* hauteur souhaitée */
   margin: 0 auto;  /* centrer horizontalement */
 }
+.chart-title {
+  font-weight: bold;
+  font-size: 1.2rem;
+  color: #333;
+}
+
 </style>

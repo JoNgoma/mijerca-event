@@ -28,6 +28,39 @@ const serviceTypes = {
     icon: 'mdi mdi-face',
     description: 'Gestion des jeunes'
   },
+  'affect': {
+    name: 'Affectation',
+    icon: 'mdi mdi-currency-usd',
+    description: 'Mis en place'
+  },
+  'ser-adm': {
+    api: '/administrations',
+    role: 'ROLE_ADM_',
+    name: 'Administration',
+    icon: 'mdi mdi-face',
+    description: 'Service administrative de l\'acivité'
+  },
+  'ser-fin': {
+    api:'/finances',
+    role: 'ROLE_FIN_',
+    name: 'Finances',
+    icon: 'mdi mdi-face',
+    description: 'Service Financier de l\'acivité'
+  },
+  'ser-heb': {
+    api:'/hebergements',
+    role: 'ROLE_HEB_',
+    name: 'Hébergement',
+    icon: 'mdi mdi-face',
+    description: 'Service hébergement de l\'acivité'
+  },
+  'ser-sec': {
+    api:'/informatiques',
+    role: 'ROLE_SEC_',
+    name: 'Secrétariat',
+    icon: 'mdi mdi-face',
+    description: 'Service secrétariat de l\'acivité'
+  },
   'rap-day': {
     name: 'Rapport journalier',
     icon: 'mdi mdi-face',
@@ -89,11 +122,6 @@ const serviceTypes = {
     icon: 'mdi mdi-currency-usd',
     description: 'Gestion des dortoirs'
   },
-  'affect': {
-    name: 'Affectation',
-    icon: 'mdi mdi-currency-usd',
-    description: 'Mis en place'
-  },
   'badge-preview': {
     name: 'Modèle badge',
     icon: 'mdi mdi-currency-usd',
@@ -142,7 +170,7 @@ const serviceTypes = {
 
 export function useServiceContext() {
   const route = useRoute()
-  
+
   // Type de service courant (ex: paroissial, rap-day, etc.)
   const currentServiceType = computed(() => {
     return route.params.serviceType || 'diocesain'
@@ -152,16 +180,16 @@ export function useServiceContext() {
   const idCamp = computed(() => {
     return route.params.id_campBiblique || null
   })
-  
+
   // Config du service courant
   const currentService = computed(() => {
     return serviceTypes[currentServiceType.value] || serviceTypes.diocesain
   })
-  
+
   const getServiceConfig = (type) => {
     return serviceTypes[type] || serviceTypes.diocesain
   }
-  
+
   return {
     currentServiceType,
     currentService,

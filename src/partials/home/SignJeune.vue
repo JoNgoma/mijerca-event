@@ -295,7 +295,7 @@ async function registerUser(roleValues, isResponsible) {
               Sélectionner le genre
             </label>
             <div class="d-flex mt-2" style="gap:1rem;">
-              <input type="radio" class="btn-check" name="gender" id="genderSoeur" value="Sœur" v-model="gender" />
+              <input type="radio" class="btn-check" name="gender" id="genderSoeur" value="Soeur" v-model="gender" />
               <label class="gender-icon btn-outline-danger" :class="{ 'required': genderError }" for="genderSoeur">
                 <i class="mdi mdi-female"></i>
               </label>

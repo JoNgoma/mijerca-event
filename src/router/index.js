@@ -17,17 +17,17 @@ import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
 
 // Biblic
 import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
-import AdmServices from '@/partials/dashboard/biblic/AdmServices.vue'
-import AdmSelectService from '@/partials/dashboard/biblic/AdmSelectService.vue'
-import PageRapport from '@/partials/dashboard/biblic/rapport/PageRapport.vue'
+import TabListService from '@/partials/dashboard/biblic/admin/TabListService.vue'
+import TabNewService from '@/partials/dashboard/biblic/admin/TabNewService.vue'
+import PageRapport from '@/partials/dashboard/biblic/finance/PageRapport.vue'
 import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
 import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
-import Paie from '@/partials/dashboard/biblic/Paie.vue'
+import NewPaie from '@/partials/dashboard/biblic/finance/NewPaie.vue'
 
 // Logistique
-import LogDor from '@/partials/dashboard/biblic/hebergement/LogDor.vue'
-import LogCar from '@/partials/dashboard/biblic/hebergement/LogCar.vue'
-import LogAffect from '@/partials/dashboard/biblic/hebergement/LogAffect.vue'
+import TabDor from '@/partials/dashboard/biblic/hebergement/TabDor.vue'
+import TabCar from '@/partials/dashboard/biblic/hebergement/TabCar.vue'
+import TabAffect from '@/partials/dashboard/biblic/hebergement/TabAffect.vue'
 
 // Informatique
 import BadgeEditor from '@/partials/dashboard/biblic/informatique/BadgeEditor.vue'
@@ -90,20 +90,20 @@ const router = createRouter({
 
         // ---- Biblic ----
         { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
-        { path: ':id_campBiblique/:serviceType', name: 'services', component: AdmServices },
-        { path: ':id_campBiblique/services/:serviceType', name: 'manager', component: AdmSelectService },
-        { path: ':id_campBiblique/services/:serviceType', name: 'media', component: AdmSelectService },
+        { path: ':id_campBiblique/:serviceType', name: 'services', component: TabListService },
+        { path: ':id_campBiblique/services/:serviceType', name: 'manager', component: TabNewService },
+        { path: ':id_campBiblique/services/:serviceType', name: 'media', component: TabNewService },
 
         // Finances
         { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: PageRapport },
         { path: ':id_campBiblique/finances/out/:serviceType', name: 'dep-new', component: DepNew },
         { path: ':id_campBiblique/finances/out/:serviceType/suivis', name: 'dep-suivis', component: DepSuivis },
-        { path: ':id_campBiblique/finances/paie/:serviceType', name: 'paie', component: Paie },
+        { path: ':id_campBiblique/finances/paie/:serviceType', name: 'paie', component: NewPaie },
 
         // Logistique
-        { path: ':id_campBiblique/logistique/dortoir', name: 'log-dortoir', component: LogDor },
-        { path: ':id_campBiblique/logistique/carrefour', name: 'log-carrefour', component: LogCar },
-        { path: ':id_campBiblique/logistique/affect', name: 'log-affect', component: LogAffect },
+        { path: ':id_campBiblique/logistique/:serviceType', name: 'log-dortoir', component: TabDor },
+        { path: ':id_campBiblique/logistique/:serviceType', name: 'log-carrefour', component: TabCar },
+        { path: ':id_campBiblique/logistique/:serviceType', name: 'log-affect', component: TabAffect },
 
         // Informatique
         { path: ':id_campBiblique/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
@@ -160,14 +160,26 @@ router.beforeEach((to, from, next) => {
     if (roles.includes('ROLE_NOYAU') || roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')) {
       // Routes autorisées pour ROLE_NOYAU
       if (roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')){
-        const allowedRoutes = ['dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new']
+        const allowedRoutes = [
+          'dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
+          'services', 'manager', 'media',
+          'rap-day', 'dep-new', 'dep-suivis', 'paie',
+          'log-dortoir', 'log-carrefour', 'log-affect',
+          'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
+        ]
       if (allowedRoutes.includes(to.name)) {
         return next()
       } else {
         return 
       }
       }
-      const allowedRoutes = ['dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse']
+      const allowedRoutes = [
+        'dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
+         'services', 'manager', 'media',
+          'rap-day', 'dep-new', 'dep-suivis', 'paie',
+          'log-dortoir', 'log-carrefour', 'log-affect',
+          'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
+        ]
       if (allowedRoutes.includes(to.name)) {
         return next()
       } else {

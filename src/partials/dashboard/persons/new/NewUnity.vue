@@ -1,7 +1,7 @@
 <template>
   <div class="be-content">
     <div class="page-head">
-      <h2 class="page-head-title">Nouvelle Unité</h2>
+      <h2 class="page-head-title">Nouveau membre</h2>
       <nav aria-label="breadcrumb" role="navigation">
         <ol class="breadcrumb page-head-nav">
           <li class="breadcrumb-item">
@@ -10,7 +10,7 @@
           <li class="breadcrumb-item"><router-link
             :to="{ name: 'analytic', params: { serviceType: LocalisationService } }"
             >{{ nameService }}</router-link></li>
-          <li class="breadcrumb-item active">Nouvelle Unité</li>
+          <li class="breadcrumb-item active">Nouveau membre</li>
         </ol>
       </nav>
     </div>

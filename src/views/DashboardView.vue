@@ -28,7 +28,7 @@ $(document).ready(function(){
           <CommuniquesMenu v-if="currentMenu === 'communiques'" />
           <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />
           <FinancesMenu v-else-if="currentMenu === 'rap-day' || currentMenu === 'paie' || currentMenu === 'dep-new'  || currentMenu === 'dep-suivis'" />
-          <AdmMenu v-else-if="currentMenu === 'services' ||currentMenu === 'manager' ||currentMenu === 'media'" />
+          <AdmMenu v-else-if="['services','manager','media'].includes(currentMenu)" />
           <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
           <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par' ||currentMenu === 'kin-paroisse'" />
           <ul v-else class="navbar-nav">

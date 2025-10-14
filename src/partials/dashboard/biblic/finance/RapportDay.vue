@@ -1,16 +1,16 @@
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
-import { useServiceContext } from '@/composables/useServiceContext'
 
 const toast = useToast()
+
+// Props venant du parent
 const props = defineProps({
-  id: { type: [String, Number], required: true },
-  date: { type: String, required: true },
+  id: { type: [String, Number], required: true },  // selectedSecteur
+  date: { type: String, required: true },          // selectedDate
 })
 
-const { currentServiceType } = useServiceContext()
 
 const loading = ref(false)
 const selectedDoyenne = ref('Tous')
@@ -36,7 +36,6 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 async function fetchData() {
   try {
     loading.value = true
-
     const [
       doyennesRes,
       paroissesRes,
@@ -73,6 +72,10 @@ function aggregateParoisses() {
   const agg = {}
 
   allParticipators.value.forEach(part => {
+    // filtrer par date sélectionnée
+    const partDate = part.createdAt?.split('T')[0]
+    if (partDate !== props.date) return
+
     const person = allPeople.value.find(
       pe => pe['@id'] === part.person || extractIdFromUrl(pe['@id']) === extractIdFromUrl(part.person)
     )
@@ -85,7 +88,7 @@ function aggregateParoisses() {
 
     const sectorId = extractIdFromUrl(paro.sector)
     if (String(sectorId) !== String(props.id)) return
-    
+
     const doy = allDoyennes.value.find(
       d => d['@id'] === paro.doyenne || extractIdFromUrl(d['@id']) === extractIdFromUrl(paro.doyenne)
     )
@@ -118,6 +121,15 @@ function aggregateParoisses() {
   viewParoisses.value = Object.values(agg)
 }
 
+// recalculer si la date change
+watch(
+  () => props.date,
+  () => {
+    aggregateParoisses()
+    selectedParoisseId.value = null
+  }
+)
+
 const doyennesBySector = computed(() => {
   const doyenneIds = new Set(
     allParoisses.value
@@ -129,10 +141,10 @@ const doyennesBySector = computed(() => {
 })
 
 const filteredParoisses = computed(() => {
-  if (selectedDoyenne.value === 'Tous') return viewParoisses.value
-  return viewParoisses.value.filter(
-    p => p.doyenne === selectedDoyenne.value
+  let result = viewParoisses.value.filter(p => 
+    selectedDoyenne.value === 'Tous' || p.doyenne === selectedDoyenne.value
   )
+  return result
 })
 
 const countDoyennes = computed(() => new Set(filteredParoisses.value.map(p => p.doyenne)).size)
@@ -144,10 +156,9 @@ const totalMontantFiltre = computed(() => {
   const fc = filteredParoisses.value.reduce((a, p) => a + (p.montantFC || 0), 0)
   return `${usd.toLocaleString('fr-FR')} $ + ${fc.toLocaleString('fr-FR')} FC`
 })
+
 const showJeunesModal = ref(false)
 const currentParoisse = ref(null)
-
-import { nextTick } from 'vue'
 
 async function selectParoisse(paroId) {
   selectedParoisseId.value = paroId
@@ -157,7 +168,6 @@ async function selectParoisse(paroId) {
     showJeunesModal.value = true
   }
 }
-
 
 const jeunesParParoisse = computed(() => {
   const result = {}
@@ -170,16 +180,18 @@ const jeunesParParoisse = computed(() => {
     if (!person) return
 
     const personParoId = person.paroisse
-    const match =
+    const matchParo =
       personParoId === selectedParoisseId.value ||
       extractIdFromUrl(personParoId) === extractIdFromUrl(selectedParoisseId.value)
-    if (!match) return
+    if (!matchParo) return
+
+    const partDate = part.createdAt?.split('T')[0]
+    if (partDate !== props.date) return
 
     const montantRecord = allMontants.value.find(m =>
       m.participator === part['@id'] ||
       extractIdFromUrl(m.participator) === extractIdFromUrl(part['@id'])
     )
-
     const devise = (montantRecord?.devise || 'FC').toUpperCase()
     const frais = Number(montantRecord?.frais || 0)
 
@@ -187,11 +199,11 @@ const jeunesParParoisse = computed(() => {
       nom: `${person.gender} ${person.fullName}`.trim() || '—',
       dortoir: part.dortoir || '',
       carrefour: part.carrefour || '',
-      arrivee: new Date(part.createdAt || props.date).toLocaleDateString('fr-FR'),
+      arrivee: new Date(part.createdAt).toLocaleDateString('fr-FR'),
       status: person.isDicoces ? 'Noyau diocésain' : person.isDecanal ? 'Noyau décanal' : person.isNoyau ? 'Noyau paroissial' : 'Jeune',
       montantValue: frais,
       montantDevise: devise === '$' ? '$' : 'FC',
-      montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise === '$' ? '$' : 'FC'}`,
+      montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise === '$' ? '$' : 'FC'}`
     }
 
     if (!result[selectedParoisseId.value]) result[selectedParoisseId.value] = []
@@ -201,7 +213,6 @@ const jeunesParParoisse = computed(() => {
   return result
 })
 
-watch(selectedDoyenne, () => (selectedParoisseId.value = null))
 onMounted(fetchData)
 </script>
 

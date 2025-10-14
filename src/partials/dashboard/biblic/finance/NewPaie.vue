@@ -110,7 +110,7 @@ async function fetchAll() {
     buildPeopleOptions()
 
     await nextTick()
-    try { if (window.App && typeof window.App.formMultiselect === 'function') window.App.formMultiselect(); } catch(e) {}
+    try { if (window.App && typeof window.App.formMultiselect === 'function') window.App.formMultiselect(); } catch { return }
   } catch (err) {
     console.error(err)
     toast.error('Erreur lors de la récupération des données', 'error')
@@ -324,7 +324,7 @@ async function handleSubmit(e) {
     selectedPeople.value = [];
   } catch (err) {
     console.error(err);
-    toast.error('Erreur lors de l\'enregistrement. Voir console.', 'error');
+    toast.error('Erreur lors de l\'enregistrement. Veillez ressayer', 'error');
   } finally {
     loading.value = false;
   }
@@ -455,7 +455,7 @@ onMounted(() => {
                         v-for="p in peopleOptions" 
                         :key="p.id" 
                         :value="p.id">
-                        {{ p.fullName }}
+                        {{ p.gender }} {{ p.fullName }}
                       </option>
                     </select>
                     <small class="text-muted">Clique pour ajouter →</small>
@@ -469,7 +469,7 @@ onMounted(() => {
                         v-for="p in selectedPeople" 
                         :key="p.id" 
                         :value="p.id">
-                        {{ p.fullName }}
+                        {{ p.gender }} {{ p.fullName }}
                       </option>
                     </select>
                     <small class="text-muted">← Clique pour retirer</small>
