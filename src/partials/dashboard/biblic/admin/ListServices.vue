@@ -41,11 +41,11 @@ async function fetchData() {
   try {
     loading.value = true
     const [usersRes, peopleRes, paroissesRes, participatorsRes, removalsRes] = await Promise.all([
-      axios.get(`${API}/users`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || []),
-      axios.get(`${API}/paroisses`).then(r => r.data?.member || []),
-      axios.get(`${API}/participators`).then(r => r.data?.member || []),
-      axios.get(`${API}/removals`).then(r => r.data?.member || []),
+      axios.get(`${API}/users`).then((r) => r.data?.member || []),
+      axios.get(`${API}/people`).then((r) => r.data?.member || []),
+      axios.get(`${API}/paroisses`).then((r) => r.data?.member || []),
+      axios.get(`${API}/participators`).then((r) => r.data?.member || []),
+      axios.get(`${API}/removals`).then((r) => r.data?.member || []),
     ])
 
     users.value = usersRes
@@ -69,57 +69,61 @@ const servicePeople = computed(() => {
     props.id === 'adm'
       ? 'administrations'
       : props.id === 'fin'
-      ? 'finances'
-      : props.id === 'heb'
-      ? 'hebergements'
-      : props.id === 'sec'
-      ? 'informatiques'
-      : null
+        ? 'finances'
+        : props.id === 'heb'
+          ? 'hebergements'
+          : props.id === 'sec'
+            ? 'informatiques'
+            : null
 
   if (!serviceKey) return []
 
-  const serviceUsers = users.value.filter(u => Array.isArray(u[serviceKey]) && u[serviceKey].length)
+  const serviceUsers = users.value.filter(
+    (u) => Array.isArray(u[serviceKey]) && u[serviceKey].length,
+  )
 
-  const mapped = serviceUsers.map(u => {
-    const person = people.value.find(p => extractIdFromUrl(p['@id']) === extractIdFromUrl(u.person))
+  const mapped = serviceUsers.map((u) => {
+    const person = people.value.find(
+      (p) => extractIdFromUrl(p['@id']) === extractIdFromUrl(u.person),
+    )
     if (!person) return null
 
     const paroisse = paroisses.value.find(
-      pa => extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse)
+      (pa) => extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse),
     )
 
     const participator = participators.value.find(
-      pr => extractIdFromUrl(pr.person) === extractIdFromUrl(person['@id'])
+      (pr) => extractIdFromUrl(pr.person) === extractIdFromUrl(person['@id']),
     )
 
     const responsable = person.isDicoces
       ? 'Noyau diocésain'
       : person.isDecanal
-      ? 'Noyau décanal'
-      : person.isNoyau
-      ? 'Noyau paroissial'
-      : 'Jeune'
+        ? 'Noyau décanal'
+        : person.isNoyau
+          ? 'Noyau paroissial'
+          : 'Jeune'
 
     const serviceName =
       props.id === 'adm'
         ? 'Administration'
         : props.id === 'fin'
-        ? 'Finances'
-        : props.id === 'heb'
-        ? 'Hébergement'
-        : props.id === 'sec'
-        ? 'Secrétariat'
-        : 'Autre'
+          ? 'Finances'
+          : props.id === 'heb'
+            ? 'Hébergement'
+            : props.id === 'sec'
+              ? 'Secrétariat'
+              : 'Autre'
 
     const dateAjout = participator?.createdAt
       ? new Date(participator.createdAt).toLocaleString('fr-FR')
       : 'Pas en ordre'
 
     const personRemovals = removals.value.filter(
-      r => extractIdFromUrl(r.participator?.[0]) === extractIdFromUrl(participator?.['@id'])
+      (r) => extractIdFromUrl(r.participator?.[0]) === extractIdFromUrl(participator?.['@id']),
     )
 
-    const activeRemoval = personRemovals.find(r => r.start && !r.end)
+    const activeRemoval = personRemovals.find((r) => r.start && !r.end)
     const isOnMove = !!activeRemoval
     const moveInfo = isOnMove
       ? {
@@ -163,10 +167,10 @@ async function confirmRemoval() {
       user.service === 'Administration'
         ? 'ADM'
         : user.service === 'Finances'
-        ? 'FIN'
-        : user.service === 'Hébergement'
-        ? 'HEB'
-        : 'SEC'
+          ? 'FIN'
+          : user.service === 'Hébergement'
+            ? 'HEB'
+            : 'SEC'
     // === Récupérer le user complet
     const { data: userData } = await axios.get(`${API}/users/${userId}`)
 
@@ -174,12 +178,14 @@ async function confirmRemoval() {
     const { data: camp } = await axios.get(`${API}/camp_bibliques/${campId.value}`)
     const campLabel = camp.name || ''
     const shortCamp =
-      (campLabel.match(/[A-Za-z]/g)?.slice(0, 2).join('') || 'CA') +
-      (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
+      (campLabel
+        .match(/[A-Za-z]/g)
+        ?.slice(0, 2)
+        .join('') || 'CA') + (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
 
     // === Retirer le rôle correspondant à ce camp
     const roleToRemove = `ROLE_${rolePrefix}_${shortCamp.toUpperCase()}`
-    const roles = (userData.roles || []).filter(r => r !== roleToRemove)
+    const roles = (userData.roles || []).filter((r) => r !== roleToRemove)
 
     // 🔍 LOG du rôle supprimé
     console.log('--- RÔLE RETIRÉ ---')
@@ -195,15 +201,16 @@ async function confirmRemoval() {
     else if (apiAccess.value === '/informatiques') serviceField = 'informatiques'
 
     // === Nettoyer le tableau du service courant
-    const updatedField = (userData[serviceField] || []).filter(
-      f => !f.includes(apiAccess.value)
-    )
+    const updatedField = (userData[serviceField] || []).filter((f) => !f.includes(apiAccess.value))
 
     // 🔍 LOG du champ de service nettoyé
     console.log('--- SERVICE FIELD NETTOYÉ ---')
     console.log('Champ ciblé :', serviceField)
     console.log('Ancienne valeur :', userData[serviceField])
-    console.log('Valeur retirée :', (userData[serviceField] || []).filter(f => f.includes(apiAccess.value)))
+    console.log(
+      'Valeur retirée :',
+      (userData[serviceField] || []).filter((f) => f.includes(apiAccess.value)),
+    )
     console.log('Nouvelle valeur :', updatedField)
 
     // === PATCH partiel
@@ -255,7 +262,9 @@ async function confirmRemoval() {
             >
               <td>
                 {{ user.gender }} {{ user.fullName }}
-                <span v-if="user.isOnMove" class="badge bg-warning text-dark ms-2">En déplacement</span>
+                <span v-if="user.isOnMove" class="badge bg-warning text-dark ms-2"
+                  >En déplacement</span
+                >
               </td>
               <td>{{ user.paroisse }}</td>
               <td>{{ user.responsable }}</td>
@@ -289,21 +298,14 @@ async function confirmRemoval() {
               <li class="list-group-item"><b>Responsable :</b> {{ selectedUser.responsable }}</li>
               <li class="list-group-item"><b>Service :</b> {{ selectedUser.service }}</li>
               <li class="list-group-item"><b>A payé :</b> {{ selectedUser.createdAt }}</li>
-              <li
-                v-if="selectedUser.isOnMove"
-                class="list-group-item text-danger fw-bold"
-              >
+              <li v-if="selectedUser.isOnMove" class="list-group-item text-danger fw-bold">
                 En déplacement depuis le {{ selectedUser.moveInfo.start }}<br />
                 <span><b>Motif :</b> {{ selectedUser.moveInfo.motif }}</span>
               </li>
             </ul>
           </div>
           <li class="list-group-item d-flex justify-content-end">
-            <button 
-              class="btn btn-danger"
-              :disabled="removing"
-              @click="showConfirm = true"
-            >
+            <button class="btn btn-danger" :disabled="removing" @click="showConfirm = true">
               Retirer du service
             </button>
           </li>
@@ -317,12 +319,17 @@ async function confirmRemoval() {
         <div class="modal-content border-0 shadow-lg">
           <div class="modal-header bg-danger text-white">
             <h5 class="modal-title">Confirmation du retrait</h5>
-            <button type="button" class="btn-close btn-close-white" @click="showConfirm = false"></button>
+            <button
+              type="button"
+              class="btn-close btn-close-white"
+              @click="showConfirm = false"
+            ></button>
           </div>
           <div class="modal-body text-center py-4">
             <p>
               Êtes-vous sûr de vouloir retirer<br />
-              <b>{{ selectedUser.fullName }}</b><br />
+              <b>{{ selectedUser.fullName }}</b
+              ><br />
               du service <b>{{ selectedUser.service }}</b> ?
             </p>
           </div>
@@ -336,7 +343,6 @@ async function confirmRemoval() {
         </div>
       </div>
     </div>
-
   </div>
 </template>
 
