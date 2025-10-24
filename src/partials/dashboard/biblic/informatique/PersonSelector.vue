@@ -6,21 +6,21 @@ const router = useRouter();
 
 // Liste des personnes (basée sur LogAffect.vue)
 const allPersons = ref([
-  { id: 1, nom: "Josué Ngoma", dortoir: 1, carrefour: 5, tel: "0812 345 678", selected: false },
-  { id: 2, nom: "Marie-Claire Tshibangu", dortoir: 2, carrefour: 3, tel: "0998 765 432", selected: false },
-  { id: 3, nom: "David Kasongo", dortoir: 3, carrefour: 8, tel: "0813 246 579", selected: false },
-  { id: 4, nom: "Joseph Ilunga", dortoir: 4, carrefour: 1, tel: "0997 654 321", selected: false },
-  { id: 5, nom: "Thérèse Mbala", dortoir: 5, carrefour: 12, tel: "0814 357 680", selected: false },
-  { id: 6, nom: "Gabriel Kayembe", dortoir: 6, carrefour: 7, tel: "0996 543 210", selected: false },
-  { id: 7, nom: "Michel Tshilombo", dortoir: 7, carrefour: 15, tel: "0815 468 279", selected: false },
-  { id: 8, nom: "Cécile Mulumba", dortoir: 8, carrefour: 2, tel: "0995 432 198", selected: false },
-  { id: 9, nom: "André Mbuyi", dortoir: 9, carrefour: 10, tel: "0816 579 234", selected: false },
+  { id: 1, nom: "Josué Ngoma", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 1, carrefour: 5, tel: "0812 345 678", selected: false },
+  { id: 2, nom: "Marie-Claire Tshibangu", paroisse:'Paroisse Saint Mugaga', dortoir: 2, carrefour: 3, tel: "0998 765 432", selected: false },
+  { id: 3, nom: "David Kasongo", paroisse:'Paroisse Christ Emmanuel', dortoir: 3, carrefour: 8, tel: "0813 246 579", selected: false },
+  { id: 4, nom: "Joseph Ilunga", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 4, carrefour: 1, tel: "0997 654 321", selected: false },
+  { id: 5, nom: "Thérèse Mbala", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 5, carrefour: 12, tel: "0814 357 680", selected: false },
+  { id: 6, nom: "Gabriel Kayembe", paroisse:'Paroisse Saint Norbert', dortoir: 6, carrefour: 7, tel: "0996 543 210", selected: false },
+  { id: 7, nom: "Michel Tshilombo", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 7, carrefour: 15, tel: "0815 468 279", selected: false },
+  { id: 8, nom: "Cécile Mulumba", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 8, carrefour: 2, tel: "0995 432 198", selected: false },
+  { id: 9, nom: "André Mbuyi", paroisse:'Paroisse Saint Norbert', dortoir: 9, carrefour: 10, tel: "0816 579 234", selected: false },
   { id: 10, nom: "Matthieu Kabeya", dortoir: 10, carrefour: 4, tel: "0994 321 087", selected: false },
-  { id: 11, nom: "Pierre Ngoy", dortoir: 1, carrefour: 9, tel: "0817 680 345", selected: false },
-  { id: 12, nom: "Bernadette Mputu", dortoir: 2, carrefour: 6, tel: "0993 210 654", selected: false },
-  { id: 13, nom: "Thomas Kazadi", dortoir: 3, carrefour: 11, tel: "0818 791 246", selected: false },
-  { id: 14, nom: "Jacques Beya", dortoir: 4, carrefour: 14, tel: "0992 109 876", selected: false },
-  { id: 15, nom: "Elisabeth Kabongo", dortoir: 5, carrefour: 13, tel: "0819 234 567", selected: false }
+  { id: 11, nom: "Pierre Ngoy", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 1, carrefour: 9, tel: "0817 680 345", selected: false },
+  { id: 12, nom: "Bernadette Mputu", paroisse:'Paroisse Saint Norbert', dortoir: 2, carrefour: 6, tel: "0993 210 654", selected: false },
+  { id: 13, nom: "Thomas Kazadi", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 3, carrefour: 11, tel: "0818 791 246", selected: false },
+  { id: 14, nom: "Jacques Beya", paroisse:'Paroisse Saint Mugaga', dortoir: 4, carrefour: 14, tel: "0992 109 876", selected: false },
+  { id: 15, nom: "Elisabeth Kabongo", paroisse:'Paroisse Saint Noé Mawaggali', dortoir: 5, carrefour: 13, tel: "0819 234 567", selected: false }
 ]);
 
 const searchQuery = ref("");
@@ -182,6 +182,7 @@ const generateBadges = () => {
                                 </div>
                             </th>
                             <th class="align-middle">Nom complet</th>
+                            <th class="align-middle">Paroisse</th>
                             <th class="align-middle">Dortoir</th>
                             <th class="align-middle">Carrefour</th>
                             <th class="align-middle">Téléphone</th>
@@ -211,6 +212,7 @@ const generateBadges = () => {
                             <strong>{{ person.nom }}</strong>
                             <!-- <span v-if="person.selected" class="badge bg-success ms-2">Sélectionné</span> -->
                             </td>
+                            <td>{{ person.paroisse }}</td>
                             <td>{{ person.dortoir }}</td>
                             <td>{{ person.carrefour }}</td>
                             <td>{{ person.tel }}</td>

@@ -237,8 +237,8 @@ onMounted(fetchData)
           </div>
 
           <div class="table-container">
-            <table class="table table-striped table-borderless align-middle">
-              <thead class="table-light">
+            <table class="table table-hover align-middle">
+              <thead class="sticky-header">
                 <tr>
                   <th>Doyenné</th>
                   <th>Paroisse</th>
@@ -385,23 +385,10 @@ onMounted(fetchData)
 }
 .selectable-row { cursor: pointer; }
 .selectable-row.active { background-color: #e6f0ff; font-weight: 600; }
-.modal.show {
-  display: block;
-  background-color: rgba(0,0,0,0.5);
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1050;
-}
-.modal-dialog {
-  margin: 1.75rem auto;
-  max-width: 95%;
-}
-.modal-content {
-  max-height: 90vh;
-  overflow-y: auto;
-}
+.modal.show { display: block; background-color: rgba(0,0,0,0.5); position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1050; }
+.modal-dialog { margin: 1.75rem auto; max-width: 95%; }
+.modal-content { max-height: 90vh; overflow-y: auto; }
+.table-container { overflow-y: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; margin: 0 1rem ; }
+.sticky-header { position: sticky; top: 0; background: #edeff0; z-index: 2; }
 
 </style>

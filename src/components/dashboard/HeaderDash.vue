@@ -2,11 +2,22 @@
 // Import images
 import logo from "/assets/img/mijerca.jpg"
 import avatar from "/assets/img/avatar.png"
-
 import { ref, onMounted } from "vue"
-import { useRouter } from "vue-router"
+import { useRouter, useRoute } from "vue-router"
 
+const route = useRoute()
 
+const isActiveRoute = (routeName, params = {}) => {
+  if (route.name === routeName) {
+    if (Object.keys(params).length > 0) {
+      return Object.entries(params).every(
+        ([key, value]) => route.params[key] === value
+      )
+    }
+    return true
+  }
+  return false
+}
 
 const router = useRouter()
 
@@ -150,7 +161,10 @@ onMounted(() => {
                   {{ personData.phoneNumber }}
                 </div>
               </div>
-              <a class="dropdown-item" href="#"><span class="icon mdi mdi-face"></span> Mon compte</a>
+              <router-link class="dropdown-item"
+                :to="{ name: 'profil', params: { serviceType: 'profil' } }"
+                :class="{ 'text-primary': isActiveRoute('profil', { serviceType: 'profil' }) }"
+              ><span class="icon mdi mdi-face"></span> Mon compte </router-link>
               <a class="dropdown-item" href="#"><span class="icon mdi mdi-settings"></span> Paramètres</a>
               <a class="dropdown-item" href="#" @click.prevent="logout">
                 <span class="icon mdi mdi-power"></span> Déconnexion

@@ -133,6 +133,7 @@ const generatePrintContent = () => {
           position: absolute;
           font-weight: bold;
           white-space: nowrap;
+          text-align: center;
         }
       </style>
     </head>
@@ -176,7 +177,7 @@ const generatePrintContent = () => {
 const getPersonValue = (person, key) => {
   const mapping = {
     'name': person.nom,
-    'church': `Paroisse ${person.carrefour}`, // Adaptation
+    'church': `${person.paroisse}`, // Adaptation
     'site': `Carrefour ${person.carrefour}`,
     'sleep': `Dortoir ${person.dortoir}`
   };

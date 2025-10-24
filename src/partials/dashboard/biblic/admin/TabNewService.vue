@@ -53,9 +53,9 @@ async function fetchAll() {
   try {
     loading.value = true
     const [paroisses, people, users] = await Promise.all([
-      axios.get(`${API}/paroisses`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || []),
-      axios.get(`${API}/users`).then(r => r.data?.member || [])
+      axios.get(`${API}/paroisses`).then((r) => r.data?.member || []),
+      axios.get(`${API}/people`).then((r) => r.data?.member || []),
+      axios.get(`${API}/users`).then((r) => r.data?.member || []),
     ])
 
     allParoisses.value = paroisses
@@ -75,16 +75,29 @@ async function fetchAll() {
 // === Construction des options à partir de users reliés à des people ===
 async function buildPeopleOptions() {
   try {
-    // 1️⃣ Récupérer tous les enregistrements déjà liés à un camp
-    const existingRes = await axios.get(`${API}${apiAccess.value}`)
-    const existingMembers = existingRes.data?.member || []
+    // Récupérer tous les enregistrements du service courant
+    const { data } = await axios.get(`${API}${apiAccess.value}`)
+    const existingMembers = data?.member || []
 
-    // Extraire tous les userId déjà assignés à un camp biblique
-    const assignedUserIds = existingMembers
-      .map(item => {
+    // On ne garde que les enregistrements du camp courant
+    const filteredMembers = existingMembers.filter(
+      (item) => item.campBiblic === `/api/camp_bibliques/${campId.value}`,
+    )
+
+    if (!filteredMembers.length) {
+      console.warn(
+        `Aucun enregistrement trouvé pour le camp ${campId.value} dans ${apiAccess.value}`,
+      )
+      peopleOptions.value = [] // vide la liste proprement
+      return
+    }
+
+    // Extraire les userId déjà assignés à ce service et à ce camp
+    const assignedUserIds = filteredMembers
+      .map((item) => {
         const user = item.user
         if (Array.isArray(user)) {
-          return user.map(u => extractIdFromUrl(u))
+          return user.map((u) => extractIdFromUrl(u))
         } else if (user) {
           return [extractIdFromUrl(user)]
         }
@@ -92,22 +105,19 @@ async function buildPeopleOptions() {
       })
       .flat()
       .filter(Boolean)
-    // 2️⃣ Construire les options pour les utilisateurs non encore liés
+
+    // Construire les options uniquement pour les utilisateurs non encore liés
     peopleOptions.value = allUsers.value
-      .filter(u => {
+      .filter((u) => {
         const userId = extractIdFromUrl(u['@id'] || u.id)
-        return !assignedUserIds.includes(userId) // exclure ceux déjà assignés
+        return !assignedUserIds.includes(userId)
       })
-      .map(u => {
-        const person = allPeople.value.find(pe => pe['@id'] === u.person)
+      .map((u) => {
+        const person = allPeople.value.find((pe) => pe['@id'] === u.person)
         if (!person) return null
 
-        const paroisse = allParoisses.value.find(pa => pa['@id'] === person.paroisse)
-        const niveau = person.isDicoces
-          ? 'Diocésain'
-          : person.isDecanal
-          ? 'Décanal'
-          : 'Paroissial'
+        const paroisse = allParoisses.value.find((pa) => pa['@id'] === person.paroisse)
+        const niveau = person.isDiocesan ? 'Diocésain' : person.isDecanal ? 'Décanal' : 'Paroissial'
 
         return {
           id: extractIdFromUrl(u['@id'] || u.id),
@@ -117,37 +127,38 @@ async function buildPeopleOptions() {
           paroisseName: paroisse?.name || 'Paroisse inconnue',
           displayName: `${person.gender} ${person.fullName} (${niveau}), ${paroisse?.name || 'Paroisse inconnue'}`,
           rawUser: u,
-          rawPerson: person
+          rawPerson: person,
         }
       })
       .filter(Boolean)
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
   } catch (err) {
+    toast.error('Erreur de chargement,\nRevenez-y plus tard')
     console.error('Erreur lors de la construction des options:', err)
-    toast.error('Erreur lors du chargement,\nVeuillez ressayer plus tard')
+    peopleOptions.value = []
   }
 }
 
 // === Gestion des sélections ===
 function onAddFromLeft(e) {
-  const ids = Array.from(e.target.selectedOptions).map(o => o.value)
-  ids.forEach(id => {
-    const p = peopleOptions.value.find(pe => pe.id === id)
+  const ids = Array.from(e.target.selectedOptions).map((o) => o.value)
+  ids.forEach((id) => {
+    const p = peopleOptions.value.find((pe) => pe.id === id)
     if (p) {
       selectedPeople.value.push(p)
-      peopleOptions.value = peopleOptions.value.filter(pe => pe.id !== id)
+      peopleOptions.value = peopleOptions.value.filter((pe) => pe.id !== id)
     }
   })
   selectedPeople.value.sort((a, b) => a.fullName.localeCompare(b.fullName))
 }
 
 function onRemoveFromRight(e) {
-  const ids = Array.from(e.target.selectedOptions).map(o => o.value)
-  ids.forEach(id => {
-    const p = selectedPeople.value.find(pe => pe.id === id)
+  const ids = Array.from(e.target.selectedOptions).map((o) => o.value)
+  ids.forEach((id) => {
+    const p = selectedPeople.value.find((pe) => pe.id === id)
     if (p) {
       peopleOptions.value.push(p)
-      selectedPeople.value = selectedPeople.value.filter(pe => pe.id !== id)
+      selectedPeople.value = selectedPeople.value.filter((pe) => pe.id !== id)
     }
   })
   peopleOptions.value.sort((a, b) => a.fullName.localeCompare(b.fullName))
@@ -172,59 +183,103 @@ async function handleSubmit() {
     const campRes = await axios.get(`${API}/camp_bibliques/${campId.value}`)
     const camp = campRes.data
     const campLabel = camp.name || ''
-    const shortCamp =
-      (campLabel.match(/[A-Za-z]/g)?.slice(0, 2).join('') || 'CA') +
-      (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
-    const roleToAssign = `${currentService.value.role}${shortCamp.toUpperCase()}`
+    // Déterminer le préfixe : CA si "Camp biblique" est présent, sinon EC
+    const prefix = /camp\s*biblique/i.test(campLabel) ? 'CA' : 'EC'
 
+    // Extraire les lettres et l’année (ex: 2025)
+    const shortCamp =
+      (campLabel
+        .match(/[A-Za-z]/g)
+        ?.slice(0, 2)
+        .join('') || prefix) + (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
+
+    // Rôle complet
+    const roleToAssign = `${currentService.value.role}${shortCamp.toUpperCase()}`
     // Pour chaque user sélectionné
     for (const p of selectedPeople.value) {
       const userId = p.userId
       const existing = await axios.get(`${API}${apiAccess.value}?user=/api/users/${userId}`)
-      const existingItem = existing.data?.member?.[0]
+      const existingItem = existing.data?.member || []
+
+      // On ne garde que les enregistrements du camp courant
+      const filteredExistingItem = existingItem.filter(
+        (item) => item.campBiblic === `/api/camp_bibliques/${campId.value}`,
+      )
+
+      if (!filteredExistingItem.length) {
+        console.warn(`Aucun service trouvé pour le camp ${campId.value}`)
+        peopleOptions.value = [] // vide la liste proprement
+        return
+      }
       try {
         const userData = await axios.get(`${API}/users/${userId}`)
-        console.log('personnes send :', userData)
         const currentRoles = userData.data.roles || []
         if (!currentRoles.includes(roleToAssign)) {
           const updatedRoles = [...currentRoles, roleToAssign]
-          if(apiAccess.value==='/administrations') 
-          { 
-            await axios.patch(`${API}/users/${userId}`, {
-              roles: updatedRoles,
-              administrations: [`/api${apiAccess.value}/${extractIdFromUrl(existingItem['@id'])}`]
-            }, {
-              headers: { 'Content-Type': 'application/merge-patch+json' }
-            })
-            toast.success(`${selectedPeople.value.length} responsable(s) ajouté(s) avec succès\nRôle : ${roleToAssign}`)
-          } else if(apiAccess.value==='/finances') 
-          { 
-            await axios.patch(`${API}/users/${userId}`, {
-              roles: updatedRoles,
-              finances: [`/api${apiAccess.value}/${extractIdFromUrl(existingItem['@id'])}`]
-            }, {
-              headers: { 'Content-Type': 'application/merge-patch+json' }
-            })
-            toast.success(`${selectedPeople.value.length} responsable(s) ajouté(s) avec succès\nRôle : ${roleToAssign}`)
-          } else if(apiAccess.value==='/hebergements') 
-          { 
-            // console.log('personnes push :', userId)
-            await axios.patch(`${API}/users/${userId}`, {
-              roles: updatedRoles,
-              hebergements: [`/api${apiAccess.value}/${extractIdFromUrl(existingItem['@id'])}`]
-            }, {
-              headers: { 'Content-Type': 'application/merge-patch+json' }
-            })
-            toast.success(`${selectedPeople.value.length} responsable(s) ajouté(s) avec succès\nRôle : ${roleToAssign}`)
-          } else if(apiAccess.value==='/informatiques') 
-          { 
-            await axios.patch(`${API}/users/${userId}`, {
-              roles: updatedRoles,
-              informatiques: [`/api${apiAccess.value}/${extractIdFromUrl(existingItem['@id'])}`]
-            }, {
-              headers: { 'Content-Type': 'application/merge-patch+json' }
-            })
-            toast.success(`${selectedPeople.value.length} responsable(s) ajouté(s) avec succès\nRôle : ${roleToAssign}`)
+          if (apiAccess.value === '/administrations') {
+            const currentSer = userData.data.administrations || []
+            const updatedSer = [
+              ...currentSer,
+              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
+            ]
+            await axios.patch(
+              `${API}/users/${userId}`,
+              {
+                roles: updatedRoles,
+                administrations: updatedSer,
+              },
+              {
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+              },
+            )
+          } else if (apiAccess.value === '/finances') {
+            const currentSer = userData.data.finances || []
+            const updatedSer = [
+              ...currentSer,
+              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
+            ]
+            await axios.patch(
+              `${API}/users/${userId}`,
+              {
+                roles: updatedRoles,
+                finances: updatedSer,
+              },
+              {
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+              },
+            )
+          } else if (apiAccess.value === '/hebergements') {
+            const currentSer = userData.data.hebergements || []
+            const updatedSer = [
+              ...currentSer,
+              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
+            ]
+            await axios.patch(
+              `${API}/users/${userId}`,
+              {
+                roles: updatedRoles,
+                hebergements: updatedSer,
+              },
+              {
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+              },
+            )
+          } else if (apiAccess.value === '/informatiques') {
+            const currentSer = userData.data.informatiques || []
+            const updatedSer = [
+              ...currentSer,
+              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
+            ]
+            await axios.patch(
+              `${API}/users/${userId}`,
+              {
+                roles: updatedRoles,
+                informatiques: updatedSer,
+              },
+              {
+                headers: { 'Content-Type': 'application/merge-patch+json' },
+              },
+            )
           }
           // toast.success(`Rôle ${roleToAssign} ajouté à ${p.fullName}`)
         }
@@ -232,7 +287,9 @@ async function handleSubmit() {
         console.warn(`Erreur patch rôle pour ${p.fullName}`, roleErr)
       }
     }
-
+    toast.success(
+              `${selectedPeople.value.length} ${selectedPeople.value.length>1 ? 'responsables ajoutés':'responsable ajouté'} avec succès\nRôle : ${roleToAssign}`,
+            )
     selectedPeople.value = []
     await fetchAll()
   } catch (err) {
@@ -273,7 +330,12 @@ onMounted(() => {
                 <!-- Liste des responsables -->
                 <div class="col-md-6">
                   <label class="fw-bold mb-2">Responsables disponibles</label>
-                  <select multiple class="form-control" style="height:30rem" @change="onAddFromLeft">
+                  <select
+                    multiple
+                    class="form-control"
+                    style="height: 30rem"
+                    @change="onAddFromLeft"
+                  >
                     <option v-for="p in peopleOptions" :key="p.id" :value="p.id">
                       {{ p.displayName }}
                     </option>
@@ -284,7 +346,12 @@ onMounted(() => {
                 <!-- Liste sélectionnée -->
                 <div class="col-md-6">
                   <label class="fw-bold mb-2">Responsables sélectionnés</label>
-                  <select multiple class="form-control" style="height:30rem" @change="onRemoveFromRight">
+                  <select
+                    multiple
+                    class="form-control"
+                    style="height: 30rem"
+                    @change="onRemoveFromRight"
+                  >
                     <option v-for="p in selectedPeople" :key="p.id" :value="p.id">
                       {{ p.displayName }}
                     </option>
@@ -295,14 +362,19 @@ onMounted(() => {
 
               <div class="row pt-3">
                 <div class="col-12 d-flex justify-content-end">
-                  <button class="btn btn-secondary mr-4" type="button" @click="router.back()">Retour</button>
+                  <button class="btn btn-secondary mr-4" type="button" @click="router.back()">
+                    Retour
+                  </button>
                   <button class="btn btn-primary" type="submit" :disabled="loading">
-                    <span v-if="loading" class="spinner-border spinner-border-sm mx-3" role="status"></span>
+                    <span
+                      v-if="loading"
+                      class="spinner-border spinner-border-sm mx-3"
+                      role="status"
+                    ></span>
                     <span v-else>Enregistrer</span>
                   </button>
                 </div>
               </div>
-
             </div>
           </div>
         </div>

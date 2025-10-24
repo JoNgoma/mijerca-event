@@ -113,7 +113,11 @@ watch(idCamp, async (newVal, oldVal) => {
 
               <!-- Service diocésain -->
               <li class="parent" v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')">
-                <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Service diocésain</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['new-unit', 'analytic'].includes(route.name) &&
+                          route.params.serviceType === 'diocesain'
+                        }"><i class="icon mdi mdi-accounts-list"></i><span>Service diocésain</span></a>
                 <ul class="sub-menu">
                   <li>
                     <router-link
@@ -132,7 +136,11 @@ watch(idCamp, async (newVal, oldVal) => {
 
               <!-- Noyau décanal -->
               <li class="parent" v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL')">
-                <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Noyau décanal</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['new-unit', 'analytic'].includes(route.name) &&
+                          route.params.serviceType === 'decanal'
+                        }"><i class="icon mdi mdi-accounts-list"></i><span>Noyau décanal</span></a>
                 <ul class="sub-menu">
                   <li>
                     <router-link
@@ -151,7 +159,11 @@ watch(idCamp, async (newVal, oldVal) => {
 
               <!-- Noyau paroissial -->
               <li class="parent" v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL') || hasRole('ROLE_NOYAU')">
-                <a href="#"><i class="icon mdi mdi-accounts-list"></i><span>Noyau paroissial</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['new-unit', 'analytic'].includes(route.name) &&
+                          route.params.serviceType === 'paroissial'
+                        }"><i class="icon mdi mdi-accounts-list"></i><span>Noyau paroissial</span></a>
                 <ul class="sub-menu">
                   <li>
                     <router-link
@@ -170,7 +182,11 @@ watch(idCamp, async (newVal, oldVal) => {
 
               <!-- Jeunes -->
               <li class="parent" v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL') || hasRole('ROLE_NOYAU')">
-                <a href="#"><i class="icon mdi mdi-accounts"></i><span>Jeunes</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['new-unit', 'analytic'].includes(route.name) &&
+                          route.params.serviceType === 'jeunes'
+                        }"><i class="icon mdi mdi-accounts"></i><span>Jeunes</span></a>
                 <ul class="sub-menu">
                   <li>
                     <router-link
@@ -188,7 +204,7 @@ watch(idCamp, async (newVal, oldVal) => {
               </li>
 
               <!-- Activité -->
-              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')" class="divider">Activités</li>
+              <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL') || hasRole('ROLE_NOYAU')" class="divider">Activités</li>
               <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')">
                 <router-link :to="{ name: 'new-camp' }" :class="{ 'text-primary': isActiveRoute('new-camp') }">
                   <i class="icon mdi mdi-border-color"></i><span>Créer une activité</span>
@@ -196,9 +212,18 @@ watch(idCamp, async (newVal, oldVal) => {
               </li>
 
               <!-- Dynamique : liste des camps -->
-              <template v-if="camps.length && (hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE'))">
+              <template v-if="camps.length && (hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL') || hasRole('ROLE_NOYAU'))">
                 <li v-for="camp in camps" :key="camp.id" class="parent">
-                  <a href="#">
+                  <a href="#"
+                  :class="{
+                          'text-primary': [
+                            'services', 'manager', 'media',
+                            'rap-day', 'paie',
+                            'log-affect', 'kin-dortoir', 'log-carrefour',
+                            'info-badge-editor'
+                          ].includes(route.name) &&
+                                          route.params.id_campBiblique === camp.id
+                        }">
                     <i v-if="camp.name.startsWith('Ecole de responsable')" class="icon mdi mdi-assignment"></i>
                     <i v-else class="icon mdi mdi-collection-text"></i>
                     <span>{{ camp.name.startsWith('Ecole de responsable') ? camp.name.replace('Ecole de responsable', 'Ecores') : camp.name }}</span>
@@ -207,7 +232,7 @@ watch(idCamp, async (newVal, oldVal) => {
                     <li v-if="
                       hasCARole(
                         'ADM', 
-                        camp.name.startsWith('Ecole de responsable') ? camp.name.replace('Ecole de responsable', 'EC') : 'CA',
+                        camp.name.startsWith('Ecole de responsable') ? 'EC' : 'CA',
                         '2025') ||
                        hasRole('ROLE_ADMIN')">
                       <router-link
@@ -220,7 +245,12 @@ watch(idCamp, async (newVal, oldVal) => {
                         Administration
                       </router-link>
                     </li>
-                    <li v-if="hasCARole('FIN', 'CA', '2025') || hasRole('ROLE_ADMIN')">
+                    <li v-if="
+                      hasCARole(
+                        'FIN', 
+                        camp.name.startsWith('Ecole de responsable') ? 'EC' : 'CA',
+                        '2025') ||
+                       hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'rap-day', params: { id_campBiblique: camp.id, serviceType: 'rap-day' } }"
                         :class="{
@@ -231,7 +261,12 @@ watch(idCamp, async (newVal, oldVal) => {
                         Finances
                       </router-link>
                     </li>
-                    <li v-if="hasCARole('HEB', 'CA', '2025') || hasRole('ROLE_ADMIN')">
+                    <li v-if="
+                      hasCARole(
+                        'HEB', 
+                        camp.name.startsWith('Ecole de responsable') ? 'EC' : 'CA',
+                        '2025') ||
+                       hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'log-affect', params: { id_campBiblique: camp.id, serviceType: 'affect' } }"
                         :class="{
@@ -242,10 +277,18 @@ watch(idCamp, async (newVal, oldVal) => {
                         Hébergement
                       </router-link>
                     </li>
-                    <li v-if="hasCARole('SEC', 'CA', '2025') || hasRole('ROLE_ADMIN')">
+                    <li v-if="
+                      hasCARole(
+                        'SEC', 
+                        camp.name.startsWith('Ecole de responsable') ? 'EC' : 'CA',
+                        '2025') ||
+                       hasRole('ROLE_ADMIN')">
                       <router-link
                         :to="{ name: 'info-badge-editor', params: { id_campBiblique: camp.id, serviceType: 'badge-editor' } }"
-                        :class="{ 'text-primary': isActiveRoute('info-badge-editor', { id_campBiblique: camp.id, serviceType: 'badge-editor' }) }"
+                        :class="{
+                          'text-primary': ['info-badge-editor'].includes(route.name) &&
+                                          route.params.id_campBiblique === camp.id
+                        }"
                       >
                         Secrétariat
                       </router-link>
@@ -267,7 +310,11 @@ watch(idCamp, async (newVal, oldVal) => {
                 hasRole('ROLE_DIOCESE') ||
                 hasRole('ROLE_EST')"
               class="parent">
-                <a href="#"><i class="icon mdi mdi-undo"></i><span>KIN EST</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['sec-kin', 'sec-paroisse', 'sec-new'].includes(route.name) &&
+                          route.params.serviceType === 'est'
+                        }"><i class="icon mdi mdi-undo"></i><span>KIN EST</span></a>
                 <ul class="sub-menu" v-if="
                     hasRole('ROLE_ADMIN') ||
                     hasRole('ROLE_DIOCESE') ||
@@ -301,7 +348,11 @@ watch(idCamp, async (newVal, oldVal) => {
                 hasRole('ROLE_DIOCESE') ||
                 hasRole('ROLE_CENTRE')"
               class="parent">
-                <a href="#"><i class="icon mdi mdi-circle-o"></i><span>KIN CENTRE</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['sec-kin', 'sec-paroisse', 'sec-new'].includes(route.name) &&
+                          route.params.serviceType === 'centre'
+                        }"><i class="icon mdi mdi-circle-o"></i><span>KIN CENTRE</span></a>
                 <ul class="sub-menu" v-if="
                     hasRole('ROLE_ADMIN') ||
                     hasRole('ROLE_DIOCESE') ||
@@ -335,7 +386,11 @@ watch(idCamp, async (newVal, oldVal) => {
                 hasRole('ROLE_DIOCESE') ||
                 hasRole('ROLE_OUEST')"
               class="parent">
-                <a href="#"><i class="icon mdi mdi-redo"></i><span>KIN OUEST</span></a>
+                <a href="#"
+                :class="{
+                          'text-primary': ['sec-kin', 'sec-paroisse', 'sec-new'].includes(route.name) &&
+                          route.params.serviceType === 'ouest'
+                        }"><i class="icon mdi mdi-redo"></i><span>KIN OUEST</span></a>
                 <ul class="sub-menu" v-if="
                     hasRole('ROLE_ADMIN') ||
                     hasRole('ROLE_DIOCESE') ||

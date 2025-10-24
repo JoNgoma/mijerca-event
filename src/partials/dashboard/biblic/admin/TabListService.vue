@@ -15,10 +15,10 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 // Liste statique des services
 const allServices = ref([
-  { id: 'adm', name: 'Administration' },
-  { id: 'fin', name: 'Finances' },
-  { id: 'heb', name: 'Hébergement' },
-  { id: 'sec', name: 'Secrétariat' }
+  { id: 'adm', name: 'Administration', apiAccess: '/administrations' },
+  { id: 'fin', name: 'Finances', apiAccess: '/finances' },
+  { id: 'heb', name: 'Hébergement', apiAccess: '/hebergements' },
+  { id: 'sec', name: 'Secrétariat', apiAccess: '/informatiques' }
 ])
 
 // Récupération du nom du camp
@@ -96,7 +96,7 @@ const pageTitle = computed(() => campName.value)
                 <EffecTotal></EffecTotal>
               </div>
               <div v-else>
-                <ListServices :key="rapportKey" :id="selectedService" :date="selectedDate" />
+                <ListServices :key="rapportKey" :id="selectedService" :date="selectedDate" :apiAccess="apiAccess" />
               </div>
             </div>
           </div>

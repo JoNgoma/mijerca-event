@@ -2,7 +2,10 @@
 import { ref, onMounted, watch } from "vue"
 import axios from "axios"
 import { useRouter, useRoute } from "vue-router"
+import { useToast } from 'vue-toastification'
 import logo from "/assets/img/mijerca.jpg"
+
+const toast = useToast()
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const router = useRouter()
@@ -15,6 +18,7 @@ const fullName = ref("")
 const sector = ref("")
 const doyenne = ref("")
 const paroisse = ref("")
+const users = ref("")
 const isResponsable = ref(false)
 
 const sectors = ref([])
@@ -67,14 +71,16 @@ function filterParoisses() {
 // 🔹 Chargement données secteurs/doyennés/paroisses et personne
 onMounted(async () => {
   try {
-    const [sectorRes, doyenneRes, paroisseRes] = await Promise.all([
+    const [sectorRes, doyenneRes, paroisseRes, userRes] = await Promise.all([
       axios.get(`${API_URL}/sectors`),
       axios.get(`${API_URL}/doyennes`),
-      axios.get(`${API_URL}/paroisses`)
+      axios.get(`${API_URL}/paroisses`),
+      axios.get(`${API_URL}/users`)
     ])
     sectors.value = sectorRes.data.member || []
     doyennes.value = doyenneRes.data.member || []
     paroisses.value = paroisseRes.data.member || []
+    users.value = userRes.data.member || []
 
     if(sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
@@ -93,10 +99,10 @@ onMounted(async () => {
         doyenne.value = filteredDoyennes.value.find(d => d["@id"] === p.doyenne)?.name || ""
         filterParoisses()
         paroisse.value = filteredParoisses.value.find(pa => pa["@id"] === p.paroisse)?.name || ""
-        
+
         // 🔹 Définir les rôles
         roles.value.forEach(r => r.value = !!p[r.key])
-        
+
         // 🔹 Définir isResponsable si au moins un rôle est true
         isResponsable.value = roles.value.some(r => r.value)
       }
@@ -115,12 +121,26 @@ watch(doyenne, filterParoisses)
 async function handleSubmit() {
   isLoading.value = true
   error.value = ""
-
   try {
     const sectorObj = sectors.value.find(s => s.name === sector.value)
     const doyenneObj = doyennes.value.find(d => d.name === doyenne.value)
     const paroisseObj = paroisses.value.find(p => p.name === paroisse.value)
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
+
+    const roleToRemove = ref ("")
+    if (sectorObj["@id"]=== '/api/sectors/1') roleToRemove.value = 'ROLE_EST' 
+    else if (sectorObj["@id"]=== '/api/sectors/2') roleToRemove.value = 'ROLE_CENTRE'
+    else if (sectorObj["@id"]=== '/api/sectors/3') roleToRemove.value = 'ROLE_OUEST'
+    const roleUsers = users.value.find(
+      (u) => u.username === cleanedNumber,
+    )
+    console.log('Id sector :', sectorObj["@id"])
+    console.log('Role à  ajouter :', roleToRemove.value)
+    // === Retirer le rôle spécifique ===
+    let rolesInit = (roleUsers.roles || []).filter(r => (r !== 'ROLE_EST' && r !== 'ROLE_CENTRE' && r !== 'ROLE_OUEST'))
+    console.log('Role initiallisé :', rolesInit)
+    rolesInit.push(roleToRemove.value)
+    console.log('Roles actuels :', rolesInit)
 
     const payload = {
       gender: gender.value,
@@ -129,20 +149,27 @@ async function handleSubmit() {
       sector: sectorObj ? sectorObj["@id"] : null,
       doyenne: doyenneObj ? doyenneObj["@id"] : null,
       paroisse: paroisseObj ? paroisseObj["@id"] : null,
-      ...roles.value.reduce((acc, r) => { acc[r.key] = r.value; return acc }, {}),
       updatedAt: new Date().toISOString()
     }
 
     const personId = route.query.id
     if (personId) {
       await axios.patch(`${API_URL}/people/${personId}`, payload, {
-        headers: { 
+        headers: {
           "Content-Type": "application/merge-patch+json",
           "Accept": "application/ld+json",
           // "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
       })
-      alert("Mise à jour réussie !")
+
+      await axios.patch(`${API_URL}/users/${roleUsers.id}`, {roles : rolesInit}, {
+        headers: {
+          "Content-Type": "application/merge-patch+json",
+          "Accept": "application/ld+json",
+          // "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
+      })
+      toast.success("Mise à jour réussie !")
       router.push({ name: "home" })
     }
   } catch (err) {
@@ -216,14 +243,6 @@ async function handleSubmit() {
             <select class="form-control" v-model="paroisse">
               <option v-for="p in filteredParoisses" :key="p.id" :value="p.name">{{ p.name }}</option>
             </select>
-          </div>
-
-          <!-- Responsable -->
-          <div class="form-group mb-3">
-            <div class="form-check">
-              <input type="checkbox" id="responsable" v-model="isResponsable" class="form-check-input" />
-              <label for="responsable" class="form-check-label">Je suis responsable</label>
-            </div>
           </div>
 
           <!-- Submit -->

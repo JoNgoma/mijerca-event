@@ -291,7 +291,7 @@ function closeModal() { selectedJeune.value = null }
             <p><strong>Paroisse :</strong> {{ selectedJeune.paroisse }}</p>
             <p><strong>Téléphone :</strong> {{ selectedJeune.tel }}</p>
             <p>
-              <strong>Statut :</strong>
+              <strong>Statut : </strong>
               <span class="badge"
                 :class="{
                   'bg-success text-white': selectedJeune.statut === 'Jeune',

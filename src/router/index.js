@@ -6,6 +6,7 @@ import HomeAccueil from '../partials/home/HomeAccueil.vue'
 
 // Dashboard
 import DashboardView from '@/views/DashboardView.vue'
+import PageProfil from '@/views/profil/PageProfil.vue'
 import LoginPage from '@/views/auth/LoginPage.vue'
 import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
 import PersonsView from '@/views/PersonsView.vue'
@@ -65,10 +66,12 @@ const router = createRouter({
     // ----- DASHBOARD -----
     {
       path: '/admin',
+      name:'admin',
       component: DashboardView,
       meta: { requiresAuth: true },
       children: [
         { path: 'dashboard', name: 'dashboard', component: AccueilDash },
+        { path: 'profil', name: 'profil', component: PageProfil },
 
         // ---- Persons ----
         {
@@ -161,7 +164,7 @@ router.beforeEach((to, from, next) => {
       // Routes autorisées pour ROLE_NOYAU
       if (roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')){
         const allowedRoutes = [
-          'dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
+          'admin', 'dashboard', 'profil', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
           'services', 'manager', 'media',
           'rap-day', 'dep-new', 'dep-suivis', 'paie',
           'log-dortoir', 'log-carrefour', 'log-affect',
@@ -174,11 +177,11 @@ router.beforeEach((to, from, next) => {
       }
       }
       const allowedRoutes = [
-        'dashboard', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
-         'services', 'manager', 'media',
-          'rap-day', 'dep-new', 'dep-suivis', 'paie',
-          'log-dortoir', 'log-carrefour', 'log-affect',
-          'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
+        'admin', 'dashboard', 'profil', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
+        'services', 'manager', 'media',
+        'rap-day', 'dep-new', 'dep-suivis', 'paie',
+        'log-dortoir', 'log-carrefour', 'log-affect',
+        'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
         ]
       if (allowedRoutes.includes(to.name)) {
         return next()

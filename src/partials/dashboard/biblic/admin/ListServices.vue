@@ -1,20 +1,18 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 import { useToast } from 'vue-toastification'
-import { useServiceContext } from '@/composables/useServiceContext'
 
 const toast = useToast()
-const { currentService } = useServiceContext()
 const route = useRoute()
 
-const apiAccess = computed(() => currentService.value.api)
 const campId = computed(() => route.params.id_campBiblique || null)
 
 const props = defineProps({
   id: { type: [String, Number], required: true },
   date: { type: String, required: false },
+  apiAccess: { type: [String], required: true },
 })
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
@@ -25,6 +23,7 @@ const people = ref([])
 const paroisses = ref([])
 const participators = ref([])
 const removals = ref([])
+const serviceRecords = ref([]) // ✅ données de service
 
 const selectedUser = ref(null)
 const showModal = ref(false)
@@ -37,10 +36,18 @@ function extractIdFromUrl(url) {
   return parts.pop()
 }
 
+// === FETCH DES DONNÉES PRINCIPALES ===
 async function fetchData() {
   try {
     loading.value = true
-    const [usersRes, peopleRes, paroissesRes, participatorsRes, removalsRes] = await Promise.all([
+
+    const [
+      usersRes,
+      peopleRes,
+      paroissesRes,
+      participatorsRes,
+      removalsRes
+    ] = await Promise.all([
       axios.get(`${API}/users`).then((r) => r.data?.member || []),
       axios.get(`${API}/people`).then((r) => r.data?.member || []),
       axios.get(`${API}/paroisses`).then((r) => r.data?.member || []),
@@ -53,6 +60,8 @@ async function fetchData() {
     paroisses.value = paroissesRes
     participators.value = participatorsRes
     removals.value = removalsRes
+
+    await fetchServiceRecords()
   } catch (err) {
     console.error('Erreur de chargement:', err)
     toast.error('Erreur lors de la récupération des données')
@@ -61,9 +70,33 @@ async function fetchData() {
   }
 }
 
-onMounted(fetchData)
+// === FETCH DES SERVICE RECORDS ===
+async function fetchServiceRecords() {
+  const serviceKey =
+    props.id === 'adm'
+      ? 'administrations'
+      : props.id === 'fin'
+        ? 'finances'
+        : props.id === 'heb'
+          ? 'hebergements'
+          : props.id === 'sec'
+            ? 'informatiques'
+            : null
 
-// === MAPPING DES UTILISATEURS PAR SERVICE ===
+  if (!serviceKey) return
+
+  try {
+    const res = await axios.get(`${API}/${serviceKey}`)
+    serviceRecords.value = res.data?.member || []
+  } catch (err) {
+    console.error('Erreur chargement services:', err)
+  }
+}
+
+onMounted(fetchData)
+watch(() => props.id, fetchServiceRecords)
+
+// === COMPUTED POUR LES UTILISATEURS DU SERVICE ===
 const servicePeople = computed(() => {
   const serviceKey =
     props.id === 'adm'
@@ -78,11 +111,21 @@ const servicePeople = computed(() => {
 
   if (!serviceKey) return []
 
-  const serviceUsers = users.value.filter(
-    (u) => Array.isArray(u[serviceKey]) && u[serviceKey].length,
-  )
+  const filteredUsers = users.value.filter((u) => {
+    const field = u[serviceKey]
+    if (!Array.isArray(field) || !field.length) return false
 
-  const mapped = serviceUsers.map((u) => {
+    return field.some((f) =>
+      f.includes(`/api/${serviceKey}/`) &&
+      serviceRecords.value.some(
+        (rec) =>
+          extractIdFromUrl(rec['@id']) === extractIdFromUrl(f) &&
+          rec.campBiblic === `/api/camp_bibliques/${campId.value}`
+      )
+    )
+  })
+
+  return filteredUsers.map((u) => {
     const person = people.value.find(
       (p) => extractIdFromUrl(p['@id']) === extractIdFromUrl(u.person),
     )
@@ -96,7 +139,7 @@ const servicePeople = computed(() => {
       (pr) => extractIdFromUrl(pr.person) === extractIdFromUrl(person['@id']),
     )
 
-    const responsable = person.isDicoces
+    const responsable = person.isDiocesan
       ? 'Noyau diocésain'
       : person.isDecanal
         ? 'Noyau décanal'
@@ -145,9 +188,7 @@ const servicePeople = computed(() => {
       moveInfo,
       raw: person,
     }
-  })
-
-  return mapped.filter(Boolean).sort((a, b) => a.fullName.localeCompare(b.fullName))
+  }).filter(Boolean).sort((a, b) => a.fullName.localeCompare(b.fullName))
 })
 
 // === OUVRIR LE MODAL ===
@@ -162,7 +203,8 @@ async function confirmRemoval() {
   try {
     const user = selectedUser.value
     const userId = user.id
-    // Retirer le rôle correspondant
+
+    // === Préfixe pour le rôle ===
     const rolePrefix =
       user.service === 'Administration'
         ? 'ADM'
@@ -171,52 +213,55 @@ async function confirmRemoval() {
           : user.service === 'Hébergement'
             ? 'HEB'
             : 'SEC'
-    // === Récupérer le user complet
+
+    // === Récupérer l'utilisateur complet ===
     const { data: userData } = await axios.get(`${API}/users/${userId}`)
 
-    // === Récupérer le camp pour savoir le rôle exact
+    // === Récupérer le camp ===
     const { data: camp } = await axios.get(`${API}/camp_bibliques/${campId.value}`)
     const campLabel = camp.name || ''
+    const prefix = /camp\s*biblique/i.test(campLabel) ? 'CA' : 'EC'
     const shortCamp =
-      (campLabel
-        .match(/[A-Za-z]/g)
-        ?.slice(0, 2)
-        .join('') || 'CA') + (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
+      (campLabel.match(/[A-Za-z]/g)?.slice(0, 2).join('') || prefix) +
+      (campLabel.match(/\d{4}$/)?.[0] || 'XXXX')
 
-    // === Retirer le rôle correspondant à ce camp
+    // === Retirer le rôle spécifique ===
     const roleToRemove = `ROLE_${rolePrefix}_${shortCamp.toUpperCase()}`
-    const roles = (userData.roles || []).filter((r) => r !== roleToRemove)
+    const roles = (userData.roles || []).filter(r => r !== roleToRemove)
 
-    // 🔍 LOG du rôle supprimé
-    console.log('--- RÔLE RETIRÉ ---')
-    console.log('Ancien rôles :', userData.roles)
-    console.log('Rôle à retirer :', roleToRemove)
-    console.log('Nouveaux rôles :', roles)
+    // === Identifier le champ du service et l'API correspondante ===
+    const apiAccess =
+      props.id === 'adm'
+        ? '/administrations'
+        : props.id === 'fin'
+          ? '/finances'
+          : props.id === 'heb'
+            ? '/hebergements'
+            : '/informatiques'
 
-    // === Identifier le champ du service
-    let serviceField = null
-    if (apiAccess.value === '/administrations') serviceField = 'administrations'
-    else if (apiAccess.value === '/finances') serviceField = 'finances'
-    else if (apiAccess.value === '/hebergements') serviceField = 'hebergements'
-    else if (apiAccess.value === '/informatiques') serviceField = 'informatiques'
+    const serviceField = apiAccess.replace('/', '')
 
-    // === Nettoyer le tableau du service courant
-    const updatedField = (userData[serviceField] || []).filter((f) => !f.includes(apiAccess.value))
+    // === Récupérer les enregistrements existants du service pour ce user ===
+    const existing = await axios.get(`${API}${apiAccess}?user=/api/users/${userId}`)
+    const existingItem = existing.data?.member || []
 
-    // 🔍 LOG du champ de service nettoyé
-    console.log('--- SERVICE FIELD NETTOYÉ ---')
-    console.log('Champ ciblé :', serviceField)
-    console.log('Ancienne valeur :', userData[serviceField])
-    console.log(
-      'Valeur retirée :',
-      (userData[serviceField] || []).filter((f) => f.includes(apiAccess.value)),
+    // === On ne garde que ceux du camp courant ===
+    const filteredExistingItem = existingItem.filter(
+      item => item.campBiblic === `/api/camp_bibliques/${campId.value}`
     )
-    console.log('Nouvelle valeur :', updatedField)
 
-    // === PATCH partiel
+    if (!filteredExistingItem.length) {
+      console.warn(`Aucun service trouvé pour le camp ${campId.value}`)
+      toast.warning("Aucun enregistrement trouvé pour ce service dans ce camp")
+      return
+    }
+
+    // === Supprimer ces enregistrements côté user ===
+    const updatedField = (userData[serviceField] || []).filter(
+      f => !filteredExistingItem.some(item => f.includes(extractIdFromUrl(item['@id'])))
+    )
+
     const payload = { roles, [serviceField]: updatedField }
-    console.log('--- PAYLOAD ENVOYÉ AU PATCH ---')
-    console.log(payload)
 
     await axios.patch(`${API}/users/${userId}`, payload, {
       headers: { 'Content-Type': 'application/merge-patch+json' },
@@ -225,7 +270,8 @@ async function confirmRemoval() {
     toast.success(`${user.fullName} a été retiré du service ${user.service}`)
     showConfirm.value = false
     showModal.value = false
-    await fetchData()
+
+    await fetchData() // recharge les données
   } catch (err) {
     console.error('Erreur retrait service:', err)
     toast.error("Impossible de retirer l'utilisateur du service")
@@ -357,7 +403,7 @@ async function confirmRemoval() {
 .sticky-header {
   position: sticky;
   top: 0;
-  background: #f8f9fa;
+  background: #edeff0;
   z-index: 2;
 }
 

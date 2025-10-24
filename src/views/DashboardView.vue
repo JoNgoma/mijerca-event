@@ -9,8 +9,21 @@ import LogMenu from '@/components/menus/LogMenu.vue';
 import FinancesMenu from '@/components/menus/FinancesMenu.vue';
 import ParoisseMenu from '@/components/menus/ParoisseMenu.vue';
 import { useTopMenu } from '@/composables/useTopMenu'
+import { useRoute } from 'vue-router';
 
+const route = useRoute()
 
+const isActiveRoute = (routeName, params = {}) => {
+  if (routeName === 'dashboard') {
+    if (Object.keys(params).length > 0) {
+      return Object.entries(params).every(
+        ([key, value]) => route.params[key] === value
+      )
+    }
+    return true
+  }
+  return false
+}
 const { currentMenu } = useTopMenu()
 
 $(document).ready(function(){
@@ -32,7 +45,9 @@ $(document).ready(function(){
           <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
           <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par' ||currentMenu === 'kin-paroisse'" />
           <ul v-else class="navbar-nav">
-            <li class="nav-item"><a class="nav-link" href="/admin/dashboard">Accueil</a></li>
+            <li
+            :class="{ 'text-primary': isActiveRoute('dashboard', { serviceType: 'dashboard' }) }"
+             class="nav-item"><a class="nav-link" href="/admin/dashboard">Accueil</a></li>
           </ul>
         </template>
       </HeaderDash>

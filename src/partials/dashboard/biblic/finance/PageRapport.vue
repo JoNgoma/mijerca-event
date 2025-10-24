@@ -170,10 +170,10 @@ function renderChart() {
     data: {
       labels: summaryData.value.map(s => s.name),
       datasets: [
-        { label: 'Frères', data: summaryData.value.map(s => s.totalFrere), backgroundColor: '#0d6efd' },
-        { label: 'Sœurs', data: summaryData.value.map(s => s.totalSoeur), backgroundColor: '#d63384' },
-        { label: 'Montant FC', data: summaryData.value.map(s => s.totalFC), backgroundColor: '#198754' },
-        { label: 'Montant $', data: summaryData.value.map(s => s.totalUSD), backgroundColor: '#ffc107' }
+        { label: 'Frères ', data: summaryData.value.map(s => s.totalFrere), backgroundColor: '#0d6efd' },
+        { label: 'Soeurs ', data: summaryData.value.map(s => s.totalSoeur), backgroundColor: '#d63384' },
+        { label: 'Montant FC ', data: summaryData.value.map(s => s.totalFC), backgroundColor: '#198754' },
+        { label: 'Montant $ ', data: summaryData.value.map(s => s.totalUSD), backgroundColor: '#ffc107' }
       ]
     },
     options: { responsive: true, plugins: { legend: { position: 'top' } } }
@@ -235,9 +235,9 @@ const pageTitle = computed(() => campName.value)
                   <span class="spinner-border"></span> Chargement des données...
                 </div>
 
-                <div v-else>
-                  <table class="table table-striped table-hover align-middle table-bordered">
-                    <thead class="table-dark">
+                <div v-else class="table-container">
+                  <table class="table table-hover align-middle">
+                    <thead class="sticky-header">
                       <tr>
                         <th>Secteur</th>
                         <th>Effectif Total</th>
@@ -300,4 +300,6 @@ const pageTitle = computed(() => campName.value)
 .table-hover tbody tr:hover { background-color: #f1f1f1; }
 .table-dark thead tr:hover { background-color: inherit !important; } /* supprime hover sur thead */
 .badge.bg-pink { background-color: #d63384; }
+.table-container { overflow-y: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; }
+.sticky-header { position: sticky; top: 0; background: #edeff0; z-index: 2; }
 </style>

@@ -8,7 +8,7 @@ const router = useRouter();
 // Données de test pour la prévisualisation
 const person = ref({
   name: "Josué Ngoma",
-  church: "Saint Noé Mawaggali", 
+  church: "Paroisse Saint Noé Mawaggali", 
   site: "Carrefour 5",
   sleep: "Dortoir 1"
 });
@@ -65,12 +65,13 @@ onMounted(() => {
                   <div
                     v-for="(field, i) in layout"
                     :key="i"
-                    class="text"
+                    class="text "
                     :style="{ 
                       top: field.y+3 + 'px', 
                       left: field.x + 'px',
                       color: field.color || '#000000',
                       fontSize: (field.fontSize || 14) + 'pt',
+                      textAlign: 'center',
                     }"
                   >
                     {{ person[field.key] || field.label }}
@@ -139,6 +140,7 @@ onMounted(() => {
   text-shadow: 1px 1px 2px rgba(255,255,255,0.8);
   pointer-events: none;
   white-space: nowrap;
+  text-align: center;
 }
 
 .btn:disabled {

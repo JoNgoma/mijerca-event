@@ -358,7 +358,7 @@ async function handleSubmit(e) {
         headers: { "Content-Type": "application/ld+json" }
       })
 
-      toast.success("Responsable ajouté ! Mot de passe initial : mijerca2025")
+      toast.success("Responsable ajouté avec succes!\nMot de passe initial : mijerca2025")
     } else {
       toast.success("Jeune ajouté avec succès !")
     }

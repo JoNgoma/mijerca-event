@@ -9,10 +9,10 @@ const router = useRouter();
 
 // Textes à placer avec couleurs
 const fields = ref([
-  { label: "Nom", key: "name", x: 50, y: 450, color: "#3B5998", fontSize: 18 },
-  { label: "Paroisse", key: "church", x: 50, y: 480, color: "#E74C3C", fontSize: 16 },
-  { label: "Carrefour", key: "site", x: 50, y: 510, color: "#000000", fontSize: 14 },
-  { label: "Dortoir", key: "sleep", x: 50, y: 540, color: "#000000", fontSize: 14 }
+  { label: "Josue Ngoma", key: "name", x: 50, y: 450, color: "#3B5998", fontSize: 18 },
+  { label: "Paroisse Saint Noé Mawaggali", key: "church", x: 50, y: 480, color: "#E74C3C", fontSize: 16 },
+  { label: "Carrefour 1", key: "site", x: 50, y: 510, color: "#000000", fontSize: 14 },
+  { label: "Dortoir 1", key: "sleep", x: 50, y: 540, color: "#000000", fontSize: 14 }
 ]);
 
 const selectedFieldIndex = ref(0);
@@ -103,7 +103,7 @@ loadSavedLayout();
                     :style="{ 
                       color: field.color, 
                       fontSize: field.fontSize + 'pt',
-                      border: selectedFieldIndex === index ? '2px solid #007bff' : 'none'
+                      border: selectedFieldIndex === index ? '2px solid #007bff' : 'none',
                     }"
                   >
                     {{ field.label }}
