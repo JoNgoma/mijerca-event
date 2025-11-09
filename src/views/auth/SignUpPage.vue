@@ -35,7 +35,7 @@
         <div class="form-group">
           <div class="form-label-group">
             <input type="password2" id="inputPassword2" class="form-control" placeholder="Mot de passe" required=""> <label for="inputPassword2">Confirmer mot de passe</label>
-          </div>
+          </div>        
         </div>
         
         <div class="form-group">

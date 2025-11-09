@@ -20,6 +20,7 @@ import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
 import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
 import TabListService from '@/partials/dashboard/biblic/admin/TabListService.vue'
 import TabNewService from '@/partials/dashboard/biblic/admin/TabNewService.vue'
+import BadgeUploader from '@/partials/dashboard/biblic/admin/BadgeUploader.vue'
 import PageRapport from '@/partials/dashboard/biblic/finance/PageRapport.vue'
 import DepNew from '@/partials/dashboard/biblic/DepNew.vue'
 import DepSuivis from '@/partials/dashboard/biblic/DepSuivis.vue'
@@ -95,7 +96,7 @@ const router = createRouter({
         { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
         { path: ':id_campBiblique/:serviceType', name: 'services', component: TabListService },
         { path: ':id_campBiblique/services/:serviceType', name: 'manager', component: TabNewService },
-        { path: ':id_campBiblique/services/:serviceType', name: 'media', component: TabNewService },
+        { path: ':id_campBiblique/services/:serviceType', name: 'media', component: BadgeUploader },
 
         // Finances
         { path: ':id_campBiblique/finances/:serviceType', name: 'rap-day', component: PageRapport },

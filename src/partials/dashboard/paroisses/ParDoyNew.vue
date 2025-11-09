@@ -12,13 +12,13 @@ const toast = useToast()
 // Contexte service
 // ===========================
 const { currentService } = useServiceContext()
-const pageTitle = computed(() => currentService.value?.name || "")
-const sectorService = computed(() => currentService.value?.position || "")
+const pageTitle = computed(() => currentService.value?.name || '')
+const sectorService = computed(() => currentService.value?.position || '')
 let sector = 'KIN EST'
 if (sectorService.value === 'est') sector = 'KIN EST'
 else if (sectorService.value === 'centre') sector = 'KIN CENTRE'
 else if (sectorService.value === 'ouest') sector = 'KIN OUEST'
-const descr = computed(() => currentService.value?.description || "")
+const descr = computed(() => currentService.value?.description || '')
 
 // ===========================
 // Configuration API
@@ -68,7 +68,7 @@ async function fetchSectorId() {
     }
   } catch (err) {
     console.error('Erreur récupération secteur', err)
-    toast.error("❌ Impossible de récupérer le secteur")
+    toast.error('❌ Impossible de récupérer le secteur')
   }
 }
 
@@ -82,7 +82,7 @@ async function fetchDoyennes() {
     doyennes.value = data.member?.filter((s) => s.sector === `/api/sectors/${sectorId.value}`) || []
   } catch (err) {
     console.error('Erreur récupération doyennés', err)
-    toast.error("❌ Erreur lors du chargement des doyennés")
+    toast.error('❌ Erreur lors du chargement des doyennés')
   }
 }
 
@@ -103,7 +103,11 @@ async function saveDoyenne(e) {
 
     const res = await fetch(`${API_URL}/doyennes`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/ld+json' },
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/ld+json',
+        Accept: 'application/ld+json',
+      },
       body: JSON.stringify(payload),
     })
 
@@ -122,12 +126,12 @@ async function saveDoyenne(e) {
       })
 
       if (paroisseRes.ok) {
-        toast.success("✅ Doyenné et paroisse enregistrés avec succès !")
+        toast.success('✅ Doyenné et paroisse enregistrés avec succès !')
       } else {
         const data = await paroisseRes.json()
         error.value = data.violations
           ? data.violations.map((v) => `${v.message}`).join(', ')
-          : (data.message || 'Erreur création paroisse')
+          : data.message || 'Erreur création paroisse'
         toast.error(`${error.value}`)
       }
 
@@ -136,12 +140,12 @@ async function saveDoyenne(e) {
       const data = await res.json()
       error.value = data.violations
         ? data.violations.map((v) => `${v.message}`).join(', ')
-        : (data.message || 'Erreur création doyenné')
+        : data.message || 'Erreur création doyenné'
       toast.error(`${error.value}`)
     }
   } catch (err) {
     console.error('Erreur création doyenné', err)
-    toast.error("Erreur création doyenné")
+    toast.error('Erreur création doyenné')
   } finally {
     isLoadingDoyenne.value = false
   }
@@ -172,17 +176,17 @@ async function saveParoisse(e) {
     if (res.ok) {
       paroisseName.value = ''
       selectedDoyenne.value = ''
-      toast.success("✅ Paroisse enregistrée avec succès !")
+      toast.success('✅ Paroisse enregistrée avec succès !')
     } else {
       const data = await res.json()
       error.value = data.violations
         ? data.violations.map((v) => ` ${v.message}`).join(', ')
-        : (data.message || 'Erreur création paroisse')
+        : data.message || 'Erreur création paroisse'
       toast.error(`${error.value}`)
     }
   } catch (err) {
     console.error('Erreur création paroisse', err)
-    toast.error("Erreur création paroisse")
+    toast.error('Erreur création paroisse')
   } finally {
     isLoadingParoisse.value = false
   }

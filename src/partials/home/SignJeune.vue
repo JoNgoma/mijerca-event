@@ -133,7 +133,7 @@ async function handleSubmit() {
 
   if (!gender.value) {
     genderError.value = "Veuillez sélectionner un genre."
-    await notify("Veuillez sélectionner un genre.") 
+    await notify("Veuillez sélectionner un genre.")
     return
   }
 
@@ -215,13 +215,14 @@ async function registerUser(roleValues, isResponsible) {
     const personRes = await axios.post(
       `${API_URL}/people`,
       personPayload,
-      { headers: { 
+      { headers: {
         "Content-Type": "application/ld+json",
-        // "Authorization": `Bearer ${localStorage.getItem("token")}`
+        "Authorization": `Bearer ${localStorage.getItem("token")}`,
+        "Accept": "application/ld+json",  // API Platform attend souvent l’accept aussi
        } }
     )
-    let roleSector ='' 
-    if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST' 
+    let roleSector =''
+    if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST'
     else if (sectorUrl=== '/api/sectors/2') roleSector = 'ROLE_CENTRE'
     else if (sectorUrl=== '/api/sectors/3') roleSector = 'ROLE_OUEST'
     const personUrl = personRes.data["@id"] || personRes.data.id
@@ -363,7 +364,7 @@ async function registerUser(roleValues, isResponsible) {
               Retour à l'accueil ? <a href="/">Revenir plus tard</a>
             </p>
             <p class="mb-1">
-              Etes-vous déjà enregistré ? 
+              Etes-vous déjà enregistré ?
               <a href="#" @click.prevent="showInfoModal = true">Voir mes infos</a>
               </p>
           </div>

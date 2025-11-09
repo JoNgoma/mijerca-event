@@ -1,5 +1,4 @@
 <script setup>
-import CarouselHome from '@/components/home/CarouselHome.vue'
 
 import accueil from "/assets/img/accueil.jpg"
 import video from "/assets/video/present.mp4"
@@ -221,7 +220,6 @@ const showModal = ref(false)
       </div>
     </section>
 
-    <CarouselHome />
     <!-- <NewsLetters /> -->
     <ContactHome />
     <section class="cta bg-light text-center py-5">
