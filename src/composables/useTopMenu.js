@@ -23,6 +23,7 @@ export function useTopMenu() {
     { name: 'affect', route: 'log-affect', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'badge-editor', route: 'info-badge-editor', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'badge-preview', route: 'info-badge-preview', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
+    { name: 'person-selector', route: 'info-person-selector', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'a4-generator', route: 'info-a4-generator', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'kin-est', route: 'sec-kin', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'new-noy&par', route: 'sec-new', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },

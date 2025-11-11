@@ -6,7 +6,6 @@ import { useToast } from 'vue-toastification'
 import logo from "/assets/img/mijerca.jpg"
 
 const toast = useToast()
-
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const router = useRouter()
 const route = useRoute()
@@ -36,6 +35,45 @@ const roles = ref([
 
 const error = ref("")
 const isLoading = ref(false)
+
+// ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
 
 // 🔹 Formatage téléphone
 const formatPhone = () => {
@@ -68,19 +106,28 @@ function filterParoisses() {
   paroisse.value = filteredParoisses.value[0]?.name || ""
 }
 
-// 🔹 Chargement données secteurs/doyennés/paroisses et personne
+// 🔹 Chargement données secteurs/doyennés/paroisses et personne avec pagination
 onMounted(async () => {
   try {
-    const [sectorRes, doyenneRes, paroisseRes, userRes] = await Promise.all([
-      axios.get(`${API_URL}/sectors`),
-      axios.get(`${API_URL}/doyennes`),
-      axios.get(`${API_URL}/paroisses`),
-      axios.get(`${API_URL}/users`)
+    // Chargement paginé de toutes les données
+    const [sectorData, doyenneData, paroisseData, userData] = await Promise.all([
+      fetchAllPages(`${API_URL}/sectors`),
+      fetchAllPages(`${API_URL}/doyennes`),
+      fetchAllPages(`${API_URL}/paroisses`),
+      fetchAllPages(`${API_URL}/users`)
     ])
-    sectors.value = sectorRes.data.member || []
-    doyennes.value = doyenneRes.data.member || []
-    paroisses.value = paroisseRes.data.member || []
-    users.value = userRes.data.member || []
+    
+    sectors.value = sectorData || []
+    doyennes.value = doyenneData || []
+    paroisses.value = paroisseData || []
+    users.value = userData || []
+
+    console.log('📊 Données chargées:', {
+      sectors: sectors.value.length,
+      doyennes: doyennes.value.length,
+      paroisses: paroisses.value.length,
+      users: users.value.length
+    })
 
     if(sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
@@ -105,11 +152,14 @@ onMounted(async () => {
 
         // 🔹 Définir isResponsable si au moins un rôle est true
         isResponsable.value = roles.value.some(r => r.value)
+        
+        console.log('👤 Personne chargée pour modification:', p.fullName)
       }
     }
   } catch(err) {
     console.error("Erreur chargement :", err)
     error.value = "Erreur lors du chargement des données."
+    toast.error("Erreur lors du chargement des données.")
   }
 })
 
@@ -117,34 +167,41 @@ onMounted(async () => {
 watch(sector, filterDoyennes)
 watch(doyenne, filterParoisses)
 
+// 🔹 Validation fullName
+function validateFullName(name) {
+  const regex = /^([A-Za-z]+(-[A-Za-z]+)?)(\s[A-Za-z]+(-[A-Za-z]+)?)*$/ 
+  return regex.test(name)
+}
+
 // 🔹 Update personne
 async function handleSubmit() {
   isLoading.value = true
   error.value = ""
+
+  // 🔹 Vérifier fullName
+  if(!validateFullName(fullName.value.trim())) {
+    error.value = "Le nom complet ne doit contenir que des lettres"
+    isLoading.value = false
+    toast.error("Le nom complet ne doit contenir que des lettres")
+    return
+  }
+
   try {
     const sectorObj = sectors.value.find(s => s.name === sector.value)
     const doyenneObj = doyennes.value.find(d => d.name === doyenne.value)
     const paroisseObj = paroisses.value.find(p => p.name === paroisse.value)
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
 
-    const roleToRemove = ref ("")
+    const roleToRemove = ref("")
     if (sectorObj["@id"]=== '/api/sectors/1') roleToRemove.value = 'ROLE_EST' 
     else if (sectorObj["@id"]=== '/api/sectors/2') roleToRemove.value = 'ROLE_CENTRE'
     else if (sectorObj["@id"]=== '/api/sectors/3') roleToRemove.value = 'ROLE_OUEST'
-    const roleUsers = users.value.find(
-      (u) => u.username === cleanedNumber,
-    )
-    console.log('Id sector :', sectorObj["@id"])
-    console.log('Role à  ajouter :', roleToRemove.value)
-    // === Retirer le rôle spécifique ===
-    let rolesInit = (roleUsers.roles || []).filter(r => (r !== 'ROLE_EST' && r !== 'ROLE_CENTRE' && r !== 'ROLE_OUEST'))
-    console.log('Role initiallisé :', rolesInit)
-    rolesInit.push(roleToRemove.value)
-    console.log('Roles actuels :', rolesInit)
+    
+    const roleUsers = users.value.find((u) => u.username === cleanedNumber)
 
     const payload = {
       gender: gender.value,
-      fullName: fullName.value,
+      fullName: fullName.value.trim(),
       phoneNumber: cleanedNumber,
       sector: sectorObj ? sectorObj["@id"] : null,
       doyenne: doyenneObj ? doyenneObj["@id"] : null,
@@ -158,26 +215,39 @@ async function handleSubmit() {
         headers: {
           "Content-Type": "application/merge-patch+json",
           "Accept": "application/ld+json",
-          // "Authorization": `Bearer ${localStorage.getItem("token")}`
         }
       })
-
-      await axios.patch(`${API_URL}/users/${roleUsers.id}`, {roles : rolesInit}, {
-        headers: {
-          "Content-Type": "application/merge-patch+json",
-          "Accept": "application/ld+json",
-          // "Authorization": `Bearer ${localStorage.getItem("token")}`
-        }
-      })
+      
+      if (roleUsers) {
+        let rolesInit = (roleUsers.roles || []).filter(r => (r !== 'ROLE_EST' && r !== 'ROLE_CENTRE' && r !== 'ROLE_OUEST'))
+        rolesInit.push(roleToRemove.value)
+        await axios.patch(`${API_URL}/users/${roleUsers.id}`, {roles : rolesInit}, {
+          headers: {
+            "Content-Type": "application/merge-patch+json",
+            "Accept": "application/ld+json",
+          }
+        })
+      }
+      
       toast.success("Mise à jour réussie !")
       router.push({ name: "home" })
     }
   } catch (err) {
     console.error("Erreur update :", err)
     error.value = "Erreur lors de la mise à jour."
+    toast.error("Erreur lors de la mise à jour.")
   } finally {
     isLoading.value = false
   }
+}
+
+// 🔹 Fonctions modales (conservées pour compatibilité)
+function cancelModal() {
+  showModal.value = false
+}
+
+function submitModal() {
+  showModal.value = false
 }
 </script>
 
@@ -204,7 +274,9 @@ async function handleSubmit() {
 
           <!-- Genre -->
           <div class="form-group">
-            <label class="col-12 col-sm-3 col-form-label text-sm-right pt-4">Votre genre</label>
+            <label class="col-12 col-form-label text-lg-left pt-4">
+              Sélectionner le genre
+            </label>
             <div class="col-12 col-sm-8 col-lg-6 d-flex">
               <label class="custom-control custom-radio custom-radio-icon custom-control-inline me-2">
                 <input class="custom-control-input" type="radio" name="radio-icon" value="Soeur" v-model="gender" />
@@ -315,4 +387,3 @@ async function handleSubmit() {
   width: 320px;
 }
 </style>
-

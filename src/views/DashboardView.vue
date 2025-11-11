@@ -10,6 +10,7 @@ import FinancesMenu from '@/components/menus/FinancesMenu.vue';
 import ParoisseMenu from '@/components/menus/ParoisseMenu.vue';
 import { useTopMenu } from '@/composables/useTopMenu'
 import { useRoute } from 'vue-router';
+import SecMenu from '../components/menus/SecMenu.vue';
 
 const route = useRoute()
 
@@ -42,8 +43,9 @@ $(document).ready(function(){
           <NewCommuniqueMenu v-else-if="currentMenu === 'new-communique'" />
           <FinancesMenu v-else-if="currentMenu === 'rap-day' || currentMenu === 'paie' || currentMenu === 'dep-new'  || currentMenu === 'dep-suivis'" />
           <AdmMenu v-else-if="['services','manager','media'].includes(currentMenu)" />
-          <LogMenu v-else-if="currentMenu === 'dortoir' ||currentMenu === 'carrefour' ||currentMenu === 'affect'" />
-          <ParoisseMenu v-else-if="currentMenu === 'kin-est' ||currentMenu === 'kin-centre' ||currentMenu === 'kin-oest' ||currentMenu === 'new-noy&par' ||currentMenu === 'kin-paroisse'" />
+          <LogMenu v-else-if="currentMenu === 'dortoir' || currentMenu === 'carrefour' || currentMenu === 'affect'" />
+          <ParoisseMenu v-else-if="currentMenu === 'kin-est' || currentMenu === 'kin-centre' || currentMenu === 'kin-oest' || currentMenu === 'new-noy&par' || currentMenu === 'kin-paroisse'" />
+          <SecMenu v-else-if="currentMenu === 'person-selector' ||currentMenu === 'badge-editor' || currentMenu === 'a4-generator' || currentMenu==='badge-preview'" />
           <ul v-else class="navbar-nav">
             <li
             :class="{ 'text-primary': isActiveRoute('dashboard', { serviceType: 'dashboard' }) }"

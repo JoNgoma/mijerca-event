@@ -2,8 +2,10 @@
 import { ref, onMounted, onUnmounted, watch } from "vue"
 import axios from "axios"
 import { useRouter } from "vue-router"
+import { useToast } from 'vue-toastification'
 import logo from "/assets/img/mijerca.jpg"
 
+const toast = useToast()
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
 // 🔹 Variables formulaire
@@ -14,6 +16,7 @@ const sector = ref("")
 const doyenne = ref("")
 const paroisse = ref("")
 const isResponsable = ref(false)
+const email = ref("") // ajouté pour le modal
 
 const sectors = ref([])
 const doyennes = ref([])
@@ -25,11 +28,11 @@ const showModal = ref(false)           // Modal pour rôles
 const showInfoModal = ref(false)       // Modal pour "Voir info"
 const roles = ref([
   { key: "isNoyau", label: "Noyau Paroissial", value: false },
-  { key: "isDecanal", label: "Noyau décanal", value: false },
-  { key: "isDicoces", label: "Noyau diocèse", value: false },
+  { key: "isDecanal", label: "Noyau Décanal", value: false },
+  { key: "isDicoces", label: "Noyau Diocésain", value: false },
 ])
 
-const infoNumber = ref("")             // Numéro saisi dans modal "Voir info"
+const infoNumber = ref("")
 const error = ref("")
 const genderError = ref("")
 const isLoading = ref(false)
@@ -37,22 +40,51 @@ const router = useRouter()
 
 // 🔹 Toast amélioré
 const toasts = ref([])
-function notify(msg, delay = 4000) {
-  return new Promise(resolve => {
-    const id = Date.now()
-    toasts.value.push({ id, msg })
-    setTimeout(() => {
-      toasts.value = toasts.value.filter(t => t.id !== id)
-      resolve()
-    }, delay)
-  })
-}
 
 // 🔹 SSE
 let eventSource = null
 const newPeople = ref([])
 
-// Ref ou string → string formatée
+// ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
+
+// 🔹 Format & validation téléphone
 const formatPhone = (target) => {
   let val = target?.value ?? target ?? ''
   let digits = val.replace(/\D/g, '').slice(0, 10)
@@ -64,29 +96,55 @@ const formatPhone = (target) => {
   }
 
   if (target?.value !== undefined) {
-    target.value = digits   // pour les refs
+    target.value = digits
   } else {
-    return digits          // pour les strings
+    return digits
   }
 }
 
-// 🔹 Chargement données
+const validatePhone = (number) => {
+  const cleaned = number.replace(/\s+/g, '')
+  const validPrefixes = ["081", "082", "083", "084", "085", "089", "09"]
+  const hasValidPrefix = validPrefixes.some(prefix => cleaned.startsWith(prefix))
+  if (!hasValidPrefix) return "Le numéro doit commencer par 081, 082, 083, 084, 085, 089 ou 09."
+  if (cleaned.length < 10) return "Le numéro doit contenir au moins 10 chiffres."
+  return ""
+}
+
+// 🔹 Validation du nom complet
+const validateFullName = (name) => {
+  const cleaned = name.trim()
+  const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[-' ][A-Za-zÀ-ÖØ-öø-ÿ]+)*$/
+  if (!cleaned) return "Veuillez saisir votre nom complet."
+  if (!nameRegex.test(cleaned)) return "Le nom ne doit pas contenir de chiffres ni de symboles, sauf un tiret entre deux mots."
+  return ""
+}
+
+// 🔹 Chargement données avec pagination
 onMounted(async () => {
   try {
-    const [sectorRes, doyenneRes, paroisseRes] = await Promise.all([
-      axios.get(`${API_URL}/sectors`),
-      axios.get(`${API_URL}/doyennes`),
-      axios.get(`${API_URL}/paroisses`)
+    // Chargement paginé de toutes les données
+    const [sectorData, doyenneData, paroisseData] = await Promise.all([
+      fetchAllPages(`${API_URL}/sectors`),
+      fetchAllPages(`${API_URL}/doyennes`),
+      fetchAllPages(`${API_URL}/paroisses`)
     ])
-    sectors.value = sectorRes.data.member || []
-    doyennes.value = doyenneRes.data.member || []
-    paroisses.value = paroisseRes.data.member || []
+    
+    sectors.value = sectorData || []
+    doyennes.value = doyenneData || []
+    paroisses.value = paroisseData || []
+
+    console.log('📊 Données chargées:', {
+      sectors: sectors.value.length,
+      doyennes: doyennes.value.length,
+      paroisses: paroisses.value.length
+    })
 
     if (sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
   } catch (err) {
     console.error("Erreur chargement données :", err)
-    notify("Erreur chargement données.")
+    toast.error("Erreur chargement données.")
   }
 
   // 🔹 SSE
@@ -133,7 +191,19 @@ async function handleSubmit() {
 
   if (!gender.value) {
     genderError.value = "Veuillez sélectionner un genre."
-    await notify("Veuillez sélectionner un genre.")
+    toast.error(genderError.value)
+    return
+  }
+
+  const phoneError = validatePhone(phoneNumber.value)
+  if (phoneError) {
+    toast.error(phoneError)
+    return
+  }
+
+  const nameError = validateFullName(fullName.value)
+  if (nameError) {
+    toast.error(nameError)
     return
   }
 
@@ -149,6 +219,16 @@ function cancelModal() {
 }
 
 async function submitModal() {
+  if (!email.value.trim()) {
+    toast.error("Veuillez saisir votre adresse e-mail.")
+    return
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email.value)) {
+    toast.error("Veuillez saisir une adresse e-mail valide.")
+    return
+  }
+
   showModal.value = false
   const roleValues = roles.value.reduce((acc, role) => {
     acc[role.key] = role.value
@@ -158,11 +238,6 @@ async function submitModal() {
 }
 
 // 🔹 Modal "Voir info"
-// function openInfoModal() {
-//   infoNumber.value = ""
-//   showInfoModal.value = true
-// }
-
 function cancelInfoModal() {
   showInfoModal.value = false
 }
@@ -170,26 +245,26 @@ function cancelInfoModal() {
 async function submitInfoModal() {
   const cleanedNumber2 = infoNumber.value.replace(/\s+/g, '')
   if (!cleanedNumber2) {
-    await notify("Veuillez saisir un numéro.")
+    toast.error("Veuillez saisir un numéro.")
     return
   }
 
   try {
-    // Rechercher directement la personne par numéro
-    const res = await axios.get(`${API_URL}/people?phoneNumber=${cleanedNumber2}`)
-    const person = res.data.member?.find(d => d.phoneNumber === cleanedNumber2)
+    // Recherche paginée de la personne
+    const allPeople = await fetchAllPages(`${API_URL}/people?phoneNumber=${cleanedNumber2}`)
+    const person = allPeople.find(d => d.phoneNumber === cleanedNumber2)
+    
     if (person) {
       router.push({ path: "/update-info", query: { id: person.id || person["@id"] } })
       showInfoModal.value = false
     } else {
-      await notify("Numéro non trouvé.")
+      toast.error("Numéro non trouvé.")
     }
   } catch (err) {
     console.error("Erreur recherche numéro :", err)
-    await notify("Erreur lors de la recherche.")
+    toast.error("Erreur lors de la recherche.")
   }
 }
-
 
 // 🔹 Fonction d'inscription
 async function registerUser(roleValues, isResponsible) {
@@ -217,14 +292,15 @@ async function registerUser(roleValues, isResponsible) {
       personPayload,
       { headers: {
         "Content-Type": "application/ld+json",
-        "Authorization": `Bearer ${localStorage.getItem("token")}`,
-        "Accept": "application/ld+json",  // API Platform attend souvent l’accept aussi
-       } }
+        "Accept": "application/ld+json",
+      } }
     )
-    let roleSector =''
+
+    let roleSector = ''
     if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST'
     else if (sectorUrl=== '/api/sectors/2') roleSector = 'ROLE_CENTRE'
     else if (sectorUrl=== '/api/sectors/3') roleSector = 'ROLE_OUEST'
+
     const personUrl = personRes.data["@id"] || personRes.data.id
 
     if (isResponsible) {
@@ -238,6 +314,7 @@ async function registerUser(roleValues, isResponsible) {
 
       const userPayload = {
         username: cleanedNumber,
+        email: email.value,
         roles: rolesArray,
         password: "mijerca2025",
         person: personUrl
@@ -248,12 +325,12 @@ async function registerUser(roleValues, isResponsible) {
         userPayload,
         { headers: { "Content-Type": "application/ld+json" } }
       )
-      await notify(`Inscription réussie ! Votre mot de passe initial est : mijerca2025`)
+      toast.success(`Inscription réussie ! Votre mot de passe initial est : mijerca2025`)
       router.push({ name: "home" })
       return
     }
 
-    await notify("Inscription réussie !")
+    toast.success("Inscription réussie !")
     router.push({ name: "home" })
 
   } catch (err) {
@@ -267,7 +344,7 @@ async function registerUser(roleValues, isResponsible) {
       error.value = "Erreur lors de l'enregistrement"
     }
 
-    await notify(error.value)
+    toast.error(error.value)
     console.error("❌ Erreur registerUser :", err)
   } finally {
     isLoading.value = false
@@ -364,9 +441,9 @@ async function registerUser(roleValues, isResponsible) {
               Retour à l'accueil ? <a href="/">Revenir plus tard</a>
             </p>
             <p class="mb-1">
-              Etes-vous déjà enregistré ?
+              Êtes-vous déjà enregistré ?
               <a href="#" @click.prevent="showInfoModal = true">Voir mes infos</a>
-              </p>
+            </p>
           </div>
 
           <!-- Erreur -->
@@ -380,13 +457,20 @@ async function registerUser(roleValues, isResponsible) {
       <div v-if="showModal" class="modal-backdrop">
         <div class="modal-card">
           <h5>Choisir les responsabilités</h5>
+
+          <!-- Email -->
+          <div class="form-group mb-3">
+            <label for="email">Adresse e-mail</label>
+            <input id="email" type="email" class="form-control" v-model="email" placeholder="exemple@email.com" />
+          </div>
+
           <div class="form-check" v-for="role in roles" :key="role.key">
             <input type="checkbox" class="form-check-input" v-model="role.value" :id="role.key" />
             <label class="form-check-label" :for="role.key">{{ role.label }}</label>
           </div>
           <div class="mt-3 d-flex justify-content-between">
-            <button class="btn btn-primary" @click="submitModal">S'enregistrer</button>
             <button class="btn btn-secondary" @click="cancelModal">Retour</button>
+            <button class="btn btn-primary" @click="submitModal">S'enregistrer</button>
           </div>
         </div>
       </div>
@@ -415,105 +499,22 @@ async function registerUser(roleValues, isResponsible) {
           </div>
         </div>
       </div>
-
     </div>
   </div>
 </template>
 
 <style scoped>
-.gender-icon {
-  width: 3.5rem;
-  height: 3.5rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  cursor: pointer;
-  border: 2px solid #ccc;
-  transition: all 0.3s ease;
-}
-
-.btn-check:checked + .gender-icon {
-  color: #fff;
-  font-weight: bold;
-  transform: scale(1.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-#genderSoeur:checked + .gender-icon {
-  background-color: #e74c3c;
-  border-color: #e74c3c;
-}
-
-#genderFrere:checked + .gender-icon {
-  background-color: #3498db;
-  border-color: #3498db;
-}
-
-input[type="radio"].btn-check {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.gender-icon.required {
-  border-color: red !important;
-}
-
-.logo-img {
-  max-height: 50px;
-  margin-bottom: 0.5rem;
-}
-
-.brand-text {
-  font-size: 1.8rem;
-  letter-spacing: 1.5px;
-  background: white;
-  padding: 0 0.4em;
-  border-radius: 4px;
-  display: inline-block;
-  margin-bottom: 0.3rem;
-}
-
-.modal-backdrop {
-  position: fixed;
-  top:0; left:0; right:0; bottom:0;
-  background: rgba(0,0,0,0.5);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  z-index: 1040;
-}
-
-.modal-card {
-  background: white;
-  padding: 1.5rem;
-  border-radius: 6px;
-  width: 320px;
-}
-
-.toast-container {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  z-index: 1050;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.toast-notification {
-  background: #0d6efd;
-  color: white;
-  padding: 1rem 1.5rem;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-  animation: slideIn 0.3s ease;
-}
-
-@keyframes slideIn {
-  from { transform: translateY(50px); opacity:0; }
-  to { transform: translateY(0); opacity:1; }
-}
+.gender-icon { width: 3.5rem; height: 3.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; cursor: pointer; border: 2px solid #ccc; transition: all 0.3s ease; }
+.btn-check:checked + .gender-icon { color: #fff; font-weight: bold; transform: scale(1.1); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
+#genderSoeur:checked + .gender-icon { background-color: #e74c3c; border-color: #e74c3c; }
+#genderFrere:checked + .gender-icon { background-color: #3498db; border-color: #3498db; }
+input[type="radio"].btn-check { position: absolute; opacity: 0; pointer-events: none; }
+.gender-icon.required { border-color: red !important; }
+.logo-img { max-height: 50px; margin-bottom: 0.5rem; }
+.brand-text { font-size: 1.8rem; letter-spacing: 1.5px; background: white; padding: 0 0.4em; border-radius: 4px; display: inline-block; margin-bottom: 0.3rem; }
+.modal-backdrop { position: fixed; top:0; left:0; right:0; bottom:0; background: rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index: 1040; }
+.modal-card { background: white; padding: 1.5rem; border-radius: 6px; width: 340px; }
+.toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1050; display: flex; flex-direction: column; gap: 0.5rem; }
+.toast-notification { background: #0d6efd; color: white; padding: 1rem 1.5rem; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); animation: slideIn 0.3s ease; }
+@keyframes slideIn { from { transform: translateY(50px); opacity:0; } to { transform: translateY(0); opacity:1; } }
 </style>

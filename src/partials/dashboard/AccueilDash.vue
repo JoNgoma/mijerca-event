@@ -44,6 +44,57 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const token = localStorage.getItem("token");
 
 // ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
+// ==========================
 // Helpers
 // ==========================
 function normalizeRef(ref) {
@@ -117,28 +168,22 @@ function updateTimeStats(people) {
     if (created >= startOfYear)  { counters.year[key]++; counters.year.total++; }
   });
 
-
   statsTime.value = {
-  ...counters,
-  globalTotal: people.length
-};
-
+    ...counters,
+    globalTotal: people.length
+  };
 }
 
-
 // ==========================
-// Récupération API
+// Récupération API avec pagination
 // ==========================
 async function fetchWidgetData() {
   try {
-    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } });
-    const people = (await res.json()).member || [];
-    const secEst = people.find(s => s.sector === '/api/sectors/1');
-    const secCentre = people.find(s => s.sector === '/api/sectors/2');
-    const secOuest = people.find(s => s.sector === '/api/sectors/3');
-
+    const people = await fetchAllPages(`${API_URL}/people`);
+    console.log('📊 Personnes chargées pour les widgets:', people.length);
+    
     updateWidgetData(people);
-    updateTimeStats(people, secEst, secCentre, secOuest);
+    updateTimeStats(people);
   } catch (err) {
     console.error("Erreur fetchWidgetData:", err);
   }
@@ -146,7 +191,9 @@ async function fetchWidgetData() {
 
 async function fetchSectorId() {
   try {
-    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, { 
+      headers: { Authorization: `Bearer ${token}` } 
+    });
     const data = await res.json();
     const sec = data.member?.find(s => s.name === sector.value);
     sectorRef.value = sec ? normalizeRef(sec['@id'] || sec.id) : null;
@@ -160,8 +207,12 @@ async function fetchSectorId() {
 async function fetchParoissesBySector() {
   if(!sectorRef.value) return [];
   try {
-    const res = await fetch(`${API_URL}/paroisses?sector=${encodeURIComponent(sectorRef.value)}`, { headers: { Authorization: `Bearer ${token}` } });
-    return (await res.json()).member.map(p => ({ id: normalizeRef(p['@id']||p.id), name: p.name||p.fullName||"Paroisse inconnue", raw:p }));
+    const paroisses = await fetchAllPages(`${API_URL}/paroisses?sector=${encodeURIComponent(sectorRef.value)}`);
+    return paroisses.map(p => ({ 
+      id: normalizeRef(p['@id']||p.id), 
+      name: p.name||p.fullName||"Paroisse inconnue", 
+      raw: p 
+    }));
   } catch(err) {
     console.error("Erreur fetchParoissesBySector:", err);
     return [];
@@ -169,34 +220,67 @@ async function fetchParoissesBySector() {
 }
 
 async function fetchDoyennes() {
-  if(!sectorRef.value) { doyennes.value = []; topParoisses.value = []; totalSecteur.value = 0; return; }
+  if(!sectorRef.value) { 
+    doyennes.value = []; 
+    topParoisses.value = []; 
+    totalSecteur.value = 0; 
+    return; 
+  }
+  
   try {
-    const res = await fetch(`${API_URL}/people?sector=${encodeURIComponent(sectorRef.value)}`, { headers: { Authorization: `Bearer ${token}` } });
-    const people = (await res.json()).member || [];
+    const people = await fetchAllPages(`${API_URL}/people?sector=${encodeURIComponent(sectorRef.value)}`);
+    console.log('📊 Personnes du secteur chargées:', people.length);
+    
     const doyMap = {}, paroMap = {};
     people.forEach(p => {
       const doyKey = normalizeRef(p.doyenne)||"";
       const paroKey = normalizeRef(p.paroisse)||"";
-      if(!doyMap[doyKey]) doyMap[doyKey] = {id:doyKey, name:p.doyenneName||"Doyenné inconnu", paroisses:[], totalEffectif:0};
+      if(!doyMap[doyKey]) doyMap[doyKey] = {
+        id: doyKey, 
+        name: p.doyenneName||"Doyenné inconnu", 
+        paroisses: [], 
+        totalEffectif: 0
+      };
       if(paroKey) { 
-        doyMap[doyKey].paroisses.push({id:paroKey,name:p.paroisseName||null,effectif:1});
-        doyMap[doyKey].totalEffectif+=1;
-        if(!paroMap[paroKey]) paroMap[paroKey]={id:paroKey,name:p.paroisseName||null,effectif:0};
-        paroMap[paroKey].effectif+=1;
+        doyMap[doyKey].paroisses.push({
+          id: paroKey,
+          name: p.paroisseName||null,
+          effectif: 1
+        });
+        doyMap[doyKey].totalEffectif += 1;
+        if(!paroMap[paroKey]) paroMap[paroKey] = {
+          id: paroKey,
+          name: p.paroisseName||null,
+          effectif: 0
+        };
+        paroMap[paroKey].effectif += 1;
       }
     });
+    
     totalSecteur.value = people.length;
     const paroissesSecteur = await fetchParoissesBySector();
+    
     paroissesSecteur.forEach(par => {
       const key = par.id;
-      if(!paroMap[key]) paroMap[key]={id:key,name:par.name,effectif:0};
-      else if(!paroMap[key].name) paroMap[key].name=par.name;
+      if(!paroMap[key]) paroMap[key] = {
+        id: key,
+        name: par.name,
+        effectif: 0
+      };
+      else if(!paroMap[key].name) paroMap[key].name = par.name;
     });
+    
     doyennes.value = Object.values(doyMap);
-    topParoisses.value = Object.values(paroMap).sort((a,b)=>b.effectif-a.effectif).slice(0,5);
+    topParoisses.value = Object.values(paroMap).sort((a,b) => b.effectif - a.effectif).slice(0,5);
+    
+    console.log('📊 Doyennés trouvés:', doyennes.value.length);
+    console.log('📊 Top paroisses:', topParoisses.value.length);
+    
   } catch(err) {
     console.error("Erreur fetchDoyennes:", err);
-    doyennes.value = []; topParoisses.value = []; totalSecteur.value = 0;
+    doyennes.value = []; 
+    topParoisses.value = []; 
+    totalSecteur.value = 0;
   }
 }
 
@@ -204,14 +288,28 @@ async function fetchDoyennes() {
 // SSE - live update
 // ==========================
 function initSSE() {
-  try { eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`); } catch{ eventSource.value=null; }
+  try { 
+    eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`); 
+  } catch { 
+    eventSource.value = null; 
+  }
+  
   if(!eventSource.value) return;
+  
   eventSource.value.onmessage = async event => {
     const p = JSON.parse(event.data||"{}");
-    if(sectorRef.value && normalizeRef(p.sector)===sectorRef.value) await fetchDoyennes();
+    if(sectorRef.value && normalizeRef(p.sector) === sectorRef.value) await fetchDoyennes();
     updateWidgetData([p]);
   };
-  eventSource.value.onerror = err => { console.error("SSE error:",err); try{eventSource.value.close();}catch{return} };
+  
+  eventSource.value.onerror = err => { 
+    console.error("SSE error:", err); 
+    try { 
+      eventSource.value.close(); 
+    } catch { 
+      return; 
+    } 
+  };
 }
 
 // ==========================
@@ -258,7 +356,9 @@ onMounted(async () => {
   initSSE();
 });
 
-onUnmounted(() => { if(eventSource.value) eventSource.value.close(); });
+onUnmounted(() => { 
+  if(eventSource.value) eventSource.value.close(); 
+});
 
 // Mettre à jour chart automatiquement
 watch(widgetData, newVal => {
@@ -275,10 +375,7 @@ watch(widgetData, newVal => {
 // ==========================
 // Filtre flow
 // ==========================
-function setFilter(filter){ currentFilter.value=filter; }
-
-
-
+function setFilter(filter){ currentFilter.value = filter; }
 </script>
 
 <template>
@@ -467,5 +564,4 @@ function setFilter(filter){ currentFilter.value=filter; }
   font-size: 1.2rem;
   color: #333;
 }
-
 </style>

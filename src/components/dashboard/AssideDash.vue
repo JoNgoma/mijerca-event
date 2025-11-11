@@ -220,7 +220,7 @@ watch(idCamp, async (newVal, oldVal) => {
                             'services', 'manager', 'media',
                             'rap-day', 'paie',
                             'log-affect', 'kin-dortoir', 'log-carrefour',
-                            'info-badge-editor'
+                            'info-badge-editor', 'info-badge-preview', 'info-a4-generator', 'info-person-selector'
                           ].includes(route.name) &&
                                           route.params.id_campBiblique === camp.id
                         }">
@@ -284,9 +284,9 @@ watch(idCamp, async (newVal, oldVal) => {
                         '2025') ||
                        hasRole('ROLE_ADMIN')">
                       <router-link
-                        :to="{ name: 'info-badge-editor', params: { id_campBiblique: camp.id, serviceType: 'badge-editor' } }"
+                        :to="{ name: 'info-person-selector', params: { id_campBiblique: camp.id, serviceType: 'person-selector' } }"
                         :class="{
-                          'text-primary': ['info-badge-editor'].includes(route.name) &&
+                          'text-primary': ['info-badge-editor', 'info-badge-preview', 'info-a4-generator', 'info-person-selector' ].includes(route.name) &&
                                           route.params.id_campBiblique === camp.id
                         }"
                       >

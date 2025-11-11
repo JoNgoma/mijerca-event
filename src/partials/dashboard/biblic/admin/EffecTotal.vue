@@ -13,6 +13,55 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 // === Récupérer l'id du camp courant depuis l'URL ===
 const campId = computed(() => route.params.id_campBiblique || null)
+const campName = ref('...')
+
+async function fetchCampName() {
+  if (!campId.value) return
+  try {
+    const res = await axios.get(`${API}/camp_bibliques/${campId.value}`)
+    campName.value = res.data.name || 'Activité inconnue'
+  } catch (err) {
+    console.error('Erreur récupération camp:', err)
+    campName.value = 'Camp introuvable'
+  }
+}
+
+// === PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
 
 // === Utils ===
 const extractIdFromUrl = (url) => {
@@ -42,8 +91,8 @@ async function fetchBaseData() {
     loading.value = true
 
     const [usersRes, peopleRes] = await Promise.all([
-      axios.get(`${API}/users`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || [])
+      fetchAllPages(`${API}/users`),
+      fetchAllPages(`${API}/people`)
     ])
 
     allUsers.value = usersRes
@@ -67,14 +116,15 @@ async function computeServiceStats() {
     let soeurs = 0
 
     try {
-      // Charger tous les enregistrements du service
-      const { data } = await axios.get(`${API}/${service.key}`)
-      const allRecords = data?.member || []
+      // Charger tous les enregistrements du service avec pagination
+      const allRecords = await fetchAllPages(`${API}/${service.key}`)
 
       // Ne garder que ceux du camp courant
       const campRecords = allRecords.filter(
         s => s.campBiblic === `/api/camp_bibliques/${campId.value}`
       )
+
+      console.log(`📊 ${service.name}: ${campRecords.length} enregistrements pour ce camp`)
 
       // Extraire les users liés à ces services
       const serviceUserIds = campRecords
@@ -106,49 +156,113 @@ async function computeServiceStats() {
         name: service.name,
         freres,
         soeurs,
-        total: freres + soeurs
+        total: freres + soeurs,
+        recordsCount: campRecords.length
       })
     } catch (err) {
       console.warn(`Erreur pour le service ${service.name}`, err)
+      // Ajouter quand même le service avec des valeurs à 0 en cas d'erreur
+      results.push({
+        id: service.id,
+        name: service.name,
+        freres: 0,
+        soeurs: 0,
+        total: 0,
+        recordsCount: 0,
+        error: true
+      })
     }
   }
 
   viewServices.value = results
+  console.log('🎯 Statistiques calculées:', results)
+}
+
+// === Actualisation manuelle ===
+async function handleRefresh() {
+  loading.value = true
+  try {
+    await fetchBaseData()
+    toast.success('Données actualisées avec succès')
+  } catch (err) {
+    toast.error('Erreur lors de l\'actualisation')
+  } finally {
+    loading.value = false
+  }
 }
 
 // === Initialisation ===
-onMounted(fetchBaseData)
+onMounted(async () => {
+  await fetchCampName()
+  await fetchBaseData()
+})
 </script>
 
 <template>
   <div class="tab-pane">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="mb-0">Statistiques des services</h5>
+      <button 
+        @click="handleRefresh" 
+        class="btn btn-outline-primary btn-sm"
+        :disabled="loading"
+        title="Actualiser les données"
+      >
+        <i class="fas fa-sync-alt" :class="{ 'fa-spin': loading }"></i>
+        {{ loading ? 'Actualisation...' : 'Actualiser' }}
+      </button>
+    </div>
+
     <div v-if="loading" class="text-center my-5">
-      <span class="spinner-border"></span> Chargement des données...
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden"></span>
+      </div>
+      <p class="mt-2">Chargement des données...</p>
     </div>
 
     <div v-else>
       <div class="card shadow-sm">
+        <div class="card-header bg-light">
+          <small class="text-muted"> {{ campName  }}</small>
+        </div>
         <div class="table-container">
-          <table class="table table-hover align-middle">
+          <table class="table table-hover align-middle mb-0">
             <thead class="table-light sticky-header">
               <tr>
                 <th>Service</th>
                 <th>Soeurs</th>
                 <th>Frères</th>
                 <th>Total</th>
+                <!-- <th class="text-muted small">Enregistrements</th> -->
               </tr>
             </thead>
 
             <tbody>
-              <tr v-for="s in viewServices" :key="s.id">
-                <td>{{ s.name }}</td>
-                <td>{{ s.soeurs }}</td>
-                <td>{{ s.freres }}</td>
-                <td>{{ s.total }}</td>
+              <tr 
+                v-for="s in viewServices" 
+                :key="s.id"
+                :class="{ 'table-warning': s.error }"
+              >
+                <td>
+                  {{ s.name }}
+                  <span v-if="s.error" class="badge bg-danger ms-1" title="Erreur lors du calcul">!</span>
+                </td>
+                <td>
+                  <span class="badge bg-info">{{ s.soeurs }}</span>
+                </td>
+                <td>
+                  <span class="badge bg-primary">{{ s.freres }}</span>
+                </td>
+                <td>
+                  <strong>{{ s.total }}</strong>
+                </td>
+                <!-- <td class="text-muted small">
+                  {{ s.recordsCount }}
+                </td> -->
               </tr>
 
               <tr v-if="!viewServices.length">
-                <td colspan="4" class="text-center text-muted">
+                <td colspan="5" class="text-center text-muted py-4">
                   Aucun service trouvé pour ce camp
                 </td>
               </tr>
@@ -156,13 +270,58 @@ onMounted(fetchBaseData)
 
             <tfoot class="table-light fw-semibold tfoot">
               <tr>
-                <td>Total</td>
-                <td>{{ viewServices.reduce((a, s) => a + s.soeurs, 0) }} Soeurs</td>
-                <td>{{ viewServices.reduce((a, s) => a + s.freres, 0) }} Frères</td>
-                <td>{{ viewServices.reduce((a, s) => a + s.total, 0) }}</td>
+                <td>Total général</td>
+                <td>
+                  <span class="badge bg-info">
+                    {{ viewServices.reduce((a, s) => a + s.soeurs, 0) }} Soeurs
+                  </span>
+                </td>
+                <td>
+                  <span class="badge bg-primary">
+                    {{ viewServices.reduce((a, s) => a + s.freres, 0) }} Frères
+                  </span>
+                </td>
+                <td>
+                  <strong class="text-success">
+                    {{ viewServices.reduce((a, s) => a + s.total, 0) }}
+                  </strong>
+                </td>
+                <!-- <td class="text-muted small">
+                  {{ viewServices.reduce((a, s) => a + s.recordsCount, 0) }}
+                </td> -->
               </tr>
             </tfoot>
           </table>
+        </div>
+      </div>
+
+      <!-- Résumé -->
+      <div class="mt-3">
+        <div class="row text-center">
+          <div class="col">
+            <div class="card bg-light">
+              <div class="card-body py-2">
+                <small class="text-muted">Services analysés</small>
+                <div class="h5 mb-0">{{ viewServices.length }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card bg-light">
+              <div class="card-body py-2">
+                <small class="text-muted">Personnes totales</small>
+                <div class="h5 mb-0 text-success">{{ allPeople.length }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col">
+            <div class="card bg-light">
+              <div class="card-body py-2">
+                <small class="text-muted">Responsable en ordre</small>
+                <div class="h5 mb-0 text-primary">{{ allUsers.length }}</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -182,10 +341,27 @@ onMounted(fetchBaseData)
   background: #edeff0;
   z-index: 2;
 }
-.tfoot{
-    background: #edeff0;
+.tfoot {
+  position: sticky;
+  bottom: 0;
+  background: #edeff0;
+  z-index: 2;
 }
 .fw-semibold {
   font-weight: 600;
+}
+
+/* Animation de l'icône d'actualisation */
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.badge {
+  font-size: 0.75em;
 }
 </style>

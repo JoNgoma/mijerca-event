@@ -62,7 +62,7 @@
               Pas de compte ?
               <router-link :to="{ name: 'home' }">Revenir plus tard</router-link>
             </p>
-            <router-link to="/forget-pwd" class="link">Mot de passe oublié ?</router-link>
+            <router-link to="/forgot-password" class="link">Mot de passe oublié ?</router-link>
           </div>
 
           <!-- Error -->

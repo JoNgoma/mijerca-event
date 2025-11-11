@@ -59,7 +59,9 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useToast } from 'vue-toastification'
 
+const toast = useToast()
 const inputUsername = ref('');
 const inputEmail = ref('');
 const inputNumber = ref('');
@@ -78,6 +80,7 @@ function handleLogup() {
   console.log("Numéro de téléphone", inputNumber.value);
   console.log("Mot de passe:", inputPassword.value);
   } catch (err) {
+      toast.error('Connexion échouée. Vérifiez vos identifiants.')
       error.value = 'Connexion échouée. Vérifiez vos identifiants.'
       console.error(err)
     } 

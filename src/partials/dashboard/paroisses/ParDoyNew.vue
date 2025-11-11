@@ -162,28 +162,35 @@ async function saveParoisse(e) {
 
   try {
     const payload = {
-      name: paroisseName.value,
+      name: `Paroisse ${paroisseName.value}`,
       doyenne: `/api/doyennes/${selectedDoyenne.value}`,
       sector: `/api/sectors/${sectorId.value}`,
     }
+    if(paroisseName.value)
+    {
+      const res = await fetch(`${API_URL}/paroisses`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/ld+json' },
+        body: JSON.stringify(payload),
+      })
 
-    const res = await fetch(`${API_URL}/paroisses`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/ld+json' },
-      body: JSON.stringify(payload),
-    })
-
-    if (res.ok) {
-      paroisseName.value = ''
-      selectedDoyenne.value = ''
-      toast.success('✅ Paroisse enregistrée avec succès !')
-    } else {
-      const data = await res.json()
-      error.value = data.violations
-        ? data.violations.map((v) => ` ${v.message}`).join(', ')
-        : data.message || 'Erreur création paroisse'
-      toast.error(`${error.value}`)
+      if (res.ok) {
+        paroisseName.value = ''
+        selectedDoyenne.value = ''
+        toast.success('✅ Paroisse enregistrée avec succès !')
+      } else {
+        const data = await res.json()
+        error.value = data.violations
+          ? data.violations.map((v) => ` ${v.message}`).join(', ')
+          : data.message || 'Erreur création paroisse'
+        toast.error(`${error.value}`)
+      }
     }
+    else{
+        toast.error(`Saisir le nom de la paroisse`)
+
+    }
+
   } catch (err) {
     console.error('Erreur création paroisse', err)
     toast.error('Erreur création paroisse')

@@ -22,20 +22,18 @@ const currentPage = ref(1);
 
 // Charger les données
 const loadData = () => {
-  // Charger les personnes sélectionnées
-  const savedPersons = localStorage.getItem("selectedPersonsForBadges");
+  // Charger les personnes sélectionnées depuis la page précédente
+  const savedPersons = sessionStorage.getItem("selectedPersonsForBadges");
   if (savedPersons) {
     selectedPersons.value = JSON.parse(savedPersons);
   }
-  
-  // Charger la configuration du badge
+
+  // Charger la configuration du badge (comme avant)
   const savedLayout = localStorage.getItem("badgeLayout");
   if (savedLayout) {
     try {
       const layoutData = JSON.parse(savedLayout);
-      if (layoutData.fields) {
-        layout.value = layoutData.fields;
-      }
+      if (layoutData.fields) layout.value = layoutData.fields;
     } catch (e) {
       console.error("Erreur lors du chargement de la configuration:", e);
     }
@@ -79,7 +77,8 @@ const printAllPages = () => {
   printWindow.document.write(printContent);
   printWindow.document.close();
   setTimeout(() => {
-  printWindow.print();
+    printWindow.print();
+    sessionStorage.removeItem("selectedPersonsForBadges");
   }, 500);
   
 };

@@ -27,6 +27,94 @@ const nameService = ref(currentService.value.name)
 let eventSource = null
 
 // ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
+// Version axios pour la pagination
+async function fetchAllPagesAxios(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
+// ==========================
 // Déterminer le secteur actif
 // ==========================
 const sectorName = computed(() => {
@@ -63,23 +151,32 @@ async function fetchCurrentUser() {
 }
 
 // ==========================
-// Récupérer toutes les paroisses et doyennes
+// Récupérer toutes les paroisses et doyennes (avec pagination)
 // ==========================
 async function fetchAllParoisses() {
-  try { allParoisses.value = (await axios.get(`${API_URL}/paroisses`, { headers: { Authorization: `Bearer ${token}` } })).data.member || []; }
-  catch (err) { console.error("❌ Erreur récupération toutes paroisses", err); }
+  try { 
+    allParoisses.value = await fetchAllPagesAxios(`${API_URL}/paroisses`);
+    console.log('📊 Toutes les paroisses chargées:', allParoisses.value.length);
+  } catch (err) { 
+    console.error("❌ Erreur récupération toutes paroisses", err); 
+  }
 }
+
 async function fetchAllDoyennes() {
-  try { allDoyennes.value = (await axios.get(`${API_URL}/doyennes`, { headers: { Authorization: `Bearer ${token}` } })).data.member || []; }
-  catch (err) { console.error("❌ Erreur récupération toutes doyennes", err); }
+  try { 
+    allDoyennes.value = await fetchAllPagesAxios(`${API_URL}/doyennes`);
+    console.log('📊 Tous les doyennes chargés:', allDoyennes.value.length);
+  } catch (err) { 
+    console.error("❌ Erreur récupération toutes doyennes", err); 
+  }
 }
 
 // ==========================
-// Fetch doyennes, paroisses, diocèses, personnes
+// Fetch doyennes, paroisses, diocèses, personnes (avec pagination)
 // ==========================
 async function fetchSectorId() {
   try {
-  isLoading.value = true
+    isLoading.value = true
     const res = await axios.get(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
@@ -103,57 +200,67 @@ async function fetchSectorId() {
 }
 
 // ==========================
-// Fetch doyennes (noyau décanal)
+// Fetch doyennes (noyau décanal) avec pagination
 async function fetchDoyennes() {
   try {
-    doyennes.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.doyenne === currentPerson.value.doyenne && p.isDecanal) || [];
-  } catch (err) { console.error("❌ Erreur récupération doyennes", err); }
+    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
+    doyennes.value = allPeopleData.filter(p => p.doyenne === currentPerson.value?.doyenne && p.isDecanal) || [];
+    console.log('📊 Noyaux décanaux chargés:', doyennes.value.length);
+  } catch (err) { 
+    console.error("❌ Erreur récupération doyennes", err); 
+  }
 }
 
 // ==========================
-// Fetch paroisses (noyau paroissial)
+// Fetch paroisses (noyau paroissial) avec pagination
 async function fetchParoisses() {
   try {
-    paroisses.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.paroisse === currentPerson.value.paroisse && p.isNoyau) || [];
-  } catch (err) { console.error("❌ Erreur récupération paroisses", err); }
+    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
+    paroisses.value = allPeopleData.filter(p => p.paroisse === currentPerson.value?.paroisse && p.isNoyau) || [];
+    console.log('📊 Noyaux paroissiaux chargés:', paroisses.value.length);
+  } catch (err) { 
+    console.error("❌ Erreur récupération paroisses", err); 
+  }
 }
 
 // ==========================
-// Fetch diocèses (isDioces=true)
+// Fetch diocèses (isDioces=true) avec pagination
 async function fetchDioceses() {
   try {
-    dioceses.value = (await axios.get(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })).data.member?.filter(p => p.isDicoces) || [];
-  } catch (err) { console.error("❌ Erreur récupération diocèses", err); }
+    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
+    dioceses.value = allPeopleData.filter(p => p.isDicoces) || [];
+    console.log('📊 Noyaux diocésains chargés:', dioceses.value.length);
+  } catch (err) { 
+    console.error("❌ Erreur récupération diocèses", err); 
+  }
 }
 
 // ==========================
-// Fetch toutes les personnes
+// Fetch toutes les personnes avec pagination
 // ==========================
 async function fetchPeople() {
   try {
-    const res = await axios.get(`${API_URL}/people`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const people = res.data.member || [];
+    const people = await fetchAllPagesAxios(`${API_URL}/people`);
+    console.log('📊 Toutes les personnes chargées:', people.length);
 
     // Filtrage de base
     switch (LocalisationService.value) {
       case "jeune":
         // Tous les jeunes de la même paroisse
-        allPeople.value = people.filter(p => p.paroisse === currentPerson.value.paroisse);
+        allPeople.value = people.filter(p => p.paroisse === currentPerson.value?.paroisse);
         break;
 
       case "paroissial":
         // Noyau paroissial avec même paroisse
         allPeople.value = people.filter(
-          p => p.paroisse === currentPerson.value.paroisse && p.isNoyau
+          p => p.paroisse === currentPerson.value?.paroisse && p.isNoyau
         );
         break;
 
       case "decanal":
         // Noyau décanal avec même doyenné
         allPeople.value = people.filter(
-          p => p.doyenne === currentPerson.value.doyenne && p.isDecanal
+          p => p.doyenne === currentPerson.value?.doyenne && p.isDecanal
         );
         break;
 
@@ -165,6 +272,8 @@ async function fetchPeople() {
       default:
         allPeople.value = [];
     }
+
+    console.log('📊 Personnes filtrées pour affichage:', allPeople.value.length);
   } catch (err) {
     console.error("❌ Erreur récupération personnes", err);
   }
@@ -182,6 +291,18 @@ const jeunes = computed(() => {
     tel: p.phoneNumber
   }));
 });
+
+// ==========================
+// Actualisation manuelle
+// ==========================
+async function handleRefresh() {
+  isLoading.value = true
+  try {
+    await fetchSectorId();
+  } finally {
+    isLoading.value = false
+  }
+}
 
 // ==========================
 // Montage SSE
@@ -232,11 +353,20 @@ onUnmounted(() => {
       <div class="row">
         <div class="col-sm-12">
           <div class="card card-table">
-            <div class="card-header">
-              Statistique - {{ nameService }}
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>Statistique - {{ nameService }}</span>
+              <button 
+                @click="handleRefresh" 
+                class="btn btn-outline-primary btn-sm"
+                :disabled="isLoading"
+                title="Actualiser les données"
+              >
+                <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
+                {{ isLoading ? 'Actualisation...' : 'Actualiser' }}
+              </button>
             </div>
             <div class="card-body">
-              <div style="max-height: 44.9rem; overflow-y: auto;">
+              <div class="table-container">
                 <div v-if="isLoading" class="text-center my-5">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden"></span>
@@ -265,6 +395,9 @@ onUnmounted(() => {
                       <td>{{ j.paroisse }}</td>
                       <td>{{ j.phoneNumber }}</td>
                     </tr>
+                    <tr v-if="jeunes.length === 0 && !isLoading">
+                      <td colspan="4" class="text-center text-muted">Aucune donnée disponible</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -277,15 +410,21 @@ onUnmounted(() => {
 </template>
 
 <style>
-#table1 thead th  {
+.table-container {
+  max-height: 44.9rem;
+  overflow-y: auto;
+  position: relative;
+}
+
+#table1 thead th {
   position: sticky;
   top: 0;
   z-index: 2;
   background: #fff;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
 }
-/* Couleurs personnalisées pour les lignes */
 
+/* Couleurs personnalisées pour les lignes */
 .bg-noyau {
   background-color: #d7ddd7 !important; /* vert très clair pour isNoyau */
   color: black !important; /* texte noir */
@@ -295,5 +434,15 @@ onUnmounted(() => {
 #table1 tbody tr:hover {
   background-color: rgb(239, 249, 237) !important;
   color: black !important;
+}
+
+/* Animation de l'icône d'actualisation */
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

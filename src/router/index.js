@@ -47,6 +47,8 @@ import PageError404 from '@/partials/dashboard/PageError404.vue'
 import UpdateInfo from '@/partials/home/UpdateInfo.vue'
 import SignJeune from '@/partials/home/SignJeune.vue'
 import HomeEvents from '@/partials/home/HomeEvents.vue'
+import ForgotPasswordPage from '../views/auth/ForgotPasswordPage.vue'
+import ResetPasswordPage from '../views/auth/ResetPasswordPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -61,6 +63,8 @@ const router = createRouter({
         { path: 'sign-up', name: 'signUp', component: SignJeune },
         { path: 'update-info', name: 'updateInfo', component: UpdateInfo },
         { path: 'login', name: 'login', component: LoginPage },
+        { path: 'forgot-password', name: 'forget-pwd', component: ForgotPasswordPage },
+        { path: 'reset-password/:token', name: 'reset-pwd', component: ResetPasswordPage },
       ],
     },
 
@@ -110,10 +114,10 @@ const router = createRouter({
         { path: ':id_campBiblique/logistique/:serviceType', name: 'log-affect', component: TabAffect },
 
         // Informatique
-        { path: ':id_campBiblique/informatique/badge-editor/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
-        { path: ':id_campBiblique/informatique/badge-preview/:serviceType', name: 'info-badge-preview', component: BadgePreview },
-        { path: ':id_campBiblique/informatique/person-selector/:serviceType', name: 'info-person-selector', component: PersonSelector },
-        { path: ':id_campBiblique/informatique/a4-generator/:serviceType', name: 'info-a4-generator', component: A4Generator },
+        { path: ':id_campBiblique/informatique/:serviceType', name: 'info-badge-editor', component: BadgeEditor },
+        { path: ':id_campBiblique/informatique/:serviceType', name: 'info-badge-preview', component: BadgePreview },
+        { path: ':id_campBiblique/informatique/:serviceType', name: 'info-person-selector', component: PersonSelector },
+        { path: ':id_campBiblique/informatique/:serviceType', name: 'info-a4-generator', component: A4Generator },
 
         // Secteur / Paroisses
         { path: 'secteur/:serviceType', name: 'sec-kin', component: DoyStat },

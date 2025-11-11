@@ -61,11 +61,14 @@
                   <input
                     id="inputNumber"
                     class="form-control"
+                    :class="{ 'is-invalid': phoneError }"
                     type="text"
                     placeholder="0899 999 999"
                     v-model="phoneNumber"
                     @input="formatPhoneNumberDisplay"
+                    @blur="validatePhoneNumber"
                   />
+                  <div v-if="phoneError" class="invalid-feedback">{{ phoneError }}</div>
                 </div>
 
                 <!-- Nom complet -->
@@ -74,10 +77,28 @@
                   <input
                     id="inputNames"
                     class="form-control"
+                    :class="{ 'is-invalid': nameError }"
                     type="text"
                     placeholder="Joe Doe"
                     v-model="fullName"
+                    @blur="validateFullName"
                   />
+                  <div v-if="nameError" class="invalid-feedback">{{ nameError }}</div>
+                </div>
+
+                <!-- Email (seulement si LocalisationService n'est pas "jeunes") -->
+                <div class="form-group" v-if="showEmailField">
+                  <label for="inputEmail">Adresse email</label>
+                  <input
+                    id="inputEmail"
+                    class="form-control"
+                    :class="{ 'is-invalid': emailError }"
+                    type="email"
+                    placeholder="joe.doe@example.com"
+                    v-model="email"
+                    @blur="validateEmail"
+                  />
+                  <div v-if="emailError" class="invalid-feedback">{{ emailError }}</div>
                 </div>
 
                 <div v-if="error" class="text-danger mt-2">{{ error }}</div>
@@ -134,7 +155,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted } from 'vue'
+import { ref, onMounted, watch, onUnmounted, computed } from 'vue'
 import { useRouter, onBeforeRouteUpdate } from 'vue-router'
 import axios from 'axios'
 import { useServiceContext } from '@/composables/useServiceContext'
@@ -163,9 +184,24 @@ else {isDioces = false; isDecanal = false; isNoyau = false }
 const gender = ref("Soeur")
 const phoneNumber = ref("")
 const fullName = ref("")
+const email = ref("")
 const sector = ref("")
 const doyenne = ref("")
 const paroisse = ref("")
+
+// =========================
+// Validation des champs
+// =========================
+const phoneError = ref("")
+const nameError = ref("")
+const emailError = ref("")
+
+// =========================
+// Computed properties
+// =========================
+const showEmailField = computed(() => {
+  return nameService.value !== "Jeunes"
+})
 
 // =========================
 // Listes et filtres
@@ -189,6 +225,90 @@ let eventSource = null
 const newPeople = ref([]) // stocke les nouvelles personnes reçues via SSE
 
 // =========================
+// Validation du numéro de téléphone
+// =========================
+function validatePhoneNumber() {
+  const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
+  
+  if (!cleanedNumber) {
+    phoneError.value = "Le numéro de téléphone est requis"
+    return false
+  }
+
+  if (cleanedNumber.length < 10) {
+    phoneError.value = "Le numéro doit contenir au moins 10 chiffres"
+    return false
+  }
+
+  // Vérification des préfixes autorisés
+  const validPrefixes = ['081', '082', '083', '084', '085', '089', '09']
+  const hasValidPrefix = validPrefixes.some(prefix => cleanedNumber.startsWith(prefix))
+  
+  if (!hasValidPrefix) {
+    phoneError.value = "Le numéro doit commencer par : 081, 082, 083, 084, 085, 089 ou 09"
+    return false
+  }
+
+  if (!/^\d+$/.test(cleanedNumber)) {
+    phoneError.value = "Le numéro ne doit contenir que des chiffres"
+    return false
+  }
+
+  phoneError.value = ""
+  return true
+}
+
+// =========================
+// Validation du nom complet
+// =========================
+function validateFullName() {
+  const name = fullName.value.trim()
+  
+  if (!name) {
+    nameError.value = "Le nom complet est requis"
+    return false
+  }
+
+  // Autorise les lettres, espaces et tirets uniquement entre deux mots
+  const nameRegex = /^[A-Za-zÀ-ÿ]+([-'][A-Za-zÀ-ÿ]+)*([\s][A-Za-zÀ-ÿ]+([-'][A-Za-zÀ-ÿ]+)*)*$/
+  
+  if (!nameRegex.test(name)) {
+    nameError.value = "Le nom ne peut contenir que des lettres, espaces et tirets (uniquement entre deux mots)"
+    return false
+  }
+
+  nameError.value = ""
+  return true
+}
+
+// =========================
+// Validation de l'email
+// =========================
+function validateEmail() {
+  if (!showEmailField.value) {
+    emailError.value = ""
+    return true
+  }
+
+  const emailValue = email.value.trim()
+  
+  if (!emailValue) {
+    emailError.value = "L'adresse email est requise"
+    return false
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  
+  if (!emailRegex.test(emailValue)) {
+    emailError.value = "Veuillez saisir une adresse email valide"
+    return false
+  }
+
+  emailError.value = ""
+  return true
+}
+
+// =========================
 // Formatage numéro
 // =========================
 function formatPhoneNumberDisplay() {
@@ -196,6 +316,9 @@ function formatPhoneNumberDisplay() {
   if (digits.length > 4 && digits.length <= 7) phoneNumber.value = digits.slice(0,4)+' '+digits.slice(4)
   else if (digits.length > 7) phoneNumber.value = digits.slice(0,4)+' '+digits.slice(4,7)+' '+digits.slice(7)
   else phoneNumber.value = digits
+  
+  // Effacer l'erreur pendant la saisie
+  phoneError.value = ""
 }
 
 // =========================
@@ -283,12 +406,16 @@ function resetForm() {
   gender.value = "Soeur"
   phoneNumber.value = ""
   fullName.value = ""
+  email.value = ""
   sector.value = ""
   doyenne.value = ""
   paroisse.value = ""
   filteredDoyennes.value = []
   filteredParoisses.value = []
   error.value = ""
+  phoneError.value = ""
+  nameError.value = ""
+  emailError.value = ""
   isLoading.value = false
 }
 
@@ -298,21 +425,22 @@ function resetForm() {
 async function handleSubmit(e) {
   e.preventDefault()
   error.value = ""
+  
+  // Validation de tous les champs
+  const isPhoneValid = validatePhoneNumber()
+  const isNameValid = validateFullName()
+  const isEmailValid = showEmailField.value ? validateEmail() : true
+
+  if (!isPhoneValid || !isNameValid || !isEmailValid) {
+    error.value = "Veuillez corriger les erreurs dans le formulaire"
+    return
+  }
+
   isLoading.value = true
 
   try {
     const cleanedNumber = phoneNumber.value.replace(/\s+/g, '')
-    if (!/^\d{10}$/.test(cleanedNumber)) { 
-      error.value = "Numéro de téléphone invalide"; 
-      isLoading.value = false; 
-      return 
-    }
-    if (!fullName.value.trim()) { 
-      error.value = "Veuillez saisir le nom complet"; 
-      isLoading.value = false; 
-      return 
-    }
-
+    
     const sectorObj = sectors.value.find(s => s.name === sector.value)
     const doyenneObj = doyennes.value.find(d => d.name === doyenne.value)
     const paroisseObj = paroisses.value.find(p => p.name === paroisse.value)
@@ -336,11 +464,13 @@ async function handleSubmit(e) {
           "Authorization": `Bearer ${localStorage.getItem("token")}`
        }
     })
-    const sectorUrl =sectorObj ? sectorObj["@id"] : ""
-    let roleSector ='' 
-    if (sectorUrl=== '/api/sectors/1') roleSector = 'ROLE_EST' 
-    else if (sectorUrl=== '/api/sectors/2') roleSector = 'ROLE_CENTRE'
-    else if (sectorUrl=== '/api/sectors/3') roleSector = 'ROLE_OUEST'
+    
+    const sectorUrl = sectorObj ? sectorObj["@id"] : ""
+    let roleSector = '' 
+    if (sectorUrl === '/api/sectors/1') roleSector = 'ROLE_EST' 
+    else if (sectorUrl === '/api/sectors/2') roleSector = 'ROLE_CENTRE'
+    else if (sectorUrl === '/api/sectors/3') roleSector = 'ROLE_OUEST'
+    
     if (isDioces || isDecanal || isNoyau) {
       let rolesArray = []
       if (isDioces) rolesArray = [roleSector, "ROLE_DIOCESE","ROLE_DECANAL","ROLE_NOYAU"]
@@ -349,13 +479,17 @@ async function handleSubmit(e) {
 
       const userPayload = {
         username: cleanedNumber,
+        email: showEmailField.value ? email.value.trim() : null,
         roles: rolesArray,
         password: "mijerca2025",
         person: personRes.data["@id"] || personRes.data.id
       }
 
       await axios.post(`${API_URL}/users`, userPayload, {
-        headers: { "Content-Type": "application/ld+json" }
+        headers: { 
+          "Content-Type": "application/ld+json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        }
       })
 
       toast.success("Responsable ajouté avec succes!\nMot de passe initial : mijerca2025")
@@ -385,5 +519,3 @@ async function handleSubmit(e) {
 }
 
 </script>
-
-

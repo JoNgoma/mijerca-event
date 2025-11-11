@@ -52,6 +52,60 @@ function logout() {
   window.location.href = "/login"; // recharge la page
 }
 
+// ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    const token = localStorage.getItem("token");
+    
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/ld+json",
+          ...options.headers
+        },
+        ...options
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
 // 🔹 Charger infos user connecté
 async function fetchUserData() {
   try {
@@ -61,45 +115,38 @@ async function fetchUserData() {
     const username = localStorage.getItem("userPhone")
     if (!username) return router.push({ name: 'login' })
 
-    // Récupérer l'utilisateur courant
-    const res = await fetch(`${API_URL}/users?username=${encodeURIComponent(username)}`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/ld+json",
-      },
-    })
-    const data = await res.json()
-    if (res.status === 401) {
-      localStorage.removeItem("token"); // on vide le token
-      window.location.href = "/login";  // redirection vers login
-      return;
-    }
-    const user = data.member?.find(u => u.username === username)
+    // Récupérer l'utilisateur courant avec pagination
+    const usersData = await fetchAllPages(`${API_URL}/users?username=${encodeURIComponent(username)}`)
+    const user = usersData.find(u => u.username === username)
+    
     if (user) {
       userData.value = user
 
-      // Récupérer toutes les personnes
-      const personRes = await fetch(`${API_URL}/people`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/ld+json",
-        },
-      })
-      const personDataJson = await personRes.json()
+      // Récupérer toutes les personnes avec pagination
+      const allPeople = await fetchAllPages(`${API_URL}/people`)
 
       // Filtrer pour trouver la personne avec le phoneNumber correspondant au username
-      const matchedPerson = personDataJson.member?.find(
+      const matchedPerson = allPeople.find(
         p => p.phoneNumber === user.username
       )
 
       if (matchedPerson) {
         personData.value = matchedPerson
+        console.log('👤 Utilisateur connecté:', matchedPerson.fullName)
       } else {
+        console.warn('⚠️ Aucune personne trouvée avec ce numéro de téléphone')
         personData.value = null
       }
+    } else {
+      console.warn('⚠️ Utilisateur non trouvé')
     }
   } catch (err) {
     console.error("Erreur user connecté", err)
+    // En cas d'erreur 401, déconnecter l'utilisateur
+    if (err.message.includes('401')) {
+      localStorage.removeItem("token");
+      window.location.href = "/login";
+    }
   }
 }
 

@@ -127,6 +127,11 @@ const serviceTypes = {
     icon: 'mdi mdi-currency-usd',
     description: 'Visualisation badge'
   },
+  'person-selector': {
+    name: 'Liste Badge',
+    icon: 'mdi mdi-currency-usd',
+    description: "Personnes selectionnée pour l'impression des badges"
+  },
   'badge-editor': {
     name: 'Editeur badge',
     icon: 'mdi mdi-currency-usd',

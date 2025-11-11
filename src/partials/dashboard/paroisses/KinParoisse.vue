@@ -28,6 +28,89 @@ const doyennes = ref([])
 const sectorId = ref(null)
 
 // ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
+// Version alternative pour les endpoints sans paramètres
+async function fetchAllWithPagination(baseUrl, pageParam = 'page', itemsPerPage = 100) {
+  let allItems = [];
+  let page = 1;
+  let totalItems = 0;
+  
+  do {
+    try {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}${pageParam}=${page}&itemsPerPage=${itemsPerPage}`;
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        totalItems = data.member.length;
+        page++;
+      } else {
+        break;
+      }
+    } catch (error) {
+      console.error(`Erreur page ${page}:`, error);
+      break;
+    }
+  } while (totalItems === itemsPerPage);
+  
+  return allItems;
+}
+
+// ==========================
 // SSE
 // ==========================
 let eventSource = null
@@ -57,11 +140,14 @@ async function fetchSectorId() {
 async function fetchPeople() {
   isLoading.value = true
   try {
-    const res = await fetch(`${API_URL}/people`, { headers: { Authorization: `Bearer ${token}` } })
-    const data = await res.json()
-    jeunes.value = data.member
-      ?.filter(s => s.sector === `/api/sectors/${sectorId.value}`)
+    // Utilisation de la pagination pour récupérer toutes les personnes
+    const peopleData = await fetchAllPages(`${API_URL}/people`);
+    
+    jeunes.value = peopleData
+      .filter(s => s.sector === `/api/sectors/${sectorId.value}`)
       .map(formatPerson) || []
+    
+    console.log('📊 Personnes chargées:', jeunes.value.length);
   } catch (err) {
     console.error('Erreur récupération des jeunes', err)
   } finally {
@@ -69,14 +155,12 @@ async function fetchPeople() {
   }
 }
 
-
 async function fetchDoyennes() {
   try {
-    const res = await fetch(`${API_URL}/doyennes`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    doyennes.value = data.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
+    // Utilisation de la pagination pour récupérer tous les doyennés
+    const doyennesData = await fetchAllPages(`${API_URL}/doyennes`);
+    doyennes.value = doyennesData.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
+    console.log('📊 Doyennés chargés:', doyennes.value.length);
   } catch (err) {
     console.error("Erreur récupération doyennés", err);
   }
@@ -84,11 +168,10 @@ async function fetchDoyennes() {
 
 async function fetchParoisses() {
   try {
-    const res = await fetch(`${API_URL}/paroisses`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const data = await res.json();
-    paroisses.value = data.member?.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
+    // Utilisation de la pagination pour récupérer toutes les paroisses
+    const paroissesData = await fetchAllPages(`${API_URL}/paroisses`);
+    paroisses.value = paroissesData.filter(s => s.sector === `/api/sectors/${sectorId.value}`) || [];
+    console.log('📊 Paroisses chargées:', paroisses.value.length);
   } catch (err) {
     console.error("Erreur récupération paroisses", err);
   }
@@ -116,24 +199,28 @@ function formatPerson(p) {
   }
 }
 
-
 // ==========================
 // Montage / SSE
 // ==========================
 onMounted(async () => {
-  window.App.init();
-  window.App.dataTables();
+  window.App.init()
+  window.App.dataTables()
 
+  // Étape 1 : Charger le secteur et les structures associées
   await fetchSectorId()
+
+  // ✅ Attendre que paroisses et doyennés soient bien chargées
+  await new Promise(resolve => setTimeout(resolve, 500))
+
+  // Étape 2 : Charger les jeunes après les structures
   await fetchPeople()
 
-  // SSE
+  // Étape 3 : Initialiser le SSE
   eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
   eventSource.onmessage = (event) => {
     const data = JSON.parse(event.data)
     console.log("📥 Nouvel enregistrement :", data)
 
-    // Ajouter à la liste si c'est pour ce secteur
     if (data.sector?.includes(sectorId.value)) {
       jeunes.value.push(formatPerson(data))
     }
@@ -143,6 +230,7 @@ onMounted(async () => {
     eventSource.close()
   }
 })
+
 
 onUnmounted(() => {
   if (eventSource) eventSource.close()
@@ -175,6 +263,16 @@ const selectedJeune = ref(null)
 function openModal(jeune) { selectedJeune.value = jeune }
 function closeModal() { selectedJeune.value = null }
 
+// Actualisation manuelle
+async function handleRefresh() {
+  isLoading.value = true
+  try {
+    await Promise.all([fetchSectorId(), fetchPeople()])
+  } finally {
+    isLoading.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -183,8 +281,17 @@ function closeModal() { selectedJeune.value = null }
       <div class="row">
         <div class="col-sm-12">
           <div class="card card-table">
-            <div class="card-header">
-              {{ descr }}
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span>{{ descr }}</span>
+              <button 
+                @click="handleRefresh" 
+                class="btn btn-outline-primary btn-sm"
+                :disabled="isLoading"
+                title="Actualiser les données"
+              >
+                <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
+                {{ isLoading ? 'Actualisation...' : 'Actualiser' }}
+              </button>
             </div>
 
             <!-- Filtres -->
@@ -223,7 +330,7 @@ function closeModal() { selectedJeune.value = null }
             </div>
 
             <div class="card-body">
-              <div style="max-height: 40.5rem; overflow-y: auto;">
+              <div class="table-container">
                 <div v-if="isLoading" class="text-center my-5">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden"></span>
@@ -314,11 +421,27 @@ function closeModal() { selectedJeune.value = null }
 </template>
 
 <style>
+.table-container {
+  max-height: 40.5rem;
+  overflow-y: auto;
+  position: relative;
+}
+
 #tableSect thead th {
   position: sticky;
   top: 0;
   z-index: 2;
   background: #fff;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Animation de l'icône d'actualisation */
+.fa-spin {
+  animation: fa-spin 1s infinite linear;
+}
+
+@keyframes fa-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

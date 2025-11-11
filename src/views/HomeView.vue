@@ -8,9 +8,9 @@ const route = useRoute()
 
 <template>
   <!-- Afficher header/footer sauf pour sign-up et login -->
-  <HeaderHome v-if="!['signUp', 'login', 'updateInfo'].includes(route.name)" />
+  <HeaderHome v-if="!['signUp', 'login', 'updateInfo', 'forget-pwd', 'reset-pwd'].includes(route.name)" />
 
   <RouterView :key="route.fullPath" />
 
-  <FooterHome v-if="!['signUp', 'login', 'updateInfo'].includes(route.name)" />
+  <FooterHome v-if="!['signUp', 'login', 'updateInfo', 'forget-pwd', 'reset-pwd'].includes(route.name)" />
 </template>
