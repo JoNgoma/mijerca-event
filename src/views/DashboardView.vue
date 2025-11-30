@@ -55,7 +55,7 @@ $(document).ready(function(){
       </HeaderDash>
       <AssideDash />
       <router-view :key="$route.fullPath"/>
-      <NavBarDash />
+      <!-- <NavBarDash /> -->
   </div>
 </template>
 

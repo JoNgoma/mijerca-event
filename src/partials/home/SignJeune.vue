@@ -25,6 +25,7 @@ const paroisses = ref([])
 const filteredParoisses = ref([])
 
 const showModal = ref(false)           // Modal pour rôles
+const showAccessModal = ref(false)     // 🔹 NOUVEAU: Modal pour code d'accès
 const showInfoModal = ref(false)       // Modal pour "Voir info"
 const roles = ref([
   { key: "isNoyau", label: "Noyau Paroissial", value: false },
@@ -36,7 +37,12 @@ const infoNumber = ref("")
 const error = ref("")
 const genderError = ref("")
 const isLoading = ref(false)
+const isLoadingInfo = ref(false) // 🔹 NOUVEAU: Loading spécifique pour le modal "Voir info"
 const router = useRouter()
+
+// 🔹 Variables pour le modal d'accès
+const accessCode = ref("")
+const showPassword = ref(false)
 
 // 🔹 Toast amélioré
 const toasts = ref([])
@@ -117,6 +123,21 @@ const validateFullName = (name) => {
   const nameRegex = /^[A-Za-zÀ-ÖØ-öø-ÿ]+(?:[-' ][A-Za-zÀ-ÖØ-öø-ÿ]+)*$/
   if (!cleaned) return "Veuillez saisir votre nom complet."
   if (!nameRegex.test(cleaned)) return "Le nom ne doit pas contenir de chiffres ni de symboles, sauf un tiret entre deux mots."
+  return ""
+}
+
+// 🔹 Validation email
+const validateEmail = (email) => {
+  if (!email.trim()) return "Veuillez saisir votre adresse e-mail."
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(email)) return "Veuillez saisir une adresse e-mail valide."
+  return ""
+}
+
+// 🔹 Validation des rôles (au moins un checkbox sélectionné)
+const validateRoles = () => {
+  const hasSelectedRole = roles.value.some(role => role.value)
+  if (!hasSelectedRole) return "Veuillez sélectionner au moins un type de responsabilité."
   return ""
 }
 
@@ -208,10 +229,34 @@ async function handleSubmit() {
   }
 
   if (isResponsable.value) {
-    showModal.value = true
+    // 🔹 Afficher d'abord le modal d'accès
+    showAccessModal.value = true
     return
   }
   await registerUser({ isNoyau: false, isDecanal: false, isDicoces: false }, false)
+}
+
+// 🔹 Gestion modal d'accès
+function cancelAccessModal() {
+  showAccessModal.value = false
+  accessCode.value = ""
+  showPassword.value = false
+}
+
+function validateAccessCode() {
+  if (accessCode.value === "archidiocese") {
+    showAccessModal.value = false
+    accessCode.value = ""
+    showPassword.value = false
+    showModal.value = true // Ouvrir le modal des responsabilités
+  } else {
+    toast.error("Accès refusé, code invalide")
+    accessCode.value = ""
+  }
+}
+
+function togglePasswordVisibility() {
+  showPassword.value = !showPassword.value
 }
 
 function cancelModal() {
@@ -219,13 +264,17 @@ function cancelModal() {
 }
 
 async function submitModal() {
-  if (!email.value.trim()) {
-    toast.error("Veuillez saisir votre adresse e-mail.")
+  // 🔹 Validation de l'email
+  const emailError = validateEmail(email.value)
+  if (emailError) {
+    toast.error(emailError)
     return
   }
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-  if (!emailRegex.test(email.value)) {
-    toast.error("Veuillez saisir une adresse e-mail valide.")
+
+  // 🔹 Validation des rôles (au moins un checkbox sélectionné)
+  const rolesError = validateRoles()
+  if (rolesError) {
+    toast.error(rolesError)
     return
   }
 
@@ -240,6 +289,7 @@ async function submitModal() {
 // 🔹 Modal "Voir info"
 function cancelInfoModal() {
   showInfoModal.value = false
+  isLoadingInfo.value = false // 🔹 Réinitialiser le loading
 }
 
 async function submitInfoModal() {
@@ -248,6 +298,8 @@ async function submitInfoModal() {
     toast.error("Veuillez saisir un numéro.")
     return
   }
+
+  isLoadingInfo.value = true // 🔹 Activer le loading
 
   try {
     // Recherche paginée de la personne
@@ -263,6 +315,8 @@ async function submitInfoModal() {
   } catch (err) {
     console.error("Erreur recherche numéro :", err)
     toast.error("Erreur lors de la recherche.")
+  } finally {
+    isLoadingInfo.value = false // 🔹 Désactiver le loading
   }
 }
 
@@ -451,23 +505,71 @@ async function registerUser(roleValues, isResponsible) {
         </form>
       </div>
 
-      <div class="splash-footer text-center">&copy; 2025 Beyin</div>
+      <div class="splash-footer text-center">
+        <p class="copyright mb-0">
+          &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
+          <br />
+          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+        </p>
+      </div>
 
-      <!-- Modal -->
+      <!-- 🔹 MODAL D'ACCÈS -->
+      <div v-if="showAccessModal" class="modal-backdrop">
+        <div class="modal-card">
+          <h5 class="text-center mb-4">Accès Responsable</h5>
+          <p class="text-muted text-center mb-3">
+            Veuillez saisir le code d'accès pour continuer
+          </p>
+
+          <div class="form-group">
+            <label for="accessCode">Code d'accès</label>
+            <div class="input-group">
+              <input 
+                id="accessCode"
+                :type="showPassword ? 'text' : 'password'" 
+                class="form-control" 
+                v-model="accessCode" 
+                placeholder="Saisir le code d'accès"
+                @keyup.enter="validateAccessCode"
+              />
+              <button 
+                class="btn btn-outline-secondary" 
+                type="button" 
+                @click="togglePasswordVisibility"
+              >
+                <i :class="showPassword ? 'px-1 mdi mdi-eye-off' : 'px-1 mdi mdi-eye text-primary'"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 d-flex justify-content-between">
+            <button class="btn btn-secondary" @click="cancelAccessModal">Fermer</button>
+            <button class="btn btn-primary" @click="validateAccessCode">Valider</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal des responsabilités -->
       <div v-if="showModal" class="modal-backdrop">
         <div class="modal-card">
           <h5>Choisir les responsabilités</h5>
 
           <!-- Email -->
           <div class="form-group mb-3">
-            <label for="email">Adresse e-mail</label>
+            <label for="email">Adresse e-mail <span class="text-danger">*</span></label>
             <input id="email" type="email" class="form-control" v-model="email" placeholder="exemple@email.com" />
           </div>
 
-          <div class="form-check" v-for="role in roles" :key="role.key">
+          <div class="form-check mb-2" v-for="role in roles" :key="role.key">
             <input type="checkbox" class="form-check-input" v-model="role.value" :id="role.key" />
             <label class="form-check-label" :for="role.key">{{ role.label }}</label>
           </div>
+          
+          <div class="alert alert-info small mb-3">
+            <i class="fas fa-info-circle me-1"></i>
+            Veuillez sélectionner au moins un type de responsabilité
+          </div>
+
           <div class="mt-3 d-flex justify-content-between">
             <button class="btn btn-secondary" @click="cancelModal">Retour</button>
             <button class="btn btn-primary" @click="submitModal">S'enregistrer</button>
@@ -492,9 +594,9 @@ async function registerUser(roleValues, isResponsible) {
           </div>
           <div class="mt-3 d-flex justify-content-between">
             <button class="btn btn-secondary" @click="cancelInfoModal">Annuler</button>
-            <button @click="submitInfoModal" class="btn btn-primary" :disabled="isLoading">
-              <span v-if="isLoading" class="spinner-border spinner-border-sm"></span>
-              <span v-else>Valider</span>
+            <button @click="submitInfoModal" class="btn btn-primary" :disabled="isLoadingInfo">
+              <span v-if="isLoadingInfo" class="spinner-border spinner-border-sm me-1"></span>
+              {{ isLoadingInfo ? 'Recherche...' : 'Valider' }}
             </button>
           </div>
         </div>
@@ -517,4 +619,22 @@ input[type="radio"].btn-check { position: absolute; opacity: 0; pointer-events: 
 .toast-container { position: fixed; bottom: 2rem; right: 2rem; z-index: 1050; display: flex; flex-direction: column; gap: 0.5rem; }
 .toast-notification { background: #0d6efd; color: white; padding: 1rem 1.5rem; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); animation: slideIn 0.3s ease; }
 @keyframes slideIn { from { transform: translateY(50px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+
+/* Styles spécifiques pour le modal d'accès */
+.input-group .btn-outline-secondary {
+  border-left: 0;
+}
+
+/* Style pour l'alerte d'information */
+.alert-info {
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+  color: #0c5460;
+  font-size: 0.875rem;
+  padding: 0.5rem 0.75rem;
+}
+
+.text-danger {
+  color: #dc3545 !important;
+}
 </style>

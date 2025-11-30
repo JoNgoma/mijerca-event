@@ -9,6 +9,60 @@ export function useAuth() {
   const userRoles = computed(() => user.value?.roles || [])
   const isAuthenticated = computed(() => !!user.value)
 
+  // ==========================
+  // PAGINATION OPTIMISÉE
+  // ==========================
+  async function fetchAllPages(baseUrl, options = {}) {
+    let allItems = [];
+    let currentPage = 1;
+    let hasMore = true;
+    
+    try {
+      const token = localStorage.getItem("token");
+      
+      while (hasMore) {
+        const url = new URL(baseUrl);
+        url.searchParams.set('page', currentPage);
+        
+        const response = await fetch(url, {
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/ld+json",
+            ...options.headers
+          },
+          ...options
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.member && Array.isArray(data.member)) {
+          allItems = [...allItems, ...data.member];
+          
+          // Vérifie s'il y a plus de pages
+          if (data.member.length === 0 || 
+              data.member.length < 30 ||
+              currentPage >= 50) {
+            hasMore = false;
+          } else {
+            currentPage++;
+          }
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+      return allItems;
+    } catch (error) {
+      console.error('Erreur lors de la récupération paginée:', error);
+      throw error;
+    }
+  }
+
   // 🔄 Login
   function login(userData) {
     localStorage.setItem("token", userData.token || "")
@@ -26,6 +80,8 @@ export function useAuth() {
     localStorage.removeItem("token")
     localStorage.removeItem("username")
     localStorage.removeItem("user")
+    localStorage.removeItem("userPhone")
+    localStorage.removeItem("roles")
   }
 
   // 🔑 Charger depuis localStorage
@@ -43,43 +99,58 @@ export function useAuth() {
     return userRoles.value.includes(role)
   }
 
-  // ⚡ Charger l'utilisateur complet depuis API
+  // ⚡ Charger l'utilisateur complet depuis API avec pagination
   async function loadFromApi() {
     try {
       const token = localStorage.getItem("token")
       const username = localStorage.getItem("userPhone")
       if (!token || !username) return
 
-      // Récupérer l'utilisateur complet
-      const res = await fetch(`${API_URL}/users?username=${encodeURIComponent(username)}`, {
-        headers: { 
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/ld+json"
-        }
-      })
-      const data = await res.json()
-      const fetchedUser = data.member?.find(u => u.username === username)
+      console.log('🔄 Chargement des données utilisateur depuis API...')
+
+      // Récupérer TOUS les utilisateurs avec pagination
+      const allUsers = await fetchAllPages(`${API_URL}/users`)
+      const fetchedUser = allUsers.find(u => u.username === username)
+      
       if (fetchedUser) {
         user.value = fetchedUser
+        console.log('✅ Utilisateur trouvé:', fetchedUser.username)
 
-        // Récupérer la personne liée
-        const personRes = await fetch(`${API_URL}/people?phoneNumber=${encodeURIComponent(fetchedUser.username)}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/ld+json"
-          }
-        })
-        const personDataJson = await personRes.json()
-        person.value = personDataJson.member?.[0] || null
+        // Récupérer TOUTES les personnes avec pagination pour trouver celle liée
+        const allPeople = await fetchAllPages(`${API_URL}/people`)
+        const matchedPerson = allPeople.find(p => p.phoneNumber === fetchedUser.username)
+
+        if (matchedPerson) {
+          person.value = matchedPerson
+          console.log('✅ Personne liée trouvée:', matchedPerson.fullName)
+        } else {
+          console.warn('⚠️ Aucune personne trouvée avec ce numéro de téléphone')
+          person.value = null
+        }
+
+        // Mettre à jour les rôles dans localStorage
+        localStorage.setItem("roles", JSON.stringify(fetchedUser.roles || []))
+        
+      } else {
+        console.warn('⚠️ Utilisateur non trouvé dans la liste paginée')
+        user.value = null
+        person.value = null
       }
     } catch (err) {
       console.error("Erreur récupération user API:", err)
+      // En cas d'erreur 401, déconnecter l'utilisateur
+      if (err.message.includes('401')) {
+        logout()
+      }
     }
   }
 
   // 🔹 Charger automatiquement au montage si token existe
   onMounted(() => {
-    loadFromStorage()
+    const token = localStorage.getItem("token")
+    if (token) {
+      loadFromStorage()
+    }
   })
 
   return {

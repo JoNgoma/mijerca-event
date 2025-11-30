@@ -21,6 +21,43 @@ const campId = computed(() => route.params.id_campBiblique || null)
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 const campName = ref(''); // ✅ Nouveau ref pour le nom du camp
 
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
+
 // === Fetch du camp biblique via son ID ===
 async function fetchCampName() {
   if (!campId.value) return;
@@ -52,6 +89,7 @@ const participatorsAll = ref([])
 const peopleAll = ref([])
 const allDoyennes = ref([])
 const allParoisses = ref([])
+const allSectors = ref([])
 const loading = ref(false)
 
 // === Utils ===
@@ -75,17 +113,17 @@ const totalMount = computed(() => {
   return `${total}`
 })
 
-// === Fetch principal ===
+// === Fetch principal AVEC PAGINATION ===
 async function fetchAll() {
   try {
     loading.value = true
     const [sectors, doyennes, paroisses, people, participators, logs] = await Promise.all([
-      axios.get(`${API}/sectors`).then(r => r.data?.member || []),
-      axios.get(`${API}/doyennes`).then(r => r.data?.member || []),
-      axios.get(`${API}/paroisses`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || []),
-      axios.get(`${API}/participators`).then(r => r.data?.member || []),
-      axios.get(`${API}/logistics`).then(r => r.data?.member || [])
+      fetchAllPages(`${API}/sectors`),
+      fetchAllPages(`${API}/doyennes`),
+      fetchAllPages(`${API}/paroisses`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/participators`),
+      fetchAllPages(`${API}/logistics`)
     ])
 
     peopleAll.value = people
@@ -93,13 +131,14 @@ async function fetchAll() {
     logistics.value = logs
     allDoyennes.value = doyennes
     allParoisses.value = paroisses
+    allSectors.value = sectors
 
     // doyennes du secteur courant
-    const currentSector = sectors.find(s => (s.name || '').toLowerCase() === (sectorName.value || '').toLowerCase())
-    sectorDoyennes.value = doyennes.filter(d => extractIdFromUrl(d.sector) === extractIdFromUrl(currentSector?.['@id'] || currentSector?.id))
+    const currentSector = allSectors.value.find(s => (s.name || '').toLowerCase() === (sectorName.value || '').toLowerCase())
+    sectorDoyennes.value = allDoyennes.value.filter(d => extractIdFromUrl(d.sector) === extractIdFromUrl(currentSector?.['@id'] || currentSector?.id))
 
     if (!sectorDoyennes.value.length && currentSector) {
-      sectorDoyennes.value = doyennes.filter(d => d.sector && String(d.sector).includes(`/sectors/${extractIdFromUrl(currentSector['@id'] || currentSector?.id)}`))
+      sectorDoyennes.value = allDoyennes.value.filter(d => d.sector && String(d.sector).includes(`/sectors/${extractIdFromUrl(currentSector['@id'] || currentSector?.id)}`))
     }
 
     if (sectorDoyennes.value.length && !selectedDoyenne.value) {
@@ -174,8 +213,9 @@ function buildPeopleOptions() {
     }))
     // ✅ trier par ordre alphabétique sur fullName
     .sort((a, b) => a.fullName.localeCompare(b.fullName))
-}
 
+  console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour la paroisse sélectionnée`)
+}
 
 // === Déplacements via change (plus fiable que @click sur <option>) ===
 function onAddFromLeft(e) {
@@ -329,6 +369,7 @@ async function handleSubmit(e) {
     loading.value = false;
   }
 }
+
 // === Watchers ===
 watch(selectedDoyenne, () => {
   updateParoissesForDoyenne()
@@ -459,6 +500,9 @@ onMounted(() => {
                       </option>
                     </select>
                     <small class="text-muted">Clique pour ajouter →</small>
+                    <div class="mt-1 text-muted small">
+                      {{ peopleOptions.length }} personne(s) disponible(s)
+                    </div>
                   </div>
 
                   <!-- Liste choisie -->
@@ -473,6 +517,9 @@ onMounted(() => {
                       </option>
                     </select>
                     <small class="text-muted">← Clique pour retirer</small>
+                    <div class="mt-1 text-muted small">
+                      {{ selectedPeople.length }} personne(s) sélectionnée(s)
+                    </div>
                   </div>
                 </div>
                   <div class="form-group">
@@ -491,14 +538,18 @@ onMounted(() => {
                   <!-- Boutons -->
                   <div class="row pt-3">
                     <div class="col-12 d-flex justify-content-end">
-                      <button class="btn btn-secondary mr-4">Retour</button>
-                      <button class="btn btn-primary" type="submit" :disabled="loading">
+                      <button class="btn btn-secondary mr-4" type="button" @click="router.back()">Retour</button>
+                      <button 
+                        class="btn btn-primary" 
+                        type="submit" 
+                        :disabled="loading || selectedPeople.length === 0"
+                      >
                         <span
                           v-if="loading"
                           class="spinner-border spinner-border-sm mx-5"
                           role="status"
                         ></span>
-                        <span v-else>Enregistrer</span>
+                        <span v-else>Enregistrer ({{ selectedPeople.length }})</span>
                       </button>
                     </div>
                 </div>
@@ -516,4 +567,8 @@ onMounted(() => {
 .cg-toast { min-width: 220px; max-width: 360px; font-weight: 500; padding: 10px 16px; border-radius: 6px; margin-bottom: 8px; }
 .cg-toast-success { background: #effff0; color: #2e7d32; }
 .cg-toast-error   { background: #ffefef; color: #d32f2f; }
+
+.text-muted.small {
+  font-size: 0.875rem;
+}
 </style>

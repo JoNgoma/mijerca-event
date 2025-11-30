@@ -68,7 +68,12 @@ const submitForm = async (e) => {
     for (const entity of linkedEntities) {
       await axios.post(`${import.meta.env.VITE_API_BASE_URL}/${entity}`, {
         campBiblic: campId
-      }, { headers: { "Content-Type": "application/ld+json" } });
+      }, { 
+        headers: { 
+          "Content-Type": "application/ld+json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        } 
+      });
     }
 
     // 3️⃣ Création des informations logistiques
@@ -77,7 +82,12 @@ const submitForm = async (e) => {
       dortoirFrere: dortoirFrere.value,
       dortoirSoeur: dortoirSoeur.value,
       carrefour: carrefour.value
-    }, { headers: { "Content-Type": "application/ld+json" } });
+    }, { 
+      headers: { 
+        "Content-Type": "application/ld+json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+      } 
+    });
 
     toast.success("Activité et Services liées créés avec succès !");
 
@@ -89,6 +99,11 @@ const submitForm = async (e) => {
     dortoirFrere.value = 0;
     dortoirSoeur.value = 0;
     carrefour.value = 0;
+
+    // 🔄 Actualisation de la page après un court délai
+    setTimeout(() => {
+      window.location.reload();
+    }, 1500);
 
   } catch (err) {
     console.error("Erreur API:", err);

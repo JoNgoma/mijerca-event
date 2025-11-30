@@ -52,7 +52,13 @@
         </div>
          <p class="text-center text-muted mb-0">En créant un compte, vous acceptez les <a href="#">Conditions d'utilisation</a> et la <a href="#">Politique de confidentialité</a>.</p>
       </form>
-      <footer class="auth-footer">© 2025 Beyin LazQuir.</footer>
+      <footer class="auth-footer">
+        <p class="mb-0">
+          &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
+          <br />
+          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+        </p>
+      </footer>
     </main>
 
 </template>

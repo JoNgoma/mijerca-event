@@ -355,7 +355,7 @@ onUnmounted(() => {
           <div class="card card-table">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Statistique - {{ nameService }}</span>
-              <button 
+              <!-- <button 
                 @click="handleRefresh" 
                 class="btn btn-outline-primary btn-sm"
                 :disabled="isLoading"
@@ -363,7 +363,7 @@ onUnmounted(() => {
               >
                 <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
                 {{ isLoading ? 'Actualisation...' : 'Actualiser' }}
-              </button>
+              </button> -->
             </div>
             <div class="card-body">
               <div class="table-container">

@@ -70,7 +70,13 @@
         </form>
       </div>
 
-      <div class="splash-footer text-center">&copy; 2025 Beyin LazQuir.</div>
+      <div class="splash-footer text-center">
+        <p class="copyright mb-0">
+          &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
+          <br />
+          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+        </p>
+      </div>
     </div>
   </div>
 </template>
@@ -96,6 +102,60 @@ const formatPhone = () => {
       digits.slice(0, 4) + ' ' + digits.slice(4, 7) + ' ' + digits.slice(7);
   } else {
     username.value = digits;
+  }
+}
+
+// ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    const token = localStorage.getItem("token");
+    
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+      
+      const response = await fetch(url, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/ld+json",
+          ...options.headers
+        },
+        ...options
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
   }
 }
 
@@ -149,28 +209,20 @@ async function handleLogin() {
     localStorage.setItem("token_time", Date.now())
     localStorage.setItem("userPhone", username.value.replace(/\s+/g, ''))
 
-    // 2️⃣ Récupérer les utilisateurs pour trouver le rôle
-    const usersResponse = await fetch(`${API_URL}/users`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    })
-
-    if (!usersResponse.ok) throw new Error("Impossible de récupérer les rôles")
-
-    const usersData = await usersResponse.json()
-    const memberList = usersData.member || []
+    // 2️⃣ Récupérer TOUS les utilisateurs avec pagination pour trouver le rôle
+    const allUsers = await fetchAllPages(`${API_URL}/users`)
 
     // Comparer par username
-    const currentUser = memberList.find(
+    const currentUser = allUsers.find(
       (u) => u.username === username.value.replace(/\s+/g, '')
     )
 
     if (currentUser) {
       localStorage.setItem("roles", JSON.stringify(currentUser.roles || []))
+      console.log('👤 Rôles utilisateur:', currentUser.roles)
     } else {
       localStorage.setItem("roles", JSON.stringify([]))
+      console.warn('⚠️ Utilisateur non trouvé dans la liste paginée')
     }
 
     // Redirection
@@ -185,7 +237,6 @@ async function handleLogin() {
 }
 
 </script>
-
 
 <style scoped>
 .logo-img {

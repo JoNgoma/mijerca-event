@@ -11,7 +11,7 @@
         <div class="col-md-6">
           <h5>Nos coordonnées</h5>
           <ul class="list-unstyled">
-            <li><strong>Adresse :</strong> Avenue des oliviers, Kinshasa/ Kalamu, RDC</li>
+            <li><strong>Adresse :</strong> Avenue des Orangers, Kinshasa/ Kalamu, RDC</li>
             <li><strong>Téléphone :</strong> +243 840 306 094 </li>
             <li><strong>Email :</strong> info@mijerca.rccarchikin.org</li>
           </ul>

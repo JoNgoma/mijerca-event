@@ -24,6 +24,44 @@ const allParoisses = ref([])
 const allPeople = ref([])
 const allUsers = ref([])
 const loading = ref(false)
+const refreshing = ref(false)
+
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
 
 // === Utils ===
 const extractIdFromUrl = (url) => {
@@ -48,14 +86,14 @@ async function fetchCampName() {
   }
 }
 
-// === Fetch All Data ===
+// === Fetch All Data AVEC PAGINATION ===
 async function fetchAll() {
   try {
     loading.value = true
     const [paroisses, people, users] = await Promise.all([
-      axios.get(`${API}/paroisses`).then((r) => r.data?.member || []),
-      axios.get(`${API}/people`).then((r) => r.data?.member || []),
-      axios.get(`${API}/users`).then((r) => r.data?.member || []),
+      fetchAllPages(`${API}/paroisses`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/users`),
     ])
 
     allParoisses.value = paroisses
@@ -72,12 +110,25 @@ async function fetchAll() {
   }
 }
 
+// === Fonction de rafraîchissement ===
+async function refreshData() {
+  try {
+    refreshing.value = true
+    await fetchAll()
+    toast.success('Liste des responsables actualisée')
+  } catch (err) {
+    console.error('Erreur lors du rafraîchissement:', err)
+    toast.error('Erreur lors de l\'actualisation')
+  } finally {
+    refreshing.value = false
+  }
+}
+
 // === Construction des options à partir de users reliés à des people ===
 async function buildPeopleOptions() {
   try {
-    // Récupérer tous les enregistrements du service courant
-    const { data } = await axios.get(`${API}${apiAccess.value}`)
-    const existingMembers = data?.member || []
+    // Récupérer tous les enregistrements du service courant AVEC PAGINATION
+    const existingMembers = await fetchAllPages(`${API}${apiAccess.value}`)
 
     // On ne garde que les enregistrements du camp courant
     const filteredMembers = existingMembers.filter(
@@ -132,6 +183,8 @@ async function buildPeopleOptions() {
       })
       .filter(Boolean)
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
+
+    console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour affectation`)
   } catch (err) {
     toast.error('Erreur de chargement,\nRevenez-y plus tard')
     console.error('Erreur lors de la construction des options:', err)
@@ -186,7 +239,7 @@ async function handleSubmit() {
     // Déterminer le préfixe : CA si "Camp biblique" est présent, sinon EC
     const prefix = /camp\s*biblique/i.test(campLabel) ? 'CA' : 'EC'
 
-    // Extraire les lettres et l’année (ex: 2025)
+    // Extraire les lettres et l'année (ex: 2025)
     const shortCamp =
       (campLabel
         .match(/[A-Za-z]/g)
@@ -195,101 +248,57 @@ async function handleSubmit() {
 
     // Rôle complet
     const roleToAssign = `${currentService.value.role}${shortCamp.toUpperCase()}`
+    
     // Pour chaque user sélectionné
     for (const p of selectedPeople.value) {
       const userId = p.userId
-      const existing = await axios.get(`${API}${apiAccess.value}?user=/api/users/${userId}`)
-      const existingItem = existing.data?.member || []
-
-      // On ne garde que les enregistrements du camp courant
-      const filteredExistingItem = existingItem.filter(
-        (item) => item.campBiblic === `/api/camp_bibliques/${campId.value}`,
+      
+      // Récupérer les enregistrements existants du service pour ce user AVEC PAGINATION
+      const existingItems = await fetchAllPages(`${API}${apiAccess.value}?user=/api/users/${userId}`)
+      
+      // On ne garde que ceux du camp courant
+      const filteredExistingItem = existingItems.filter(
+        item => item.campBiblic === `/api/camp_bibliques/${campId.value}`
       )
 
       if (!filteredExistingItem.length) {
-        console.warn(`Aucun service trouvé pour le camp ${campId.value}`)
-        peopleOptions.value = [] // vide la liste proprement
-        return
+        console.warn(`Aucun service trouvé pour le camp ${campId.value} pour l'utilisateur ${p.fullName}`)
+        continue
       }
+
       try {
         const userData = await axios.get(`${API}/users/${userId}`)
         const currentRoles = userData.data.roles || []
         if (!currentRoles.includes(roleToAssign)) {
           const updatedRoles = [...currentRoles, roleToAssign]
-          if (apiAccess.value === '/administrations') {
-            const currentSer = userData.data.administrations || []
-            const updatedSer = [
-              ...currentSer,
-              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
-            ]
-            await axios.patch(
-              `${API}/users/${userId}`,
-              {
-                roles: updatedRoles,
-                administrations: updatedSer,
-              },
-              {
-                headers: { 'Content-Type': 'application/merge-patch+json' },
-              },
-            )
-          } else if (apiAccess.value === '/finances') {
-            const currentSer = userData.data.finances || []
-            const updatedSer = [
-              ...currentSer,
-              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
-            ]
-            await axios.patch(
-              `${API}/users/${userId}`,
-              {
-                roles: updatedRoles,
-                finances: updatedSer,
-              },
-              {
-                headers: { 'Content-Type': 'application/merge-patch+json' },
-              },
-            )
-          } else if (apiAccess.value === '/hebergements') {
-            const currentSer = userData.data.hebergements || []
-            const updatedSer = [
-              ...currentSer,
-              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
-            ]
-            await axios.patch(
-              `${API}/users/${userId}`,
-              {
-                roles: updatedRoles,
-                hebergements: updatedSer,
-              },
-              {
-                headers: { 'Content-Type': 'application/merge-patch+json' },
-              },
-            )
-          } else if (apiAccess.value === '/informatiques') {
-            const currentSer = userData.data.informatiques || []
-            const updatedSer = [
-              ...currentSer,
-              `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
-            ]
-            await axios.patch(
-              `${API}/users/${userId}`,
-              {
-                roles: updatedRoles,
-                informatiques: updatedSer,
-              },
-              {
-                headers: { 'Content-Type': 'application/merge-patch+json' },
-              },
-            )
-          }
-          // toast.success(`Rôle ${roleToAssign} ajouté à ${p.fullName}`)
+          
+          // Déterminer le champ du service
+          const serviceField = apiAccess.value.replace('/', '')
+          const currentSer = userData.data[serviceField] || []
+          const updatedSer = [
+            ...currentSer,
+            `/api${apiAccess.value}/${extractIdFromUrl(filteredExistingItem[0]['@id'])}`,
+          ]
+          
+          await axios.patch(
+            `${API}/users/${userId}`,
+            {
+              roles: updatedRoles,
+              [serviceField]: updatedSer,
+            },
+            {
+              headers: { 'Content-Type': 'application/merge-patch+json' },
+            },
+          )
         }
       } catch (roleErr) {
         console.warn(`Erreur patch rôle pour ${p.fullName}`, roleErr)
       }
     }
+    
     toast.success(
-              `${selectedPeople.value.length} ${selectedPeople.value.length>1 ? 'responsables ajoutés':'responsable ajouté'} avec succès\nRôle : ${roleToAssign}`,
-            )
+      `${selectedPeople.value.length} ${selectedPeople.value.length>1 ? 'responsables ajoutés':'responsable ajouté'} avec succès\nRôle : ${roleToAssign}`,
+    )
     selectedPeople.value = []
     await fetchAll()
   } catch (err) {
@@ -309,16 +318,29 @@ onMounted(() => {
 <template>
   <div class="be-content">
     <div class="page-head">
-      <h2 class="page-head-title">{{ title }}</h2>
-      <nav aria-label="breadcrumb">
-        <ol class="breadcrumb page-head-nav">
-          <li class="breadcrumb-item">
-            <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
-          </li>
-          <li class="breadcrumb-item"><a href="#">Affectation service</a></li>
-          <li class="breadcrumb-item active">{{ pageTitle }}</li>
-        </ol>
-      </nav>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="page-head-title">{{ title }}</h2>
+          <nav aria-label="breadcrumb">
+            <ol class="breadcrumb page-head-nav">
+              <li class="breadcrumb-item">
+                <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
+              </li>
+              <li class="breadcrumb-item"><a href="#">Affectation service</a></li>
+              <li class="breadcrumb-item active">{{ pageTitle }}</li>
+            </ol>
+          </nav>
+        </div>
+        <!-- <button 
+          @click="refreshData" 
+          class="btn btn-outline-primary btn-sm" 
+          :disabled="refreshing || loading"
+        >
+          <span v-if="refreshing" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-sync-alt me-1"></i>
+          {{ refreshing ? 'Actualisation...' : 'Actualiser' }}
+        </button> -->
+      </div>
     </div>
 
     <div class="main-content container-fluid">
@@ -341,6 +363,9 @@ onMounted(() => {
                     </option>
                   </select>
                   <small class="text-muted">Clique pour ajouter →</small>
+                  <div class="mt-2 text-muted small">
+                    {{ peopleOptions.length }} personne(s) disponible(s)
+                  </div>
                 </div>
 
                 <!-- Liste sélectionnée -->
@@ -357,6 +382,9 @@ onMounted(() => {
                     </option>
                   </select>
                   <small class="text-muted">← Clique pour retirer</small>
+                  <div class="mt-2 text-muted small">
+                    {{ selectedPeople.length }} personne(s) sélectionnée(s)
+                  </div>
                 </div>
               </div>
 
@@ -365,13 +393,17 @@ onMounted(() => {
                   <button class="btn btn-secondary mr-4" type="button" @click="router.back()">
                     Retour
                   </button>
-                  <button class="btn btn-primary" type="submit" :disabled="loading">
+                  <button 
+                    class="btn btn-primary" 
+                    type="submit" 
+                    :disabled="loading || selectedPeople.length === 0"
+                  >
                     <span
                       v-if="loading"
                       class="spinner-border spinner-border-sm mx-3"
                       role="status"
                     ></span>
-                    <span v-else>Enregistrer</span>
+                    <span v-else>Enregistrer ({{ selectedPeople.length }})</span>
                   </button>
                 </div>
               </div>
@@ -386,5 +418,9 @@ onMounted(() => {
 <style scoped>
 .fw-bold {
   font-weight: 600;
+}
+
+.text-muted.small {
+  font-size: 0.875rem;
 }
 </style>

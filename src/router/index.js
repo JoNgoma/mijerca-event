@@ -7,6 +7,7 @@ import HomeAccueil from '../partials/home/HomeAccueil.vue'
 // Dashboard
 import DashboardView from '@/views/DashboardView.vue'
 import PageProfil from '@/views/profil/PageProfil.vue'
+import PageSetting from '@/views/setting/PageSetting.vue'
 import LoginPage from '@/views/auth/LoginPage.vue'
 import AccueilDash from '@/partials/dashboard/AccueilDash.vue'
 import PersonsView from '@/views/PersonsView.vue'
@@ -77,6 +78,7 @@ const router = createRouter({
       children: [
         { path: 'dashboard', name: 'dashboard', component: AccueilDash },
         { path: 'profil', name: 'profil', component: PageProfil },
+        { path: 'setting', name: 'setting', component: PageSetting },
 
         // ---- Persons ----
         {
@@ -169,7 +171,7 @@ router.beforeEach((to, from, next) => {
       // Routes autorisées pour ROLE_NOYAU
       if (roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')){
         const allowedRoutes = [
-          'admin', 'dashboard', 'profil', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
+          'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
           'services', 'manager', 'media',
           'rap-day', 'dep-new', 'dep-suivis', 'paie',
           'log-dortoir', 'log-carrefour', 'log-affect',
@@ -182,7 +184,7 @@ router.beforeEach((to, from, next) => {
       }
       }
       const allowedRoutes = [
-        'admin', 'dashboard', 'profil', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
+        'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
         'services', 'manager', 'media',
         'rap-day', 'dep-new', 'dep-suivis', 'paie',
         'log-dortoir', 'log-carrefour', 'log-affect',

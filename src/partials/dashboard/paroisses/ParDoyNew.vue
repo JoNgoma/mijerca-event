@@ -40,6 +40,7 @@ const error = ref('')
 // états de chargement
 const isLoadingDoyenne = ref(false)
 const isLoadingParoisse = ref(false)
+const isRefreshing = ref(false)
 
 // ===========================
 // SSE composable
@@ -80,9 +81,26 @@ async function fetchDoyennes() {
     })
     const data = await res.json()
     doyennes.value = data.member?.filter((s) => s.sector === `/api/sectors/${sectorId.value}`) || []
+    console.log(`🔄 ${doyennes.value.length} doyennés chargés`)
   } catch (err) {
     console.error('Erreur récupération doyennés', err)
     toast.error('❌ Erreur lors du chargement des doyennés')
+  }
+}
+
+// ==========================
+// Fonction de rafraîchissement
+// ==========================
+async function refreshData() {
+  isRefreshing.value = true
+  try {
+    await fetchSectorId()
+    toast.success('✅ Liste des doyennés actualisée')
+  } catch (err) {
+    console.error('Erreur lors du rafraîchissement', err)
+    toast.error('❌ Erreur lors du rafraîchissement')
+  } finally {
+    isRefreshing.value = false
   }
 }
 
@@ -113,6 +131,12 @@ async function saveDoyenne(e) {
 
     if (res.ok) {
       const newDoyenne = await res.json()
+
+      // Rafraîchir immédiatement la liste des doyennés
+      await fetchDoyennes()
+      
+      // Sélectionner automatiquement le nouveau doyenné dans le select
+      selectedDoyenne.value = newDoyenne.id
 
       // Créer aussi la paroisse du même nom
       const paroisseRes = await fetch(`${API_URL}/paroisses`, {
@@ -188,7 +212,6 @@ async function saveParoisse(e) {
     }
     else{
         toast.error(`Saisir le nom de la paroisse`)
-
     }
 
   } catch (err) {
@@ -205,8 +228,9 @@ async function saveParoisse(e) {
 watch(messages, (newMessages) => {
   newMessages.forEach((msg) => {
     if (msg.type === 'doyenne' && msg.sector == sectorId.value) {
-      doyennes.value.push(msg)
-      toast.success(`📢 Nouveau doyenné ajoutée : ${msg.name}`)
+      // Au lieu d'ajouter simplement, on rafraîchit toute la liste
+      fetchDoyennes()
+      toast.success(`📢 Nouveau doyenné ajouté : ${msg.name}`)
     }
     if (msg.type === 'paroisse' && msg.sector == sectorId.value) {
       paroisses.value.push(msg)
@@ -227,18 +251,31 @@ onMounted(() => {
 <template>
   <div class="be-content">
     <div class="page-head">
-      <h2 class="page-head-title">{{ pageTitle }}</h2>
-      <nav aria-label="breadcrumb" role="navigation">
-        <ol class="breadcrumb page-head-nav">
-          <li class="breadcrumb-item">
-            <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
-          </li>
-          <li class="breadcrumb-item">
-            <a href="#">{{ descr }}</a>
-          </li>
-          <li class="breadcrumb-item active">{{ pageTitle }}</li>
-        </ol>
-      </nav>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="page-head-title">{{ pageTitle }}</h2>
+          <nav aria-label="breadcrumb" role="navigation">
+            <ol class="breadcrumb page-head-nav">
+              <li class="breadcrumb-item">
+                <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
+              </li>
+              <li class="breadcrumb-item">
+                <a href="#">{{ descr }}</a>
+              </li>
+              <li class="breadcrumb-item active">{{ pageTitle }}</li>
+            </ol>
+          </nav>
+        </div>
+        <button 
+          @click="refreshData" 
+          class="btn btn-outline-primary btn-sm" 
+          :disabled="isRefreshing"
+        >
+          <span v-if="isRefreshing" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-sync-alt me-1"></i>
+          {{ isRefreshing ? 'Actualisation...' : 'Actualiser' }}
+        </button>
+      </div>
     </div>
 
     <div class="main-content container-fluid">
@@ -260,11 +297,13 @@ onMounted(() => {
                     id="inputNameDoy"
                     type="text"
                     placeholder="Saint Noé Mawaggali"
+                    required
                   />
                 </div>
                 <div class="row pt-8">
                   <div class="col-12 d-flex justify-content-end">
                     <button class="btn btn-primary" type="submit" :disabled="isLoadingDoyenne">
+                      <span v-if="isLoadingDoyenne" class="spinner-border spinner-border-sm me-1"></span>
                       <span v-if="isLoadingDoyenne">Enregistrement...</span>
                       <span v-else>Enregistrer doyenné</span>
                     </button>
@@ -278,12 +317,16 @@ onMounted(() => {
         <!-- Formulaire Paroisse -->
         <div class="col-lg-6">
           <div class="card card-border-color card-border-color-primary">
-            <div class="card-header card-header-divider">Nouvelle paroisse</div>
+            <div class="card-header card-header-divider">
+              Nouvelle paroisse
+              <span class="card-subtitle">{{ doyennes.length }} doyennés disponibles</span>
+            </div>
             <div class="card-body">
               <form @submit="saveParoisse">
                 <div class="form-group">
                   <label>Selectionner le doyenné</label>
-                  <select v-model="selectedDoyenne" class="form-control">
+                  <select v-model="selectedDoyenne" class="form-control" required>
+                    <option value="" disabled>Sélectionnez un doyenné</option>
                     <option v-for="d in doyennes" :key="d.id" :value="d.id">{{ d.name }}</option>
                   </select>
                 </div>
@@ -295,11 +338,13 @@ onMounted(() => {
                     id="inputNamePar"
                     type="text"
                     placeholder="Saint Noé Mawaggali"
+                    required
                   />
                 </div>
                 <div class="row">
                   <div class="col-12 d-flex justify-content-end">
-                    <button class="btn btn-primary" type="submit" :disabled="isLoadingParoisse">
+                    <button class="btn btn-primary" type="submit" :disabled="isLoadingParoisse || !selectedDoyenne">
+                      <span v-if="isLoadingParoisse" class="spinner-border spinner-border-sm me-1"></span>
                       <span v-if="isLoadingParoisse">Enregistrement...</span>
                       <span v-else>Enregistrer paroisse</span>
                     </button>

@@ -1,18 +1,31 @@
 <template>
   <div class="be-content">
     <div class="page-head">
-      <h2 class="page-head-title">Nouveau membre</h2>
-      <nav aria-label="breadcrumb" role="navigation">
-        <ol class="breadcrumb page-head-nav">
-          <li class="breadcrumb-item">
-            <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
-          </li>
-          <li class="breadcrumb-item"><router-link
-            :to="{ name: 'analytic', params: { serviceType: LocalisationService } }"
-            >{{ nameService }}</router-link></li>
-          <li class="breadcrumb-item active">Nouveau membre</li>
-        </ol>
-      </nav>
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h2 class="page-head-title">Nouveau membre</h2>
+          <nav aria-label="breadcrumb" role="navigation">
+            <ol class="breadcrumb page-head-nav">
+              <li class="breadcrumb-item">
+                <router-link :to="{ name: 'dashboard' }">Dashboard</router-link>
+              </li>
+              <li class="breadcrumb-item"><router-link
+                :to="{ name: 'analytic', params: { serviceType: LocalisationService } }"
+                >{{ nameService }}</router-link></li>
+              <li class="breadcrumb-item active">Nouveau membre</li>
+            </ol>
+          </nav>
+        </div>
+        <button 
+          @click="refreshData" 
+          class="btn btn-outline-primary btn-sm" 
+          :disabled="loadingData"
+        >
+          <span v-if="loadingData" class="spinner-border spinner-border-sm me-1"></span>
+          <i v-else class="fas fa-sync-alt me-1"></i>
+          {{ loadingData ? 'Actualisation...' : 'Actualiser' }}
+        </button>
+      </div>
     </div>
 
     <div class="main-content container-fluid">
@@ -110,12 +123,17 @@
         <!-- Partie droite -->
         <div class="col-lg-6">
           <div class="card card-border-color card-border-color-primary">
+            <div class="card-header card-header-divider">
+              Localisation
+              <span class="card-subtitle">{{ sectors.length }} secteurs, {{ doyennes.length }} doyennés, {{ paroisses.length }} paroisses</span>
+            </div>
             <div class="card-body">
               <form @submit.prevent="handleSubmit">
                 <!-- Secteur -->
                 <div class="form-group pt-2">
                   <label>Sélectionner le secteur</label>
                   <select class="form-control" v-model="sector">
+                    <option value="" disabled>Sélectionnez un secteur</option>
                     <option v-for="s in sectors" :key="s.id" :value="s.name">{{ s.name }}</option>
                   </select>
                 </div>
@@ -124,6 +142,7 @@
                 <div class="form-group pt-2">
                   <label>Sélectionner le doyenné</label>
                   <select class="form-control" v-model="doyenne">
+                    <option value="" disabled>Sélectionnez un doyenné</option>
                     <option v-for="d in filteredDoyennes" :key="d.id" :value="d.name">{{ d.name }}</option>
                   </select>
                 </div>
@@ -132,6 +151,7 @@
                 <div class="form-group pt-2">
                   <label>Sélectionner la paroisse</label>
                   <select class="form-control" v-model="paroisse">
+                    <option value="" disabled>Sélectionnez une paroisse</option>
                     <option v-for="p in filteredParoisses" :key="p.id" :value="p.name">{{ p.name }}</option>
                   </select>
                 </div>
@@ -141,6 +161,7 @@
                   <div class="col-12 d-flex justify-content-end">
                     <button class="btn btn-secondary mr-4" type="button" @click="router.back()">Retour</button>
                     <button class="btn btn-primary" type="submit" :disabled="isLoading">
+                      <span v-if="isLoading" class="spinner-border spinner-border-sm me-1"></span>
                       {{ isLoading ? 'Enregistrement...' : 'Enregistrer' }}
                     </button>
                   </div>
@@ -217,12 +238,50 @@ const filteredParoisses = ref([])
 // =========================
 const error = ref("")
 const isLoading = ref(false)
+const loadingData = ref(false)
 
 // =========================
 // SSE
 // =========================
 let eventSource = null
 const newPeople = ref([]) // stocke les nouvelles personnes reçues via SSE
+
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
 
 // =========================
 // Validation du numéro de téléphone
@@ -346,14 +405,21 @@ function filterParoisses() {
 // =========================
 async function loadData() {
   try {
+    loadingData.value = true
+    console.log('🔄 Chargement des données avec pagination...')
+    
     const [sectorRes, doyenneRes, paroisseRes] = await Promise.all([
-      axios.get(`${API_URL}/sectors`),
-      axios.get(`${API_URL}/doyennes`),
-      axios.get(`${API_URL}/paroisses`)
+      fetchAllPages(`${API_URL}/sectors`),
+      fetchAllPages(`${API_URL}/doyennes`),
+      fetchAllPages(`${API_URL}/paroisses`)
     ])
-    sectors.value = sectorRes.data.member
-    doyennes.value = doyenneRes.data.member
-    paroisses.value = paroisseRes.data.member
+    
+    sectors.value = sectorRes
+    doyennes.value = doyenneRes
+    paroisses.value = paroisseRes
+    
+    console.log(`📊 Données chargées: ${sectorRes.length} secteurs, ${doyenneRes.length} doyennes, ${paroisseRes.length} paroisses`)
+    
     filterDoyennes()
 
     stopSectorWatcher = watch(sector, filterDoyennes)
@@ -361,7 +427,15 @@ async function loadData() {
   } catch (err) {
       toast.error("Erreur chargement données", 'error');
       console.error("Erreur chargement données :", err)
+  } finally {
+    loadingData.value = false
   }
+}
+
+// Fonction de rafraîchissement
+async function refreshData() {
+  await loadData()
+  toast.success('Listes des secteurs, doyennés et paroisses actualisées')
 }
 
 // =========================

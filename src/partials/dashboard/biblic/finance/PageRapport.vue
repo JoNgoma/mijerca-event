@@ -24,6 +24,43 @@ const summaryData = ref([])
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 let chartInstance = null
 
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
+
 async function fetchCampName() {
   if (!campBibliqueId.value) return
   try {
@@ -37,8 +74,9 @@ async function fetchCampName() {
 
 async function fetchSectors() {
   try {
-    const res = await axios.get(`${API}/sectors`)
-    allSectors.value = res.data?.member || []
+    const res = await fetchAllPages(`${API}/sectors`)
+    allSectors.value = res || []
+    console.log(`🏛️ ${allSectors.value.length} secteurs chargés`)
   } catch (err) {
     console.error('Erreur fetch sectors', err)
   }
@@ -47,13 +85,21 @@ async function fetchSectors() {
 async function fetchDates() {
   loading.value = true
   try {
-    const res = await axios.get(`${API}/participators`)
-    const participators = res.data?.member || []
+    console.log('🔄 Chargement des données avec pagination...')
+    
+    const [participators, paroisses, people, montants] = await Promise.all([
+      fetchAllPages(`${API}/participators`),
+      fetchAllPages(`${API}/paroisses`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/montants`)
+    ])
 
     allParticipators.value = participators
-    allParoisses.value = (await axios.get(`${API}/paroisses`)).data?.member || []
-    allPeople.value = (await axios.get(`${API}/people`)).data?.member || []
-    allMontants.value = (await axios.get(`${API}/montants`)).data?.member || []
+    allParoisses.value = paroisses
+    allPeople.value = people
+    allMontants.value = montants
+
+    console.log(`📈 Données chargées: ${participators.length} participants, ${paroisses.length} paroisses, ${people.length} personnes, ${montants.length} montants`)
 
     const datesSet = new Set()
     participators.forEach(p => {
@@ -155,6 +201,7 @@ allSectors.value.forEach(sector => {
 })
 
   summaryData.value = Object.values(agg)
+  console.log(`📊 Résumé calculé: ${summaryData.length} secteurs pour le ${selectedDate.value}`)
   renderChart()
 }
 
@@ -170,13 +217,77 @@ function renderChart() {
     data: {
       labels: summaryData.value.map(s => s.name),
       datasets: [
-        { label: 'Frères ', data: summaryData.value.map(s => s.totalFrere), backgroundColor: '#0d6efd' },
-        { label: 'Soeurs ', data: summaryData.value.map(s => s.totalSoeur), backgroundColor: '#d63384' },
-        { label: 'Montant FC ', data: summaryData.value.map(s => s.totalFC), backgroundColor: '#198754' },
-        { label: 'Montant $ ', data: summaryData.value.map(s => s.totalUSD), backgroundColor: '#ffc107' }
+        { 
+          label: 'Frères', 
+          data: summaryData.value.map(s => s.totalFrere), 
+          backgroundColor: '#0d6efd',
+          borderColor: '#0a58ca',
+          borderWidth: 1
+        },
+        { 
+          label: 'Soeurs', 
+          data: summaryData.value.map(s => s.totalSoeur), 
+          backgroundColor: '#d63384',
+          borderColor: '#a61e4d',
+          borderWidth: 1
+        },
+        { 
+          label: 'Montant FC', 
+          data: summaryData.value.map(s => Math.round(s.totalFC / 1000)), 
+          backgroundColor: '#198754',
+          borderColor: '#146c43',
+          borderWidth: 1,
+          yAxisID: 'y1'
+        },
+        { 
+          label: 'Montant $', 
+          data: summaryData.value.map(s => s.totalUSD), 
+          backgroundColor: '#ffc107',
+          borderColor: '#d39e00',
+          borderWidth: 1,
+          yAxisID: 'y1'
+        }
       ]
     },
-    options: { responsive: true, plugins: { legend: { position: 'top' } } }
+    options: { 
+      responsive: true, 
+      plugins: { 
+        legend: { 
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
+        },
+        title: {
+          display: true,
+          text: `Répartition par secteur - ${selectedDate.value}`
+        }
+      },
+      scales: {
+        y: {
+          type: 'linear',
+          display: true,
+          position: 'left',
+          title: {
+            display: true,
+            text: 'Effectifs'
+          }
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+          title: {
+            display: true,
+            text: 'Montants'
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
+        }
+      }
+    }
   })
 }
 
@@ -196,6 +307,13 @@ watch(() => route.params.id_campBiblique, (newId) => {
 watch(selectedDate, () => calculateSummary())
 
 const pageTitle = computed(() => campName.value)
+
+// Totaux pour l'affichage
+const totalEffectif = computed(() => summaryData.value.reduce((a,s) => a + s.totalEffectif, 0))
+const totalFrere = computed(() => summaryData.value.reduce((a,s) => a + s.totalFrere, 0))
+const totalSoeur = computed(() => summaryData.value.reduce((a,s) => a + s.totalSoeur, 0))
+const totalFC = computed(() => summaryData.value.reduce((a,s) => a + s.totalFC, 0))
+const totalUSD = computed(() => summaryData.value.reduce((a,s) => a + s.totalUSD, 0))
 </script>
 
 <template>
@@ -205,13 +323,19 @@ const pageTitle = computed(() => campName.value)
         <div class="card shadow-sm border-light rounded-3">
           <div class="card-header d-flex justify-content-between align-items-center">
             <h3 class="m-0">{{ pageTitle }}</h3>
-            <div class="d-flex align-items-center">
-              <label class="m-2 fw-semibold">Filtrer la date :</label>
-              <select v-model="selectedDate" class="form-select form-select-sm">
-                <option v-for="date in availableDates" :key="date" :value="date">
-                  {{ new Date(date).toLocaleDateString('fr-FR') }}
-                </option>
-              </select>
+            <div class="d-flex align-items-center gap-3">
+              <!-- <div class="text-end">
+                <small class="text-muted d-block">Date sélectionnée</small>
+                <strong>{{ selectedDate ? new Date(selectedDate).toLocaleDateString('fr-FR') : 'Aucune' }}</strong>
+              </div> -->
+              <div>
+                <label class="m-2 fw-semibold">Filtrer la date :</label>
+                <select v-model="selectedDate" class="form-select form-select-sm">
+                  <option v-for="date in availableDates" :key="date" :value="date">
+                    {{ new Date(date).toLocaleDateString('fr-FR') }}
+                  </option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -235,45 +359,83 @@ const pageTitle = computed(() => campName.value)
                   <span class="spinner-border"></span> Chargement des données...
                 </div>
 
-                <div v-else class="table-container">
-                  <table class="table table-hover align-middle">
-                    <thead class="sticky-header">
-                      <tr>
-                        <th>Secteur</th>
-                        <th>Effectif Total</th>
-                        <th>Frères</th>
-                        <th>Soeurs</th>
-                        <th>Montant</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr v-for="s in summaryData" :key="s.id">
-                        <td>{{ s.name }}</td>
-                        <td><span class="badge bg-primary">{{ s.totalEffectif }}</span></td>
-                        <td><span class="badge bg-info">{{ s.totalFrere }}</span></td>
-                        <td><span class="badge bg-pink">{{ s.totalSoeur }}</span></td>
-                        <td>
-                          <span class="badge bg-success">{{ s.totalFC.toLocaleString('fr-FR') }} FC</span>
-                          <span class="badge bg-warning text-dark">{{ s.totalUSD.toLocaleString('fr-FR') }} $</span>
-                        </td>
-                      </tr>
-                      <tr v-if="!summaryData.length">
-                        <td colspan="6" class="text-center text-muted">Aucune donnée trouvée pour cette date</td>
-                      </tr>
-                    </tbody>
-                    <tfoot class="table-light fw-semibold">
-                      <tr>
-                        <td>Total</td>
-                        <td>{{ summaryData.reduce((a,s) => a + s.totalEffectif,0) }}</td>
-                        <td>{{ summaryData.reduce((a,s) => a + s.totalFrere,0) }}</td>
-                        <td>{{ summaryData.reduce((a,s) => a + s.totalSoeur,0) }}</td>
-                        <td>
-                          {{ summaryData.reduce((a,s) => a + s.totalFC,0).toLocaleString('fr-FR') }} FC + 
-                          {{ summaryData.reduce((a,s) => a + s.totalUSD,0).toLocaleString('fr-FR') }} $
-                        </td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                <div v-else>
+                  <!-- Cartes de résumé -->
+                  <div class="row mb-4">
+                    <div class="col-md-3 col-6">
+                      <div class="card bg-primary text-white">
+                        <div class="card-body text-center">
+                          <h4 class="card-title">{{ totalEffectif }}</h4>
+                          <p class="card-text">Total Effectif</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="card bg-info text-white">
+                        <div class="card-body text-center">
+                          <h4 class="card-title">{{ totalFrere }}</h4>
+                          <p class="card-text">Frères</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="card bg-pink text-white">
+                        <div class="card-body text-center">
+                          <h4 class="card-title">{{ totalSoeur }}</h4>
+                          <p class="card-text">Soeurs</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="col-md-3 col-6">
+                      <div class="card bg-success text-white">
+                        <div class="card-body text-center">
+                          <h4 class="card-title">{{ totalUSD.toLocaleString('fr-FR') }}$</h4>
+                          <p class="card-text">{{ totalFC.toLocaleString('fr-FR') }} FC</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="table-container">
+                    <table class="table table-hover align-middle">
+                      <thead class="sticky-header">
+                        <tr>
+                          <th>Secteur</th>
+                          <th>Effectif Total</th>
+                          <th>Frères</th>
+                          <th>Soeurs</th>
+                          <th>Montant</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="s in summaryData" :key="s.id">
+                          <td><strong>{{ s.name }}</strong></td>
+                          <td><span class="badge bg-primary">{{ s.totalEffectif }}</span></td>
+                          <td><span class="badge bg-info">{{ s.totalFrere }}</span></td>
+                          <td><span class="badge bg-pink">{{ s.totalSoeur }}</span></td>
+                          <td>
+                            <span class="badge bg-success">{{ s.totalFC.toLocaleString('fr-FR') }} FC</span>
+                            <span class="badge bg-warning text-dark mt-1">{{ s.totalUSD.toLocaleString('fr-FR') }} $</span>
+                          </td>
+                        </tr>
+                        <tr v-if="!summaryData.length">
+                          <td colspan="6" class="text-center text-muted">Aucune donnée trouvée pour cette date</td>
+                        </tr>
+                      </tbody>
+                      <tfoot class="table-light fw-semibold">
+                        <tr>
+                          <td>Total</td>
+                          <td>{{ totalEffectif }}</td>
+                          <td>{{ totalFrere }}</td>
+                          <td>{{ totalSoeur }}</td>
+                          <td>
+                            {{ totalFC.toLocaleString('fr-FR') }} FC + 
+                            {{ totalUSD.toLocaleString('fr-FR') }} $
+                          </td>
+                        </tr>
+                      </tfoot>
+                    </table>
+                  </div>
 
                   <div class="mt-4">
                     <canvas id="secteursChart" width="400" height="200"></canvas>
@@ -300,6 +462,29 @@ const pageTitle = computed(() => campName.value)
 .table-hover tbody tr:hover { background-color: #f1f1f1; }
 .table-dark thead tr:hover { background-color: inherit !important; } /* supprime hover sur thead */
 .badge.bg-pink { background-color: #d63384; }
-.table-container { overflow-y: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; }
+.badge { margin: 0.1rem; }
+.table-container { overflow-y: auto; border-radius: 0.5rem; border: 1px solid #dee2e6; max-height: 400px; }
 .sticky-header { position: sticky; top: 0; background: #edeff0; z-index: 2; }
+
+/* Styles pour les cartes de résumé */
+.card .card-body { padding: 1rem; }
+.card .card-title { font-size: 1.5rem; margin-bottom: 0.5rem; }
+.card .card-text { font-size: 0.875rem; opacity: 0.9; }
+
+.bg-pink {
+  background-color: #d63384 !important;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
+  }
+  
+  .table-container {
+    max-height: 300px;
+  }
+}
 </style>

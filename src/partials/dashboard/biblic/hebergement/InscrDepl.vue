@@ -25,6 +25,43 @@ const motif = ref('')
 const searchQuery = ref('')
 const confirmingRetour = ref(false)
 
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
+
 const campAvailable = computed(() => props.camp && props.camp.id)
 
 function extractId(url) {
@@ -38,9 +75,9 @@ async function fetchData() {
   try {
     loading.value = true
     const [partRes, peopleRes, paroisseRes] = await Promise.all([
-      axios.get(`${API}/participators`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || []),
-      axios.get(`${API}/paroisses`).then(r => r.data?.member || [])
+      fetchAllPages(`${API}/participators`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/paroisses`)
     ])
     participators.value = partRes.filter(p =>
       p.campBiblic?.some(cb => extractId(cb) === props.camp.id)
@@ -54,6 +91,12 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
+}
+
+// Fonction de rafraîchissement
+async function refreshData() {
+  await fetchData()
+  toast.success('Données actualisées')
 }
 
 onMounted(fetchData)
@@ -92,7 +135,7 @@ const participantsParCarrefour = computed(() => {
 async function fetchRemovals() {
   try {
     removalsLoading.value = true
-    const res = await axios.get(`${API}/removals`).then(r => r.data?.member || [])
+    const res = await fetchAllPages(`${API}/removals`)
     removals.value = res
       .filter(r => r.campBiblic?.some(cb => extractId(cb) === props.camp.id))
       .map(r => {
@@ -102,7 +145,7 @@ async function fetchRemovals() {
         const personId = extractId(part.person)
         const pe = people.value.find(x => extractId(x['@id']) === personId) || {}
         const parId = extractId(pe.paroisse)
-        const par = paroisses.value.find(pp => String(pp.id) === parId)
+        const par = paroisses.value.find(pp => extractId(pp['@id']) === parId || String(pp.id) === parId)
         const paroName = par ? par.name : '—'
 
         return {
@@ -233,6 +276,13 @@ function formatDateTime(s) {
     </div>
 
     <div v-else>
+      <div class="d-flex justify-content-end mb-3">
+        <button @click="refreshData" class="btn btn-sm btn-outline-primary" :disabled="loading">
+          <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
+          {{ loading ? 'Actualisation...' : 'Actualiser' }}
+        </button>
+      </div>
+
       <div v-if="loading" class="text-center my-4">
         <span class="spinner-border"></span> Chargement...
       </div>

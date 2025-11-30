@@ -212,7 +212,10 @@ onMounted(() => {
                 :to="{ name: 'profil', params: { serviceType: 'profil' } }"
                 :class="{ 'text-primary': isActiveRoute('profil', { serviceType: 'profil' }) }"
               ><span class="icon mdi mdi-face"></span> Mon compte </router-link>
-              <a class="dropdown-item" href="#"><span class="icon mdi mdi-settings"></span> Paramètres</a>
+              <router-link class="dropdown-item"
+                :to="{ name: 'setting', params: { serviceType: 'setting' } }"
+                :class="{ 'text-primary': isActiveRoute('setting', { serviceType: 'setting' }) }"
+              ><span class="icon mdi mdi-settings"></span> Paramètres </router-link>
               <a class="dropdown-item" href="#" @click.prevent="logout">
                 <span class="icon mdi mdi-power"></span> Déconnexion
               </a>

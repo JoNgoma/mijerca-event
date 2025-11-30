@@ -30,7 +30,7 @@
           <h5 class="mb-3">Contact</h5>
           <p class="mb-1"><strong>Email :</strong> info@mijerca.rccarchikin.org </p>
           <p class="mb-1"><strong>Téléphone :</strong> +243 840 306 094 </p>
-          <p class="mb-0"><strong>Adresse :</strong> Avenue des Oliviers, Kinshasa/Kalamu, RDC </p>
+          <p class="mb-0"><strong>Adresse :</strong> Avenue des Orangers, Kinshasa/Kalamu, RDC </p>
         </div>
       </div>
 
@@ -38,7 +38,11 @@
 
       <!-- Copyright -->
       <div class="text-center pb-3">
-        <p class="mb-0">&copy; Beyin 2025 <br/> Tous droits réservés.</p>
+        <p class="mb-0">
+          &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
+          <br />
+          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+        </p>
       </div>
     </div>
   </footer>

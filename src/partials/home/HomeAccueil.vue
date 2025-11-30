@@ -53,7 +53,7 @@ const showModal = ref(false)
             Le MIJERCA est né le 2 septembre 1993 avec un objectif clair : évangéliser les jeunes par les jeunes. C'est un creuset de grâce, un lieu idéal pour grandir dans la foi, partager la Parole de Dieu et avancer ensemble vers la sainteté.
           </p>
           <ul class="mi-list">
-            <li><i class="mdi mdi-star"></i> Conversion mature en la personne de Jésus-Christ.</li>
+            <li><i class="mdi mdi-star"></i>Conversion mature en la personne de Jésus-Christ.</li>
             <li><i class="mdi mdi-fire"></i> Accueil de la personne et de la manifestation de l’Esprit-Saint.</li>
             <li><i class="mdi mdi-book"></i> Formation à la prière, à la Parole et à l'évangélisation.</li>
           </ul>
@@ -145,9 +145,9 @@ const showModal = ref(false)
           <!-- JDM -->
           <div class="mi-carousel-item">
             <div class="card mi-card mi-card-hover">
-              <img :src="img9" class="card-img-top mi-card-img" alt="Journée Diocésaine des Jeunes">
+              <img :src="img9" class="card-img-top mi-card-img" alt="Journée Diocésaine du Mijerca">
               <div class="card-body">
-                <h5 class="mi-card-title">🤝 Journée Diocésaine des Jeunes (JDM)</h5>
+                <h5 class="mi-card-title">🤝 Journée Diocésaine du Mijerca (JDM)</h5>
                 <p class="mi-card-text">
                   Rassemblement annuel (17 mai) de tous les jeunes du Renouveau Catholique.
                 </p>
@@ -195,7 +195,7 @@ const showModal = ref(false)
           Prêt à vivre une expérience de foi renouvelée ?
         </h2>
         <p class="lead mi-text-lg mb-4">
-          Rejoignez la communauté MIJERCA. Participez, partagez et grandissez spirituellement avec nous.
+          Rejoignez le Ministère des Jeunes du Renouveau Catholique et suivez en temps réel toutes nos activités.
         </p>
         <a href="/sign-up" class="btn mi-btn-primary mi-btn-lg mi-btn-pulse" style="color: #4A90E2;">
           S'enregistrer maintenant

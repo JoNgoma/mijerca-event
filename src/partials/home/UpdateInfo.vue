@@ -94,7 +94,9 @@ function filterDoyennes() {
   filteredDoyennes.value = selectedSector
     ? doyennes.value.filter(d => d.sector === selectedSector["@id"])
     : []
-  doyenne.value = filteredDoyennes.value[0]?.name || ""
+  
+  // MODIFICATION : Supprime la réinitialisation automatique:
+  // doyenne.value = filteredDoyennes.value[0]?.name || "" 
   filterParoisses()
 }
 
@@ -103,13 +105,15 @@ function filterParoisses() {
   filteredParoisses.value = selectedDoyenne
     ? paroisses.value.filter(p => p.doyenne === selectedDoyenne["@id"])
     : []
-  paroisse.value = filteredParoisses.value[0]?.name || ""
+  
+  // MODIFICATION : Supprime la réinitialisation automatique:
+  // paroisse.value = filteredParoisses.value[0]?.name || "" 
 }
 
 // 🔹 Chargement données secteurs/doyennés/paroisses et personne avec pagination
 onMounted(async () => {
   try {
-    // Chargement paginé de toutes les données
+    // ... (Chargement paginé des données secteurs, doyennes, paroisses, users) ...
     const [sectorData, doyenneData, paroisseData, userData] = await Promise.all([
       fetchAllPages(`${API_URL}/sectors`),
       fetchAllPages(`${API_URL}/doyennes`),
@@ -121,16 +125,13 @@ onMounted(async () => {
     doyennes.value = doyenneData || []
     paroisses.value = paroisseData || []
     users.value = userData || []
-
-    console.log('📊 Données chargées:', {
-      sectors: sectors.value.length,
-      doyennes: doyennes.value.length,
-      paroisses: paroisses.value.length,
-      users: users.value.length
-    })
-
+    
+    // Initialisation du secteur par défaut (si non en mode modification)
     if(sectors.value.length) sector.value = sectors.value[0].name
-    filterDoyennes()
+    
+    // Variables temporaires pour stocker les noms corrects de la personne
+    let personDoyenneName = ''
+    let personParoisseName = ''
 
     // 🔹 Charger les infos de la personne à modifier
     const personId = route.query.id
@@ -141,25 +142,41 @@ onMounted(async () => {
         gender.value = p.gender
         fullName.value = p.fullName
         phoneNumber.value = p.phoneNumber.replace(/(\d{4})(\d{3})(\d{3})/, '$1 $2 $3')
+        
+        // 1. Définir le secteur
         sector.value = sectors.value.find(s => s["@id"] === p.sector)?.name || ""
-        filterDoyennes()
-        doyenne.value = filteredDoyennes.value.find(d => d["@id"] === p.doyenne)?.name || ""
+        
+        // 2. Stocker les noms pour éviter qu'ils soient écrasés
+        personDoyenneName = doyennes.value.find(d => d["@id"] === p.doyenne)?.name || ""
+        personParoisseName = paroisses.value.find(pa => pa["@id"] === p.paroisse)?.name || ""
+
+        // 3. Filtrer les doyennés (basé sur le secteur)
+        filterDoyennes() 
+        
+        // 4. Appliquer le doyenné de la personne
+        doyenne.value = personDoyenneName
+
+        // 5. Filtrer les paroisses (basé sur le doyenné appliqué)
         filterParoisses()
-        paroisse.value = filteredParoisses.value.find(pa => pa["@id"] === p.paroisse)?.name || ""
 
-        // 🔹 Définir les rôles
+        // 6. Appliquer la paroisse de la personne
+        paroisse.value = personParoisseName
+
+        // 🔹 Définir les rôles et isResponsable (logique conservée)
         roles.value.forEach(r => r.value = !!p[r.key])
-
-        // 🔹 Définir isResponsable si au moins un rôle est true
         isResponsable.value = roles.value.some(r => r.value)
         
         console.log('👤 Personne chargée pour modification:', p.fullName)
       }
+    } else {
+        // Si c'est un NOUVEL ajout, initialiser les listes
+        filterDoyennes();
+        doyenne.value = filteredDoyennes.value[0]?.name || "";
+        filterParoisses();
+        paroisse.value = filteredParoisses.value[0]?.name || "";
     }
   } catch(err) {
-    console.error("Erreur chargement :", err)
-    error.value = "Erreur lors du chargement des données."
-    toast.error("Erreur lors du chargement des données.")
+    // ... (gestion d'erreur) ...
   }
 })
 
@@ -335,7 +352,13 @@ function submitModal() {
         </form>
       </div>
 
-      <div class="splash-footer text-center">&copy; 2025 Beyin</div>
+      <div class="splash-footer text-center">
+        <p class="copyright mb-0">
+          &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
+          <br />
+          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+        </p>
+      </div>
 
       <!-- Modal pour responsable -->
       <div v-if="showModal" class="modal-backdrop">

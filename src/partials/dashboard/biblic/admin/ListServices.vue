@@ -23,12 +23,49 @@ const people = ref([])
 const paroisses = ref([])
 const participators = ref([])
 const removals = ref([])
-const serviceRecords = ref([]) // ✅ données de service
+const serviceRecords = ref([])
 
 const selectedUser = ref(null)
 const showModal = ref(false)
 const showConfirm = ref(false)
 const removing = ref(false)
+
+// === FONCTION PAGINATION OPTIMISÉE ===
+async function fetchAllPages(baseUrl) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+  
+  try {
+    while (hasMore) {
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
+      
+      const response = await axios.get(url);
+      const data = response.data;
+      
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+        
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 || 
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+    
+    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    return allItems;
+  } catch (error) {
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
+    throw error;
+  }
+}
 
 function extractIdFromUrl(url) {
   if (!url) return null
@@ -36,7 +73,7 @@ function extractIdFromUrl(url) {
   return parts.pop()
 }
 
-// === FETCH DES DONNÉES PRINCIPALES ===
+// === FETCH DES DONNÉES PRINCIPALES AVEC PAGINATION ===
 async function fetchData() {
   try {
     loading.value = true
@@ -48,11 +85,11 @@ async function fetchData() {
       participatorsRes,
       removalsRes
     ] = await Promise.all([
-      axios.get(`${API}/users`).then((r) => r.data?.member || []),
-      axios.get(`${API}/people`).then((r) => r.data?.member || []),
-      axios.get(`${API}/paroisses`).then((r) => r.data?.member || []),
-      axios.get(`${API}/participators`).then((r) => r.data?.member || []),
-      axios.get(`${API}/removals`).then((r) => r.data?.member || []),
+      fetchAllPages(`${API}/users`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/paroisses`),
+      fetchAllPages(`${API}/participators`),
+      fetchAllPages(`${API}/removals`),
     ])
 
     users.value = usersRes
@@ -70,7 +107,7 @@ async function fetchData() {
   }
 }
 
-// === FETCH DES SERVICE RECORDS ===
+// === FETCH DES SERVICE RECORDS AVEC PAGINATION ===
 async function fetchServiceRecords() {
   const serviceKey =
     props.id === 'adm'
@@ -86,8 +123,8 @@ async function fetchServiceRecords() {
   if (!serviceKey) return
 
   try {
-    const res = await axios.get(`${API}/${serviceKey}`)
-    serviceRecords.value = res.data?.member || []
+    const res = await fetchAllPages(`${API}/${serviceKey}`)
+    serviceRecords.value = res || []
   } catch (err) {
     console.error('Erreur chargement services:', err)
   }

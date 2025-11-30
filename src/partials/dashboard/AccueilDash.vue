@@ -9,7 +9,7 @@ Chart.register(DoughnutController, ArcElement, Tooltip, Legend);
 // Variables principales
 // ==========================
 const route = useRoute();
-const { currentService } = useServiceContext();   
+const { currentService } = useServiceContext();
 
 const sectorService = computed(() => route.params.serviceType || currentService.value.position);
 const sector = computed(() => {
@@ -44,37 +44,43 @@ const API_URL = import.meta.env.VITE_API_BASE_URL;
 const token = localStorage.getItem("token");
 
 // ==========================
+// État de chargement
+// ==========================
+const isLoading = ref(true);
+const loadingMessage = ref("Chargement des données...");
+
+// ==========================
 // PAGINATION OPTIMISÉE
 // ==========================
 async function fetchAllPages(baseUrl, options = {}) {
   let allItems = [];
   let currentPage = 1;
   let hasMore = true;
-  
+
   try {
     while (hasMore) {
       const url = new URL(baseUrl);
       url.searchParams.set('page', currentPage);
-      
+
       const response = await fetch(url, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           ...options.headers
         },
         ...options
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member];
-        
+
         // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
+        if (data.member.length === 0 ||
             data.member.length < 30 ||
             currentPage >= 50) {
           hasMore = false;
@@ -85,7 +91,7 @@ async function fetchAllPages(baseUrl, options = {}) {
         hasMore = false;
       }
     }
-    
+
     console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
@@ -154,7 +160,7 @@ function updateTimeStats(people) {
   people.forEach(p => {
     const created = new Date(p.createdAt);
     const secRef = normalizeRef(p.sector || p.sectorName || "");
-    
+
     let key = null;
     if (secRef.includes("/sectors/1") || secRef.includes("KIN EST")) key = "est";
     else if (secRef.includes("/sectors/2") || secRef.includes("KIN CENTRE")) key = "centre";
@@ -179,9 +185,10 @@ function updateTimeStats(people) {
 // ==========================
 async function fetchWidgetData() {
   try {
+    loadingMessage.value = "Chargement des personnes...";
     const people = await fetchAllPages(`${API_URL}/people`);
     console.log('📊 Personnes chargées pour les widgets:', people.length);
-    
+
     updateWidgetData(people);
     updateTimeStats(people);
   } catch (err) {
@@ -191,8 +198,9 @@ async function fetchWidgetData() {
 
 async function fetchSectorId() {
   try {
-    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, { 
-      headers: { Authorization: `Bearer ${token}` } 
+    loadingMessage.value = "Recherche du secteur...";
+    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sector.value)}`, {
+      headers: { Authorization: `Bearer ${token}` }
     });
     const data = await res.json();
     const sec = data.member?.find(s => s.name === sector.value);
@@ -207,11 +215,12 @@ async function fetchSectorId() {
 async function fetchParoissesBySector() {
   if(!sectorRef.value) return [];
   try {
+    loadingMessage.value = "Chargement des paroisses...";
     const paroisses = await fetchAllPages(`${API_URL}/paroisses?sector=${encodeURIComponent(sectorRef.value)}`);
-    return paroisses.map(p => ({ 
-      id: normalizeRef(p['@id']||p.id), 
-      name: p.name||p.fullName||"Paroisse inconnue", 
-      raw: p 
+    return paroisses.map(p => ({
+      id: normalizeRef(p['@id']||p.id),
+      name: p.name||p.fullName||"Paroisse inconnue",
+      raw: p
     }));
   } catch(err) {
     console.error("Erreur fetchParoissesBySector:", err);
@@ -220,28 +229,29 @@ async function fetchParoissesBySector() {
 }
 
 async function fetchDoyennes() {
-  if(!sectorRef.value) { 
-    doyennes.value = []; 
-    topParoisses.value = []; 
-    totalSecteur.value = 0; 
-    return; 
+  if(!sectorRef.value) {
+    doyennes.value = [];
+    topParoisses.value = [];
+    totalSecteur.value = 0;
+    return;
   }
-  
+
   try {
+    loadingMessage.value = "Chargement des doyennés...";
     const people = await fetchAllPages(`${API_URL}/people?sector=${encodeURIComponent(sectorRef.value)}`);
     console.log('📊 Personnes du secteur chargées:', people.length);
-    
+
     const doyMap = {}, paroMap = {};
     people.forEach(p => {
       const doyKey = normalizeRef(p.doyenne)||"";
       const paroKey = normalizeRef(p.paroisse)||"";
       if(!doyMap[doyKey]) doyMap[doyKey] = {
-        id: doyKey, 
-        name: p.doyenneName||"Doyenné inconnu", 
-        paroisses: [], 
+        id: doyKey,
+        name: p.doyenneName||"Doyenné inconnu",
+        paroisses: [],
         totalEffectif: 0
       };
-      if(paroKey) { 
+      if(paroKey) {
         doyMap[doyKey].paroisses.push({
           id: paroKey,
           name: p.paroisseName||null,
@@ -256,10 +266,10 @@ async function fetchDoyennes() {
         paroMap[paroKey].effectif += 1;
       }
     });
-    
+
     totalSecteur.value = people.length;
     const paroissesSecteur = await fetchParoissesBySector();
-    
+
     paroissesSecteur.forEach(par => {
       const key = par.id;
       if(!paroMap[key]) paroMap[key] = {
@@ -269,17 +279,17 @@ async function fetchDoyennes() {
       };
       else if(!paroMap[key].name) paroMap[key].name = par.name;
     });
-    
+
     doyennes.value = Object.values(doyMap);
     topParoisses.value = Object.values(paroMap).sort((a,b) => b.effectif - a.effectif).slice(0,5);
-    
+
     console.log('📊 Doyennés trouvés:', doyennes.value.length);
     console.log('📊 Top paroisses:', topParoisses.value.length);
-    
+
   } catch(err) {
     console.error("Erreur fetchDoyennes:", err);
-    doyennes.value = []; 
-    topParoisses.value = []; 
+    doyennes.value = [];
+    topParoisses.value = [];
     totalSecteur.value = 0;
   }
 }
@@ -288,76 +298,96 @@ async function fetchDoyennes() {
 // SSE - live update
 // ==========================
 function initSSE() {
-  try { 
-    eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`); 
-  } catch { 
-    eventSource.value = null; 
+  try {
+    eventSource.value = new EventSource(`${API_URL.replace("/api","")}/sse/people`);
+  } catch {
+    eventSource.value = null;
   }
-  
+
   if(!eventSource.value) return;
-  
+
   eventSource.value.onmessage = async event => {
     const p = JSON.parse(event.data||"{}");
     if(sectorRef.value && normalizeRef(p.sector) === sectorRef.value) await fetchDoyennes();
     updateWidgetData([p]);
   };
-  
-  eventSource.value.onerror = err => { 
-    console.error("SSE error:", err); 
-    try { 
-      eventSource.value.close(); 
-    } catch { 
-      return; 
-    } 
+
+  eventSource.value.onerror = err => {
+    console.error("SSE error:", err);
+    try {
+      eventSource.value.close();
+    } catch {
+      return;
+    }
   };
+}
+
+// ==========================
+// Initialisation des données
+// ==========================
+async function initializeData() {
+  try {
+    isLoading.value = true;
+    loadingMessage.value = "Initialisation...";
+    
+    await Promise.all([
+      fetchSectorId(),
+      fetchWidgetData()
+    ]);
+
+    // Initialiser le chart après le chargement des données
+    const ctx = document.getElementById('main-chart');
+    if (ctx) {
+      chart.value = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['KIN EST', 'KIN CENTRE', 'KIN OUEST'],
+          datasets: [{
+            data: [
+              statsTime.value[currentFilter.value].est,
+              statsTime.value[currentFilter.value].centre,
+              statsTime.value[currentFilter.value].ouest
+            ],
+            backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc']
+          }]
+        },
+        options: {
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const dataset = ctx.dataset.data;
+                  const total = dataset.reduce((a, b) => a + Number(b), 0);
+                  const value = Number(ctx.raw);
+                  const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                  return `${ctx.label}: ${value} (${percent}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    initSSE();
+    
+  } catch (error) {
+    console.error('Erreur lors du chargement des données:', error);
+  } finally {
+    isLoading.value = false;
+  }
 }
 
 // ==========================
 // Chart & Lifecycle
 // ==========================
 onMounted(async () => {
-  await fetchSectorId();
-  await fetchWidgetData();
-
-  const ctx = document.getElementById('main-chart');
-  if (ctx) {
-    chart.value = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['KIN EST', 'KIN CENTRE', 'KIN OUEST'],
-        datasets: [{
-          data: [
-            statsTime.value[currentFilter.value].est,
-            statsTime.value[currentFilter.value].centre,
-            statsTime.value[currentFilter.value].ouest
-          ],
-          backgroundColor: ['#4e73df', '#1cc88a', '#36b9cc']
-        }]
-      },
-      options: {
-        plugins: {
-          legend: { position: 'bottom' },
-          tooltip: {
-            callbacks: {
-              label: ctx => {
-                const dataset = ctx.dataset.data;
-                const total = dataset.reduce((a, b) => a + Number(b), 0);
-                const value = Number(ctx.raw);
-                const percent = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${ctx.label}: ${value} (${percent}%)`;
-              }
-            }
-          }
-        }
-      }
-    });
-  }
-
-  initSSE();
+  await initializeData();
 });
 
-onUnmounted(() => { 
-  if(eventSource.value) eventSource.value.close(); 
+onUnmounted(() => {
+  if(eventSource.value) eventSource.value.close();
 });
 
 // Mettre à jour chart automatiquement
@@ -381,8 +411,20 @@ function setFilter(filter){ currentFilter.value = filter; }
 <template>
   <div class="be-content">
     <div class="main-content container-fluid">
-      <!-- widgets (inchangés) -->
-      <div class="row">
+      
+      <!-- Loading Overlay -->
+      <div v-if="isLoading" class="loading-overlay">
+        <div class="loading-content text-center">
+          <div class="spinner-border text-primary mb-3" style="width: 3rem; height: 3rem;" role="status">
+            <span class="visually-hidden"></span>
+          </div>
+          <h5 class="text-primary">Chargement du tableau de bord</h5>
+          <p class="text-muted">Veuillez patienter...</p>
+        </div>
+      </div>
+
+      <!-- widgets -->
+      <div class="row" :class="{ 'blur-content': isLoading }">
         <div class="col-12 col-lg-6 col-xl-3" v-for="(d, i) in [{k:'est',label:'KIN EST'},{k:'centre',label:'KIN CENTRE'},{k:'ouest',label:'KIN OUEST'},{k:'total',label:'KINSHASA'}]" :key="i">
           <div class="widget widget-tile">
             <div class="chart sparkline" :id="`spark${i+1}`"></div>
@@ -411,17 +453,22 @@ function setFilter(filter){ currentFilter.value = filter; }
       </div>
 
       <!-- Participation paroisse -->
-      <div class="row">
+      <div class="row" :class="{ 'blur-content': isLoading }">
         <div class="col-12 col-lg-4">
           <div class="card">
             <div class="card-header card-header-divider pb-3">Participation paroisse</div>
             <div class="card-body pt-2">
-              <div v-if="topParoisses.length === 0" class="text-muted">Aucune paroisse trouvée.</div>
+              <div v-if="topParoisses.length === 0 && !isLoading" class="text-muted">Aucune paroisse trouvée.</div>
+              <div v-if="isLoading" class="text-center py-3">
+                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                <span class="text-muted">Chargement des paroisses...</span>
+              </div>
 
               <div
                 v-for="p in topParoisses"
                 :key="p.id || p.name"
                 class="mb-3"
+                v-show="!isLoading"
               >
                 <!-- Nom en haut -->
                 <div class="fw-bold text-dark mb-1">
@@ -447,7 +494,7 @@ function setFilter(filter){ currentFilter.value = filter; }
           </div>
         </div>
 
-        <!-- Le reste de ton layout (inchangé) -->
+        <!-- Le reste de ton layout -->
         <div class="col-12 col-lg-4">
           <div class="widget be-loading">
             <div class="widget-head">
@@ -496,16 +543,18 @@ function setFilter(filter){ currentFilter.value = filter; }
           </div>
         </div>
       </div>
-      <div class="row">
+      <div class="row" :class="{ 'blur-content': isLoading }">
         <div class="col-md-12">
           <div class="widget widget-fullwidth be-loading">
-            <div class="widget-head d-flex justify-content-between align-items-center">
-              <span class="title">Flow d'enregistrement</span>
-              <div class="btn-group">
-                <button class="btn btn-secondary" :class="{active: currentFilter==='week'}" @click="setFilter('week')">Semaine</button>
-                <button class="btn btn-secondary" :class="{active: currentFilter==='month'}" @click="setFilter('month')">Mois</button>
-                <button class="btn btn-secondary" :class="{active: currentFilter==='year'}" @click="setFilter('year')">Année</button>
-                <button class="btn btn-secondary" :class="{active: currentFilter==='today'}" @click="setFilter('today')">Aujourd'hui</button>
+            <div class="widget-head">
+              <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
+                <span class="title mb-2 mb-md-0">Flow d'enregistrement</span>
+                <div class="btn-group flex-wrap" role="group">
+                  <button class="btn btn-secondary btn-sm" :class="{active: currentFilter==='week'}" @click="setFilter('week')">Semaine</button>
+                  <button class="btn btn-secondary btn-sm" :class="{active: currentFilter==='month'}" @click="setFilter('month')">Mois</button>
+                  <button class="btn btn-secondary btn-sm" :class="{active: currentFilter==='year'}" @click="setFilter('year')">Année</button>
+                  <button class="btn btn-secondary btn-sm" :class="{active: currentFilter==='today'}" @click="setFilter('today')">Aujourd'hui</button>
+                </div>
               </div>
             </div>
 
@@ -548,20 +597,97 @@ function setFilter(filter){ currentFilter.value = filter; }
             </div>
           </div>
         </div>
-      </div>  
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
+/* Loading Overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.loading-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+}
+
+/* Effet de flou pendant le chargement */
+.blur-content {
+  filter: blur(2px);
+  pointer-events: none;
+  user-select: none;
+}
+
+/* Styles existants */
 #main-chart {
-  width: 35rem;    /* largeur souhaitée */
-  height: 35rem;   /* hauteur souhaitée */
-  margin: 0 auto;  /* centrer horizontalement */
+  width: 28rem;
+  height: 28rem;
+  margin: 0 auto;
 }
 .chart-title {
   font-weight: bold;
   font-size: 1.2rem;
   color: #333;
+}
+
+/* Adaptations pour mobile */
+@media (max-width: 768px) {
+  #main-chart {
+    width: 100%;
+    height: auto;
+    max-width: 20rem;
+    max-height: 20rem;
+  }
+
+  .btn-group {
+    gap: 0.25rem;
+  }
+
+  .btn-group .btn {
+    flex: 1;
+    min-width: 80px;
+    font-size: 0.8rem;
+    padding: 0.375rem 0.5rem;
+  }
+
+  .widget-head .title {
+    font-size: 1.1rem;
+    text-align: center;
+    width: 100%;
+  }
+
+  .loading-content {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .btn-group {
+    width: 100%;
+  }
+
+  .btn-group .btn {
+    flex: 1 0 45%;
+    margin: 0.125rem;
+  }
+
+  .widget-head {
+    padding: 1rem 0.5rem;
+  }
 }
 </style>

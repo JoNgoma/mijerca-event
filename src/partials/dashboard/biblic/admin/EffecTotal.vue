@@ -222,9 +222,6 @@ onMounted(async () => {
 
     <div v-else>
       <div class="card shadow-sm">
-        <div class="card-header bg-light">
-          <small class="text-muted"> {{ campName  }}</small>
-        </div>
         <div class="table-container">
           <table class="table table-hover align-middle mb-0">
             <thead class="table-light sticky-header">
@@ -295,35 +292,6 @@ onMounted(async () => {
         </div>
       </div>
 
-      <!-- Résumé -->
-      <div class="mt-3">
-        <div class="row text-center">
-          <div class="col">
-            <div class="card bg-light">
-              <div class="card-body py-2">
-                <small class="text-muted">Services analysés</small>
-                <div class="h5 mb-0">{{ viewServices.length }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col">
-            <div class="card bg-light">
-              <div class="card-body py-2">
-                <small class="text-muted">Personnes totales</small>
-                <div class="h5 mb-0 text-success">{{ allPeople.length }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col">
-            <div class="card bg-light">
-              <div class="card-body py-2">
-                <small class="text-muted">Responsable en ordre</small>
-                <div class="h5 mb-0 text-primary">{{ allUsers.length }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
