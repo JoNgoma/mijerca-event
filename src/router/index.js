@@ -3,6 +3,15 @@ import { createRouter, createWebHistory } from 'vue-router'
 // Home
 import HomeView from '../views/HomeView.vue'
 import HomeAccueil from '../partials/home/HomeAccueil.vue'
+import UpdateInfo from '@/partials/home/UpdateInfo.vue'
+import SignJeune from '@/partials/home/SignJeune.vue'
+import HomeEvents from '@/partials/home/HomeEvents.vue'
+import ForgotPasswordPage from '../views/auth/ForgotPasswordPage.vue'
+import ResetPasswordPage from '../views/auth/ResetPasswordPage.vue'
+import HomeParoisses from '../partials/home/HomeParoisses.vue'
+import HomeNews from '../partials/home/paroisses/HomeNews.vue'
+import DoyennesSecteur from '../partials/home/paroisses/DoyennesSecteur.vue'
+import ParoissesSecteur from '../partials/home/paroisses/ParoissesSecteur.vue'
 
 // Dashboard
 import DashboardView from '@/views/DashboardView.vue'
@@ -45,11 +54,6 @@ import ParDoyNew from '@/partials/dashboard/paroisses/ParDoyNew.vue'
 
 // 404
 import PageError404 from '@/partials/dashboard/PageError404.vue'
-import UpdateInfo from '@/partials/home/UpdateInfo.vue'
-import SignJeune from '@/partials/home/SignJeune.vue'
-import HomeEvents from '@/partials/home/HomeEvents.vue'
-import ForgotPasswordPage from '../views/auth/ForgotPasswordPage.vue'
-import ResetPasswordPage from '../views/auth/ResetPasswordPage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -61,6 +65,20 @@ const router = createRouter({
       children: [
         { path: '', name: 'home', component: HomeAccueil },
         { path: 'events', name: 'events', component: HomeEvents },
+        { path: 'paroisses', name: 'paroisses', component: HomeParoisses },
+        { 
+          path: 'paroisses/:secteur', 
+          name: 'paroisses-secteur', 
+          component: ParoissesSecteur,
+
+        },
+        { 
+          path: 'paroisses/doyennes/:secteur', 
+          name: 'doyennes-secteur', 
+          component: DoyennesSecteur,
+
+        },
+        { path: 'news', name: 'news', component: HomeNews, },
         { path: 'sign-up', name: 'signUp', component: SignJeune },
         { path: 'update-info', name: 'updateInfo', component: UpdateInfo },
         { path: 'login', name: 'login', component: LoginPage },

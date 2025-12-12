@@ -1,27 +1,30 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
-import axios from "axios";
-import { useServiceContext } from "@/composables/useServiceContext";
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import axios from 'axios'
+import { useServiceContext } from '@/composables/useServiceContext'
 
-const { currentService } = useServiceContext();
-const LocalisationService = ref(currentService.value.position);
+const { currentService } = useServiceContext()
+const LocalisationService = ref(currentService.value.position)
 
 // Config API
-const API_URL = import.meta.env.VITE_API_BASE_URL;
-const token = localStorage.getItem("token");
+const API_URL = import.meta.env.VITE_API_BASE_URL
+const token = localStorage.getItem('token')
 const isLoading = ref(false)
 
 // Données
-const currentUser = ref(null);
-const currentPerson = ref(null);
-const allPeople = ref([]);
-const doyennes = ref([]);      // noyaux décanaux
-const paroisses = ref([]);      // noyaux paroissiaux
-const dioceses = ref([]);
-const allDoyennes = ref([]);    // liste complète doyennes
-const allParoisses = ref([]);   // liste complète paroisses
-const sectorId = ref(null);
+const currentUser = ref(null)
+const currentPerson = ref(null)
+const allPeople = ref([])
+const doyennes = ref([])
+const paroisses = ref([])
+const dioceses = ref([])
+const allDoyennes = ref([])
+const allParoisses = ref([])
+const sectorId = ref(null)
 const nameService = ref(currentService.value.name)
+
+// Référence pour DataTables
+let dataTable = null
 
 // SSE
 let eventSource = null
@@ -30,87 +33,81 @@ let eventSource = null
 // PAGINATION OPTIMISÉE
 // ==========================
 async function fetchAllPages(baseUrl, options = {}) {
-  let allItems = [];
-  let currentPage = 1;
-  let hasMore = true;
-  
+  let allItems = []
+  let currentPage = 1
+  let hasMore = true
+
   try {
     while (hasMore) {
-      const url = new URL(baseUrl);
-      url.searchParams.set('page', currentPage);
-      
+      const url = new URL(baseUrl)
+      url.searchParams.set('page', currentPage)
+
       const response = await fetch(url, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          ...options.headers
+          ...options.headers,
         },
-        ...options
-      });
-      
+        ...options,
+      })
+
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
-      
-      const data = await response.json();
-      
+
+      const data = await response.json()
+
       if (data.member && Array.isArray(data.member)) {
-        allItems = [...allItems, ...data.member];
-        
-        // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
-            data.member.length < 30 ||
-            currentPage >= 50) {
-          hasMore = false;
+        allItems = [...allItems, ...data.member]
+
+        if (data.member.length === 0 || data.member.length < 30 || currentPage >= 50) {
+          hasMore = false
         } else {
-          currentPage++;
+          currentPage++
         }
       } else {
-        hasMore = false;
+        hasMore = false
       }
     }
-    
-    return allItems;
+
+    return allItems
   } catch (error) {
-    console.error('Erreur lors de la récupération paginée:', error);
-    throw error;
+    console.error('Erreur lors de la récupération paginée:', error)
+    throw error
   }
 }
 
-// Version axios pour la pagination
 async function fetchAllPagesAxios(baseUrl) {
-  let allItems = [];
-  let currentPage = 1;
-  let hasMore = true;
-  
+  let allItems = []
+  let currentPage = 1
+  let hasMore = true
+
   try {
     while (hasMore) {
-      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
-      
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`
+
       const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      const data = response.data;
-      
+        headers: { Authorization: `Bearer ${token}` },
+      })
+
+      const data = response.data
+
       if (data.member && Array.isArray(data.member)) {
-        allItems = [...allItems, ...data.member];
-        
-        if (data.member.length === 0 || 
-            data.member.length < 30 ||
-            currentPage >= 50) {
-          hasMore = false;
+        allItems = [...allItems, ...data.member]
+
+        if (data.member.length === 0 || data.member.length < 30 || currentPage >= 50) {
+          hasMore = false
         } else {
-          currentPage++;
+          currentPage++
         }
       } else {
-        hasMore = false;
+        hasMore = false
       }
     }
-    
-    return allItems;
+
+    return allItems
   } catch (error) {
-    console.error('Erreur lors de la récupération paginée:', error);
-    throw error;
+    console.error('Erreur lors de la récupération paginée:', error)
+    throw error
   }
 }
 
@@ -119,163 +116,185 @@ async function fetchAllPagesAxios(baseUrl) {
 // ==========================
 const sectorName = computed(() => {
   switch (currentService.value?.position) {
-    case "est": return "KIN EST";
-    case "centre": return "KIN CENTRE";
-    case "ouest": return "KIN OUEST";
-    default: return "KIN EST";
+    case 'est':
+      return 'KIN EST'
+    case 'centre':
+      return 'KIN CENTRE'
+    case 'ouest':
+      return 'KIN OUEST'
+    default:
+      return 'KIN EST'
   }
-});
+})
+
+// ==========================
+// Initialiser/détruire DataTables
+// ==========================
+function initDataTable() {
+  // Détruire l'instance existante
+  if (dataTable) {
+    dataTable.destroy()
+    dataTable = null
+  }
+
+  // Attendre que le DOM soit mis à jour
+  nextTick(() => {
+    const tableElement = document.getElementById('table1')
+    if (tableElement) {
+      dataTable = $(tableElement).DataTable({
+        responsive: true,
+        pageLength: 10,
+        language: {
+          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+        },
+        order: [[0, 'asc']],
+        scrollY: '45rem', // Hauteur fixe pour le défilement
+        scrollCollapse: true,
+        paging: true
+      })
+    }
+  })
+}
+
+function destroyDataTable() {
+  if (dataTable) {
+    dataTable.destroy()
+    dataTable = null
+  }
+}
 
 // ==========================
 // Charger l'utilisateur connecté
 // ==========================
 async function fetchCurrentUser() {
   try {
-    const username = localStorage.getItem("userPhone");
-    if (!token || !username) return;
+    const username = localStorage.getItem('userPhone')
+    if (!token || !username) return
 
     const res = await axios.get(`${API_URL}/users?username=${encodeURIComponent(username)}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    currentUser.value = res.data.member?.find(u => u.username === username);
-
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    currentUser.value = res.data.member?.find((u) => u.username === username)
+  
     if (currentUser.value) {
-      const personRes = await axios.get(`${API_URL}/people?phoneNumber=${encodeURIComponent(username)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      currentPerson.value = personRes.data.member?.find(p => p.phoneNumber === username) || null;
+      // Récupérer toutes les personnes pour trouver celle correspondante
+      const people = await fetchAllPagesAxios(`${API_URL}/people`)
+      currentPerson.value = people.find((p) => p.phoneNumber === username)
     }
   } catch (err) {
-    console.error("❌ Erreur récupération user", err);
+    console.error('❌ Erreur récupération user', err)
   }
 }
 
 // ==========================
-// Récupérer toutes les paroisses et doyennes (avec pagination)
+// Récupérer toutes les paroisses et doyennes
 // ==========================
 async function fetchAllParoisses() {
-  try { 
-    allParoisses.value = await fetchAllPagesAxios(`${API_URL}/paroisses`);
-    console.log('📊 Toutes les paroisses chargées:', allParoisses.value.length);
-  } catch (err) { 
-    console.error("❌ Erreur récupération toutes paroisses", err); 
+  try {
+    allParoisses.value = await fetchAllPagesAxios(`${API_URL}/paroisses`)
+  } catch (err) {
+    console.error('❌ Erreur récupération toutes paroisses', err)
   }
 }
 
 async function fetchAllDoyennes() {
-  try { 
-    allDoyennes.value = await fetchAllPagesAxios(`${API_URL}/doyennes`);
-    console.log('📊 Tous les doyennes chargés:', allDoyennes.value.length);
-  } catch (err) { 
-    console.error("❌ Erreur récupération toutes doyennes", err); 
+  try {
+    allDoyennes.value = await fetchAllPagesAxios(`${API_URL}/doyennes`)
+  } catch (err) {
+    console.error('❌ Erreur récupération toutes doyennes', err)
   }
 }
 
 // ==========================
-// Fetch doyennes, paroisses, diocèses, personnes (avec pagination)
+// Fetch doyennes, paroisses, diocèses
 // ==========================
 async function fetchSectorId() {
   try {
     isLoading.value = true
+    
+    // D'abord récupérer le secteur
     const res = await axios.get(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const sec = res.data.member?.find(s => s.name === sectorName.value);
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    const sec = res.data.member?.find((s) => s.name === sectorName.value)
+    
     if (sec) {
-      sectorId.value = sec.id;
+      sectorId.value = sec.id
+      // Charger les données en parallèle
       await Promise.all([
-        fetchParoisses(),
-        fetchDoyennes(),
-        fetchPeople(),
-        fetchDioceses(),
         fetchAllParoisses(),
-        fetchAllDoyennes()
-      ]);
+        fetchAllDoyennes(),
+        fetchPeople(), // Cette fonction va filtrer selon le service
+      ])
+      
+      // Après chargement des données, initialiser DataTables
+      setTimeout(() => {
+        initDataTable()
+      }, 100)
     }
   } catch (err) {
-    console.error("❌ Erreur récupération secteur", err);
+    console.error('❌ Erreur récupération secteur', err)
   } finally {
     isLoading.value = false
   }
 }
 
 // ==========================
-// Fetch doyennes (noyau décanal) avec pagination
-async function fetchDoyennes() {
-  try {
-    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
-    doyennes.value = allPeopleData.filter(p => p.doyenne === currentPerson.value?.doyenne && p.isDecanal) || [];
-    console.log('📊 Noyaux décanaux chargés:', doyennes.value.length);
-  } catch (err) { 
-    console.error("❌ Erreur récupération doyennes", err); 
-  }
-}
-
-// ==========================
-// Fetch paroisses (noyau paroissial) avec pagination
-async function fetchParoisses() {
-  try {
-    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
-    paroisses.value = allPeopleData.filter(p => p.paroisse === currentPerson.value?.paroisse && p.isNoyau) || [];
-    console.log('📊 Noyaux paroissiaux chargés:', paroisses.value.length);
-  } catch (err) { 
-    console.error("❌ Erreur récupération paroisses", err); 
-  }
-}
-
-// ==========================
-// Fetch diocèses (isDioces=true) avec pagination
-async function fetchDioceses() {
-  try {
-    const allPeopleData = await fetchAllPagesAxios(`${API_URL}/people`);
-    dioceses.value = allPeopleData.filter(p => p.isDicoces) || [];
-    console.log('📊 Noyaux diocésains chargés:', dioceses.value.length);
-  } catch (err) { 
-    console.error("❌ Erreur récupération diocèses", err); 
-  }
-}
-
-// ==========================
-// Fetch toutes les personnes avec pagination
+// Fetch et filtrer les personnes selon le service
 // ==========================
 async function fetchPeople() {
   try {
-    const people = await fetchAllPagesAxios(`${API_URL}/people`);
-    console.log('📊 Toutes les personnes chargées:', people.length);
+    const people = await fetchAllPagesAxios(`${API_URL}/people`)
+    
+    // DEBUG: Afficher les données brutes
+    console.log('📊 Toutes les personnes chargées:', people.length)
+    console.log('📍 Service actuel:', LocalisationService.value)
+    console.log('👤 Personne connectée:', currentPerson.value)
 
-    // Filtrage de base
+    // Réinitialiser la liste
+    allPeople.value = []
+
+    // Filtrage selon le service
     switch (LocalisationService.value) {
-      case "jeune":
+      case 'jeune':
         // Tous les jeunes de la même paroisse
-        allPeople.value = people.filter(p => p.paroisse === currentPerson.value?.paroisse);
-        break;
+        if (currentPerson.value?.paroisse) {
+          allPeople.value = people.filter((p) => p.paroisse === currentPerson.value.paroisse)
+          console.log('🎯 Jeunes filtrés par paroisse:', allPeople.value.length)
+        }
+        break
 
-      case "paroissial":
+      case 'paroissial':
         // Noyau paroissial avec même paroisse
-        allPeople.value = people.filter(
-          p => p.paroisse === currentPerson.value?.paroisse && p.isNoyau
-        );
-        break;
+        if (currentPerson.value?.paroisse) {
+          allPeople.value = people.filter(
+            (p) => p.paroisse === currentPerson.value.paroisse && p.isNoyau
+          )
+          console.log('🎯 Noyau paroissial filtré:', allPeople.value.length)
+        }
+        break
 
-      case "decanal":
+      case 'decanal':
         // Noyau décanal avec même doyenné
-        allPeople.value = people.filter(
-          p => p.doyenne === currentPerson.value?.doyenne && p.isDecanal
-        );
-        break;
+        if (currentPerson.value?.doyenne) {
+          allPeople.value = people.filter(
+            (p) => p.doyenne === currentPerson.value.doyenne && p.isDecanal
+          )
+          console.log('🎯 Noyau décanal filtré:', allPeople.value.length)
+        }
+        break
 
-      case "diocesain":
+      case 'diocesain':
         // Tous les diocésains
-        allPeople.value = people.filter(p => p.isDicoces);
-        break;
+        allPeople.value = people.filter((p) => p.isDicoces)
+        console.log('🎯 Diocésains filtrés:', allPeople.value.length)
+        break
 
       default:
-        allPeople.value = [];
+        allPeople.value = []
     }
-
-    console.log('📊 Personnes filtrées pour affichage:', allPeople.value.length);
   } catch (err) {
-    console.error("❌ Erreur récupération personnes", err);
+    console.error('❌ Erreur récupération personnes', err)
   }
 }
 
@@ -283,24 +302,39 @@ async function fetchPeople() {
 // Computed pour l'affichage
 // ==========================
 const jeunes = computed(() => {
-  return (allPeople.value || []).map(p => ({
+  return (allPeople.value || []).map((p) => ({
     ...p,
-    doyenne: allDoyennes.value.find(d => d["@id"] === p.doyenne)?.name || "",
-    paroisse: allParoisses.value.find(pa => pa["@id"] === p.paroisse)?.name || "",
+    doyenne: allDoyennes.value.find((d) => d['@id'] === p.doyenne)?.name || p.doyenne || '',
+    paroisse: allParoisses.value.find((pa) => pa['@id'] === p.paroisse)?.name || p.paroisse || '',
     nom: p.fullName,
-    tel: p.phoneNumber
-  }));
-});
+    tel: p.phoneNumber,
+  }))
+})
+
+// ==========================
+// Watcher pour recréer DataTables quand les données changent
+// ==========================
+watch(jeunes, () => {
+  if (!isLoading.value) {
+    setTimeout(() => {
+      initDataTable()
+    }, 100)
+  }
+}, { deep: true })
 
 // ==========================
 // Actualisation manuelle
 // ==========================
 async function handleRefresh() {
+  destroyDataTable()
   isLoading.value = true
   try {
-    await fetchSectorId();
+    await fetchPeople()
   } finally {
     isLoading.value = false
+    setTimeout(() => {
+      initDataTable()
+    }, 100)
   }
 }
 
@@ -308,43 +342,29 @@ async function handleRefresh() {
 // Montage SSE
 // ==========================
 onMounted(async () => {
-  await fetchCurrentUser();
-  await fetchSectorId();
-
-  // Initialiser DataTables après que les données soient chargées
-  window.App?.init();
-  window.App?.dataTables();
+  await fetchCurrentUser()
+  await fetchSectorId()
 
   // === SSE ===
-  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`);
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-
-    // Ajouter les nouvelles personnes selon secteur et localisation
-    if (!currentPerson.value) return;
-
-    // Diocèse
-    if (data.isDicoces && LocalisationService.value === "diocesain") dioceses.value.push(data);
-
-    // Doyenne
-    if (data.isDecanal && LocalisationService.value === "decanal") doyennes.value.push(data);
-
-    // Paroisse
-    if (data.isNoyau && LocalisationService.value === "paroissial") paroisses.value.push(data);
-
-    // Jeune
-    if (data.paroisse === currentPerson.value.paroisse && LocalisationService.value === "jeune") allPeople.value.push(data);
-  };
+  eventSource = new EventSource(`${API_URL.replace('/api', '')}/sse/people`)
+  
+  eventSource.onmessage = async (event) => {
+    const data = JSON.parse(event.data)
+    
+    // Rafraîchir les données
+    await fetchPeople()
+  }
 
   eventSource.onerror = (err) => {
-    console.error("❌ SSE error", err);
-    eventSource.close();
-  };
-});
+    console.error('❌ SSE error', err)
+    eventSource.close()
+  }
+})
 
 onUnmounted(() => {
-  if (eventSource) eventSource.close();
-});
+  destroyDataTable()
+  if (eventSource) eventSource.close()
+})
 </script>
 
 <template>
@@ -366,14 +386,14 @@ onUnmounted(() => {
               </button> -->
             </div>
             <div class="card-body">
-              <div class="table-container">
+              <div class="table-responsive p-2">
                 <div v-if="isLoading" class="text-center my-5">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden"></span>
                   </div>
                   <p>Chargement des données...</p>
                 </div>
-                <table v-else class="table table-striped table-hover table-fw-widget" id="table1">
+                <table v-else class="table table-striped table-hover" id="table1">
                   <thead>
                     <tr>
                       <th>Nom complet</th>
@@ -385,9 +405,9 @@ onUnmounted(() => {
                   <tbody>
                     <tr
                       v-for="j in jeunes"
-                      :key="j.id"
+                      :key="j.id || j.phoneNumber"
                       :class="{
-                        'bg-noyau text-dark': j.isNoyau
+                        'bg-noyau text-dark': j.isNoyau,
                       }"
                     >
                       <td>{{ j.gender }} {{ j.fullName }}</td>
@@ -409,30 +429,45 @@ onUnmounted(() => {
   </div>
 </template>
 
-<style>
-.table-container {
-  max-height: 44.9rem;
-  overflow-y: auto;
+<style scoped>
+/* Conteneur de la carte avec hauteur limitée */
+.card {
+  max-height: 60rem; /* Hauteur totale de la carte */
+  display: flex;
+  flex-direction: column;
+}
+
+/* Corps de la carte avec hauteur fixe */
+.card-body {
+  flex: 1;
+  overflow: hidden;
+  padding: 0;
+}
+
+/* Conteneur du tableau avec hauteur maximale de 45rem */
+.table-responsive {
+  max-height: 45rem; /* 45rem = 720px */
+  overflow: auto;
   position: relative;
 }
 
-#table1 thead th {
+/* En-tête du tableau fixe */
+.table-responsive table thead {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: #fff;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  z-index: 10;
 }
 
-/* Couleurs personnalisées pour les lignes */
+.table-responsive table thead th {
+  background-color: #fff;
+  box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+/* Style pour les noyaux */
 .bg-noyau {
-  background-color: #d7ddd7 !important; /* vert très clair pour isNoyau */
-  color: black !important; /* texte noir */
-}
-
-/* Hover sur toutes les lignes du tableau */
-#table1 tbody tr:hover {
-  background-color: rgb(239, 249, 237) !important;
+  background-color: #d7ddd7 !important;
   color: black !important;
 }
 
@@ -442,7 +477,57 @@ onUnmounted(() => {
 }
 
 @keyframes fa-spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Ajustement du style DataTables */
+.dataTables_wrapper {
+  width: 100%;
+  max-height: 45rem;
+}
+
+.dataTables_wrapper .dataTables_scroll {
+  max-height: 45rem;
+}
+
+.dataTables_wrapper .dataTables_scrollBody {
+  max-height: calc(45rem - 40px) !important; /* Ajuster selon la hauteur de l'en-tête */
+}
+
+/* Style pour les en-têtes dans le défilement DataTables */
+.dataTables_scrollHead thead th {
+  background-color: #fff;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .table-responsive {
+    max-height: 35rem; /* Réduire sur mobile */
+  }
+  
+  .d-none.d-md-table-cell {
+    display: none !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .table-responsive {
+    max-height: 30rem; /* Réduire encore plus sur petits écrans */
+  }
+  
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .card-header .btn {
+    align-self: flex-end;
+  }
 }
 </style>

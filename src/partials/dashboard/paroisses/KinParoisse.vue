@@ -39,10 +39,81 @@ const users = ref([])
 
 // Rôles de l'utilisateur connecté
 const currentUserRoles = ref(JSON.parse(localStorage.getItem('roles') || '[]'))
-const isAdmin = computed(() => 
-  currentUserRoles.value.includes('ROLE_ADMIN') || 
+const isAdmin = computed(() =>
+  currentUserRoles.value.includes('ROLE_ADMIN') ||
   currentUserRoles.value.includes('ROLE_DIOCESE')
 )
+
+// ==========================
+// FORMATAGE DU NOM COMPLET AVANCÉ
+// ==========================
+const formatFullName = (fullName) => {
+  if (!fullName) return '';
+  
+  // Liste des prépositions et articles à ne pas capitaliser (sauf en début de nom)
+  const lowerCaseWords = ['de', 'du', 'des', 'le', 'la', 'les', 'et', 'à', 'aux', 'en', 'sur', 'sous', 'dans', 'von', 'van'];
+  
+  // Liste des noms composés spéciaux
+  const specialCases = {
+    'mcdonald': 'McDonald',
+    'macdonald': 'MacDonald',
+    'o\'connor': 'O\'Connor',
+    'd\'artagnan': 'D\'Artagnan',
+    'de la': 'De La',
+    'van der': 'Van Der',
+    'de l\'': 'De L\'',
+    'des ': 'Des ',
+    'du ': 'Du ',
+    'del ': 'Del '
+  };
+  
+  // Convertir en minuscules
+  let formatted = fullName.toLowerCase().trim();
+  
+  // Appliquer les cas spéciaux d'abord
+  Object.entries(specialCases).forEach(([key, value]) => {
+    if (formatted.startsWith(key)) {
+      formatted = value + formatted.slice(key.length);
+    }
+  });
+  
+  // Séparer par espaces
+  const words = formatted.split(/\s+/);
+  
+  // Capitaliser chaque mot selon les règles
+  const resultWords = words.map((word, index) => {
+    // Capitaliser tous les mots en première position
+    if (index === 0) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+    
+    // Ne pas capitaliser les petits mots (sauf s'ils font partie d'un nom composé)
+    if (lowerCaseWords.includes(word.toLowerCase())) {
+      // Vérifier si c'est une préposition entre deux parties du nom
+      if (index < words.length - 1 && words[index + 1].length > 2) {
+        return word.toLowerCase();
+      }
+    }
+    
+    // Capitaliser les autres mots
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+  
+  // Rejoindre les mots
+  let result = resultWords.join(' ');
+  
+  // Gérer les tirets
+  result = result.replace(/-\s*/g, '-').replace(/([a-z])-([a-z])/gi, (match, p1, p2) => {
+    return p1.toUpperCase() + '-' + p2.toUpperCase();
+  });
+  
+  // Gérer les apostrophes
+  result = result.replace(/'\s*/g, '\'').replace(/([a-z])'([a-z])/gi, (match, p1, p2) => {
+    return p1.toUpperCase() + '\'' + p2.toUpperCase();
+  });
+  
+  return result;
+};
 
 // ==========================
 // PAGINATION OPTIMISÉE
@@ -51,31 +122,31 @@ async function fetchAllPages(baseUrl, options = {}) {
   let allItems = [];
   let currentPage = 1;
   let hasMore = true;
-  
+
   try {
     while (hasMore) {
       const url = new URL(baseUrl);
       url.searchParams.set('page', currentPage);
-      
+
       const response = await fetch(url, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           ...options.headers
         },
         ...options
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member];
-        
+
         // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
+        if (data.member.length === 0 ||
             data.member.length < 30 ||
             currentPage >= 50) {
           hasMore = false;
@@ -86,7 +157,7 @@ async function fetchAllPages(baseUrl, options = {}) {
         hasMore = false;
       }
     }
-    
+
     return allItems;
   } catch (error) {
     console.error('Erreur lors de la récupération paginée:', error);
@@ -125,12 +196,16 @@ async function fetchPeople() {
   isLoading.value = true
   try {
     const peopleData = await fetchAllPages(`${API_URL}/people`);
-    
-    jeunes.value = peopleData
+
+    // Trier les personnes par nom complet (ordre alphabétique)
+    const sortedPeople = peopleData
       .filter(s => s.sector === `/api/sectors/${sectorId.value}`)
+      .sort((a, b) => a.fullName.localeCompare(b.fullName))
       .map(formatPerson) || []
-    
-    console.log('📊 Personnes chargées:', jeunes.value.length);
+
+    jeunes.value = sortedPeople;
+
+    // console.log('📊 Personnes chargées:', jeunes.value.length);
   } catch (err) {
     console.error('Erreur récupération des jeunes', err)
   } finally {
@@ -142,7 +217,7 @@ async function fetchDoyennes() {
   try {
     const doyennesData = await fetchAllPages(`${API_URL}/doyennes`);
     doyennes.value = doyennesData || [];
-    console.log('📊 Doyennés chargés:', doyennes.value.length);
+    // console.log('📊 Doyennés chargés:', doyennes.value.length);
   } catch (err) {
     console.error("Erreur récupération doyennés", err);
   }
@@ -152,7 +227,7 @@ async function fetchParoisses() {
   try {
     const paroissesData = await fetchAllPages(`${API_URL}/paroisses`);
     paroisses.value = paroissesData || [];
-    console.log('📊 Paroisses chargées:', paroisses.value.length);
+    // console.log('📊 Paroisses chargées:', paroisses.value.length);
   } catch (err) {
     console.error("Erreur récupération paroisses", err);
   }
@@ -162,7 +237,7 @@ async function fetchSectors() {
   try {
     const sectorsData = await fetchAllPages(`${API_URL}/sectors`);
     sectors.value = sectorsData || [];
-    console.log('📊 Secteurs chargés:', sectors.value.length);
+    // console.log('📊 Secteurs chargés:', sectors.value.length);
   } catch (err) {
     console.error("Erreur récupération secteurs", err);
   }
@@ -172,7 +247,7 @@ async function fetchUsers() {
   try {
     const usersData = await fetchAllPages(`${API_URL}/users`);
     users.value = usersData || [];
-    console.log('📊 Utilisateurs chargés:', users.value.length);
+    // console.log('📊 Utilisateurs chargés:', users.value.length);
   } catch (err) {
     console.error("Erreur récupération utilisateurs", err);
   }
@@ -203,14 +278,25 @@ function formatPerson(p) {
   const paroisse = paroisses.value.find(pa => pa.id == paroisseId)?.name || `Paroisse ${paroisseId}`
   const sector = sectors.value.find(s => s.id == sectorId)?.name || `Secteur ${sectorId}`
 
+  const formattedFullName = formatFullName(p.fullName);
+  
   return {
     id: p.id,
     doyenne,
     paroisse,
     sector,
-    nom: `${p.gender} ${p.fullName}`,
-    fullName: p.fullName,
+    // Utiliser le nom formaté
+    nom: `${p.gender} ${formattedFullName}`,
+    fullName: formattedFullName, // Stocker le nom formaté
+    originalFullName: p.fullName, // Conserver l'original
     gender: p.gender,
+    createdAt: new Date(p.createdAt).toLocaleDateString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }),
     tel: p.phoneNumber,
     statut,
     doyenneId,
@@ -241,10 +327,18 @@ onMounted(async () => {
   eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
   eventSource.onmessage = (event) => {
     const data = JSON.parse(event.data)
-    console.log("📥 Nouvel enregistrement :", data)
+    // console.log("📥 Nouvel enregistrement :", data)
 
     if (data.sector?.includes(sectorId.value)) {
-      jeunes.value.push(formatPerson(data))
+      // Insérer la nouvelle personne au bon endroit pour maintenir l'ordre alphabétique
+      const newPerson = formatPerson(data)
+      const index = jeunes.value.findIndex(j => j.fullName.localeCompare(newPerson.fullName) > 0)
+
+      if (index === -1) {
+        jeunes.value.push(newPerson)
+      } else {
+        jeunes.value.splice(index, 0, newPerson)
+      }
     }
   }
   eventSource.onerror = (err) => {
@@ -269,14 +363,44 @@ const search = ref('')
 const doyenneOptions = computed(() => [...new Set(jeunes.value.map(j => j.doyenne))])
 const paroisseOptions = computed(() => [...new Set(jeunes.value.map(j => j.paroisse))])
 
-// Filtrage
+// Filtrage avec tri alphabétique maintenu
 const filteredJeunes = computed(() => {
-  return jeunes.value.filter(j =>
+  const filtered = jeunes.value.filter(j =>
     (!filterDoyenne.value || j.doyenne === filterDoyenne.value) &&
     (!filterParoisse.value || j.paroisse === filterParoisse.value) &&
     (!filterStatut.value || j.statut === filterStatut.value) &&
-    (!search.value || j.nom.toLowerCase().includes(search.value.toLowerCase()))
+    (!search.value || j.nom.toLowerCase().includes(search.value.toLowerCase()) ||
+                     j.fullName.toLowerCase().includes(search.value.toLowerCase()))
   )
+
+  // Maintenir l'ordre alphabétique même après filtrage
+  return filtered.sort((a, b) => a.fullName.localeCompare(b.fullName))
+})
+
+// ==========================
+// STATISTIQUES POUR TFOOT
+// ==========================
+const stats = computed(() => {
+  const jeunesFiltres = filteredJeunes.value
+
+  // Compter les doyennés uniques dans les résultats filtrés
+  const doyennesUniques = new Set(jeunesFiltres.map(j => j.doyenne))
+
+  // Compter les paroisses uniques dans les résultats filtrés
+  const paroissesUniques = new Set(jeunesFiltres.map(j => j.paroisse))
+
+  // Compter les jeunes par statut
+  const statutCounts = jeunesFiltres.reduce((acc, jeune) => {
+    acc[jeune.statut] = (acc[jeune.statut] || 0) + 1
+    return acc
+  }, {})
+
+  return {
+    totalJeunes: jeunesFiltres.length,
+    totalDoyennes: doyennesUniques.size,
+    totalParoisses: paroissesUniques.size,
+    statutCounts
+  }
 })
 
 // ==========================
@@ -303,7 +427,7 @@ const validatePhone = (number) => {
   const cleaned = number.replace(/\s+/g, '')
   const validPrefixes = ["081", "082", "083", "084", "085", "089", "09"]
   const hasValidPrefix = validPrefixes.some(prefix => cleaned.startsWith(prefix))
-  
+
   if (!cleaned) {
     return "Le numéro de téléphone est requis."
   }
@@ -329,13 +453,14 @@ const validateFullName = (name) => {
 }
 
 // ==========================
-// Modal et édition - NOUVEAU DESIGN
+// Modal et édition
 // ==========================
 const selectedJeune = ref(null)
 const editForm = ref({
   fullName: '',
   phoneNumber: '',
   gender: '',
+  createdAt:'',
   sector: '',
   doyenne: '',
   paroisse: '',
@@ -352,28 +477,29 @@ const passwordForm = ref({
 const canEditPerson = computed(() => {
   if (!selectedJeune.value) return false
   if (isAdmin.value) return true
-  return !selectedJeune.value.originalData.isNoyau && 
-         !selectedJeune.value.originalData.isDecanal && 
+  return !selectedJeune.value.originalData.isNoyau &&
+         !selectedJeune.value.originalData.isDecanal &&
          !selectedJeune.value.originalData.isDicoces
 })
 
 // Vérifier si la personne a au moins une responsabilité
 const hasResponsibilities = computed(() => {
   if (!selectedJeune.value) return false
-  return selectedJeune.value.originalData.isNoyau || 
-         selectedJeune.value.originalData.isDecanal || 
+  return selectedJeune.value.originalData.isNoyau ||
+         selectedJeune.value.originalData.isDecanal ||
          selectedJeune.value.originalData.isDicoces
 })
 
-function openModal(jeune) { 
+function openModal(jeune) {
   selectedJeune.value = jeune
   isEditing.value = false
   showPasswordSection.value = false
-  
+
   editForm.value = {
     fullName: jeune.fullName,
     phoneNumber: jeune.tel,
     gender: jeune.gender,
+    createdAt: jeune.createdAt,
     sector: jeune.sectorId,
     doyenne: jeune.doyenneId,
     paroisse: jeune.paroisseId,
@@ -385,7 +511,7 @@ function openModal(jeune) {
   updateFilteredParoisses()
 }
 
-function closeModal() { 
+function closeModal() {
   selectedJeune.value = null
   isEditing.value = false
   showPasswordSection.value = false
@@ -427,7 +553,7 @@ function updateFilteredDoyennes() {
   filteredDoyennes.value = selectedSector
       ? doyennes.value.filter(d => d.sector === selectedSector["@id"])
       : []
-    
+
   // Réinitialiser les sélections si nécessaire
   if (!filteredDoyennes.value.some(d => d.id == editForm.value.doyenne)) {
     editForm.value.doyenne = ""
@@ -441,7 +567,7 @@ function updateFilteredParoisses() {
   filteredParoisses.value = selectedDoyenne
     ? paroisses.value.filter(p => p.doyenne === selectedDoyenne["@id"])
     : []
-  
+
   if (!filteredParoisses.value.some(p => p.id == editForm.value.paroisse)) {
     editForm.value.paroisse = ""
   }
@@ -491,11 +617,11 @@ function validateForm() {
 // ==========================
 async function createUserForPerson(person, formData, sectorObj) {
   try {
-    console.log('🆕 Création d\'utilisateur pour la personne:', person.id)
-    
+    // console.log('🆕 Création d\'utilisateur pour la personne:', person.id)
+
     // Déterminer les rôles en fonction des responsabilités
     const roles = []
-    
+
     if (formData.isDicoces) {
       roles.push('ROLE_DIOCESE', 'ROLE_DECANAL', 'ROLE_NOYAU')
     } else if (formData.isDecanal) {
@@ -503,14 +629,14 @@ async function createUserForPerson(person, formData, sectorObj) {
     } else if (formData.isNoyau) {
       roles.push('ROLE_NOYAU')
     }
-    
+
     // Ajouter le rôle du secteur
     if (sectorObj) {
       if (sectorObj["@id"] === '/api/sectors/1') roles.push('ROLE_EST')
       else if (sectorObj["@id"] === '/api/sectors/2') roles.push('ROLE_CENTRE')
       else if (sectorObj["@id"] === '/api/sectors/3') roles.push('ROLE_OUEST')
     }
-    
+
     // Créer l'utilisateur
     const userPayload = {
       username: formData.phoneNumber.replace(/\s+/g, ''),
@@ -521,24 +647,24 @@ async function createUserForPerson(person, formData, sectorObj) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     }
-    
-    console.log('📤 Création utilisateur:', userPayload)
-    
+
+    // console.log('📤 Création utilisateur:', userPayload)
+
     const response = await axios.post(`${API_URL}/users`, userPayload, {
-      headers: { 
+      headers: {
         "Content-Type": "application/ld+json",
         "Authorization": `Bearer ${token}`
       }
     })
-    
-    console.log('✅ Utilisateur créé avec succès:', response.data)
+
+    // console.log('✅ Utilisateur créé avec succès:', response.data)
     // toast.success('Compte utilisateur créé automatiquement')
-    
+
     // Ajouter le nouvel utilisateur à la liste locale
     users.value.push(response.data)
-    
+
     return response.data
-    
+
   } catch (error) {
     console.error('❌ Erreur création utilisateur:', error)
     if (error.response?.data) {
@@ -551,16 +677,16 @@ async function createUserForPerson(person, formData, sectorObj) {
 // Mise à jour de la personne
 async function updatePerson() {
   if (!selectedJeune.value) return
-  
+
   // Validation du formulaire
   if (!validateForm()) {
     return
   }
-  
+
   isUpdating.value = true
   try {
     const token = localStorage.getItem('token')
-    
+
     const sectorObj = sectors.value.find(s => s.id == editForm.value.sector)
     const doyenneObj = doyennes.value.find(d => d.id == editForm.value.doyenne)
     const paroisseObj = paroisses.value.find(p => p.id == editForm.value.paroisse)
@@ -581,30 +707,30 @@ async function updatePerson() {
       personPayload.isDicoces = editForm.value.isDicoces
     }
 
-    console.log('📤 Mise à jour personne:', personPayload)
+    // console.log('📤 Mise à jour personne:', personPayload)
 
     await axios.patch(`${API_URL}/people/${selectedJeune.value.id}`, personPayload, {
-      headers: { 
+      headers: {
         "Content-Type": "application/merge-patch+json",
         "Authorization": `Bearer ${token}`
       }
     })
 
-    const hadResponsibilities = selectedJeune.value.originalData.isNoyau || 
-                               selectedJeune.value.originalData.isDecanal || 
+    const hadResponsibilities = selectedJeune.value.originalData.isNoyau ||
+                               selectedJeune.value.originalData.isDecanal ||
                                selectedJeune.value.originalData.isDicoces
-    
-    const hasResponsibilitiesNow = editForm.value.isNoyau || 
-                                  editForm.value.isDecanal || 
+
+    const hasResponsibilitiesNow = editForm.value.isNoyau ||
+                                  editForm.value.isDecanal ||
                                   editForm.value.isDicoces
 
     // Vérifier si on doit gérer les utilisateurs (nouvelle responsabilité ou admin)
     if (hasResponsibilitiesNow || isAdmin.value) {
       const user = users.value.find(u => extractIdFromUrl(u.person) === selectedJeune.value.id)
-      
+
       if (!user && hasResponsibilitiesNow) {
         // Créer un nouvel utilisateur si la personne devient responsable et n'a pas d'utilisateur
-        console.log('👤 Création d\'utilisateur nécessaire')
+        // console.log('👤 Création d\'utilisateur nécessaire')
         await createUserForPerson(selectedJeune.value, editForm.value, sectorObj)
       } else if (user) {
         // Mettre à jour l'utilisateur existant
@@ -617,14 +743,14 @@ async function updatePerson() {
     }
 
     toast.success('Personne mise à jour avec succès !')
-    
-    // Mettre à jour les données localement sans recharger toute la page
+
+    // Mettre à jour les données localement et réorganiser par ordre alphabétique
     await updateLocalData()
-    
+
     isEditing.value = false
     showPasswordSection.value = false
     phoneError.value = ''
-    
+
   } catch (error) {
     console.error('Erreur mise à jour personne:', error)
     if (error.response?.data?.violations) {
@@ -646,18 +772,24 @@ async function updateLocalData() {
     const updatedPerson = await axios.get(`${API_URL}/people/${selectedJeune.value.id}`, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    
+
+    // Formater la personne
+    const formattedPerson = formatPerson(updatedPerson.data)
+
     // Trouver l'index de la personne dans le tableau
     const index = jeunes.value.findIndex(j => j.id === selectedJeune.value.id)
     if (index !== -1) {
       // Mettre à jour la personne dans le tableau
-      jeunes.value[index] = formatPerson(updatedPerson.data)
-      
+      jeunes.value[index] = formattedPerson
+
+      // Trier à nouveau le tableau par ordre alphabétique
+      jeunes.value.sort((a, b) => a.fullName.localeCompare(b.fullName))
+
       // Mettre à jour également selectedJeune pour que le modal affiche les nouvelles données
-      selectedJeune.value = formatPerson(updatedPerson.data)
+      selectedJeune.value = formattedPerson
     }
-    
-    console.log('✅ Données locales mises à jour')
+
+    // console.log('✅ Données locales mises à jour et triées')
   } catch (error) {
     console.error('Erreur lors de la mise à jour locale:', error)
     // En cas d'erreur, recharger toutes les données
@@ -670,7 +802,7 @@ async function updateUserData(person, formData, sectorObj) {
   try {
     const user = users.value.find(u => extractIdFromUrl(u.person) === person.id)
     if (!user) {
-      console.log('❌ Aucun utilisateur trouvé pour cette personne')
+      // console.log('❌ Aucun utilisateur trouvé pour cette personne')
       return
     }
 
@@ -690,7 +822,7 @@ async function updateUserData(person, formData, sectorObj) {
       else if (sectorObj["@id"] === '/api/sectors/3') roleSector = 'ROLE_OUEST'
 
       if (roleSector) {
-        finalRoles = finalRoles.filter(role => 
+        finalRoles = finalRoles.filter(role =>
           !['ROLE_EST', 'ROLE_CENTRE', 'ROLE_OUEST'].includes(role)
         )
         finalRoles.push(roleSector)
@@ -698,7 +830,7 @@ async function updateUserData(person, formData, sectorObj) {
     }
 
     if (isAdmin.value) {
-      finalRoles = finalRoles.filter(role => 
+      finalRoles = finalRoles.filter(role =>
         !['ROLE_NOYAU', 'ROLE_DECANAL', 'ROLE_DIOCESE'].includes(role)
       )
 
@@ -715,15 +847,15 @@ async function updateUserData(person, formData, sectorObj) {
 
     if (Object.keys(userPayload).length > 0) {
       userPayload.updatedAt = new Date().toISOString()
-      
+
       await axios.patch(`${API_URL}/users/${user.id}`, userPayload, {
-        headers: { 
+        headers: {
           "Content-Type": "application/merge-patch+json",
           "Authorization": `Bearer ${token}`
         }
       })
-      
-      console.log('✅ Utilisateur mis à jour:', userPayload)
+
+      // console.log('✅ Utilisateur mis à jour:', userPayload)
     }
 
   } catch (error) {
@@ -737,7 +869,7 @@ async function updateUserPassword(person, newPassword) {
   try {
     const user = users.value.find(u => extractIdFromUrl(u.person) === person.id)
     if (!user) {
-      console.log('❌ Aucun utilisateur trouvé pour cette personne')
+      // console.log('❌ Aucun utilisateur trouvé pour cette personne')
       return
     }
 
@@ -745,14 +877,14 @@ async function updateUserPassword(person, newPassword) {
       password: newPassword,
       updatedAt: new Date().toISOString()
     }, {
-      headers: { 
+      headers: {
         "Content-Type": "application/merge-patch+json",
         "Authorization": `Bearer ${token}`
       }
     })
 
-    console.log('✅ Mot de passe mis à jour')
-    
+    // console.log('✅ Mot de passe mis à jour')
+
   } catch (error) {
     console.error('Erreur mise à jour mot de passe:', error)
     throw error
@@ -785,7 +917,6 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
 </script>
 
 <template>
-  <!-- Le template reste exactement le même -->
   <div class="be-content">
     <div class="main-content container-fluid">
       <div class="row">
@@ -793,8 +924,8 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
           <div class="card card-table">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>{{ descr }}</span>
-              <button 
-                @click="handleRefresh" 
+              <button
+                @click="handleRefresh"
                 class="btn btn-outline-primary btn-sm"
                 :disabled="isLoading"
                 title="Actualiser les données"
@@ -813,7 +944,7 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                     <option v-for="d in doyenneOptions" :key="d" :value="d">{{ d }}</option>
                   </select>
                 </div>
-                <div class="col">
+                <div class="col mb-1">
                   <select v-model="filterParoisse" class="form-select p-2">
                     <option value="">Paroisse</option>
                     <option v-for="p in paroisseOptions" :key="p" :value="p">{{ p }}</option>
@@ -886,6 +1017,42 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                       <td colspan="5" class="text-center text-muted">Aucun résultat trouvé</td>
                     </tr>
                   </tbody>
+
+                  <!-- TFOOT avec les statistiques -->
+                  <tfoot class="table-footer">
+                    <tr>
+                      <td colspan="5" class="text-center fw-bold py-3 bg-light border-top">
+                        <div class="row justify-content-center">
+                          <div class="col-auto">
+                            <span class="stat-item">
+                              <i class="fas fa-church me-1"></i>
+                              Doyennés : <strong>{{ stats.totalDoyennes }}</strong>
+                            </span>
+                          </div>
+                          <div class="col-auto">
+                            <span class="stat-item">
+                              <i class="fas fa-place-of-worship me-1"></i>
+                              Paroisses : <strong>{{ stats.totalParoisses }}</strong>
+                            </span>
+                          </div>
+                          <div class="col-auto">
+                            <span class="stat-item">
+                              <i class="fas fa-users me-1"></i>
+                              Jeunes : <strong>{{ stats.totalJeunes }}</strong>
+                            </span>
+                          </div>
+                        </div>
+                        <!-- Détails par statut -->
+                        <div v-if="Object.keys(stats.statutCounts).length > 0" class="mt-2">
+                          <small class="text-muted">
+                            <span v-for="(count, statut) in stats.statutCounts" :key="statut" class="mr-3">
+                              {{ statut }} : <strong>{{ count }}</strong>
+                            </span>
+                          </small>
+                        </div>
+                      </td>
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             </div>
@@ -894,7 +1061,7 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
       </div>
     </div>
 
-    <!-- Modal infos jeune - NOUVEAU DESIGN -->
+    <!-- Modal infos jeune -->
     <div v-if="selectedJeune" class="modal fade show d-block" tabindex="-1" style="background: rgba(0,0,0,0.5);">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -905,7 +1072,7 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
             </h5>
             <button type="button" class="btn-close btn-close-white" @click="closeModal"></button>
           </div>
-          
+
           <div class="modal-body p-0">
             <!-- Vue lecture seule -->
             <div v-if="!isEditing" class="p-4">
@@ -919,12 +1086,8 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                   <p class="mb-0 fw-semibold">{{ selectedJeune.tel }}</p>
                 </div>
               </div>
-              
+
               <div class="row">
-                <div class="col-md-4 mb-3">
-                  <label class="form-label text-muted small mb-1">Genre</label>
-                  <p class="mb-0 fw-semibold">{{ selectedJeune.gender }}</p>
-                </div>
                 <div class="col-md-4 mb-3">
                   <label class="form-label text-muted small mb-1">Secteur</label>
                   <p class="mb-0 fw-semibold">{{ selectedJeune.sector }}</p>
@@ -933,12 +1096,16 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                   <label class="form-label text-muted small mb-1">Doyenné</label>
                   <p class="mb-0 fw-semibold">{{ selectedJeune.doyenne }}</p>
                 </div>
+                <div class="col-md-4 mb-3">
+                  <label class="form-label text-muted small mb-1">Paroisse</label>
+                  <p class="mb-0 fw-semibold">{{ selectedJeune.paroisse }}</p>
+                </div>
               </div>
 
               <div class="row">
                 <div class="col-md-4 mb-3">
-                  <label class="form-label text-muted small mb-1">Paroisse</label>
-                  <p class="mb-0 fw-semibold">{{ selectedJeune.paroisse }}</p>
+                  <label class="form-label text-muted small mb-1">Date d'enregistrement</label>
+                  <p class="mb-0 fw-semibold">{{ selectedJeune.createdAt }}</p>
                 </div>
                 <div class="col-md-8 mb-3">
                   <label class="form-label text-muted small mb-1">Statut</label>
@@ -958,15 +1125,15 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
               </div>
             </div>
 
-            <!-- Vue édition - CORRIGÉE -->
+            <!-- Vue édition -->
             <div v-else class="p-4">
               <form @submit.prevent="updatePerson">
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Nom complet <span class="text-danger">*</span></label>
-                    <input 
-                      class="form-control" 
-                      v-model="editForm.fullName" 
+                    <input
+                      class="form-control"
+                      v-model="editForm.fullName"
                       type="text"
                       required
                       :class="{ 'is-invalid': validateFullName(editForm.fullName) }"
@@ -977,9 +1144,9 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                   </div>
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Numéro de téléphone <span class="text-danger">*</span></label>
-                    <input 
-                      class="form-control" 
-                      v-model="editForm.phoneNumber" 
+                    <input
+                      class="form-control"
+                      v-model="editForm.phoneNumber"
                       type="tel"
                       required
                       placeholder="0899 999 999"
@@ -1039,10 +1206,10 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                   <div class="row">
                     <div class="col-md-4">
                       <div class="form-check">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="isNoyau" 
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="isNoyau"
                           v-model="editForm.isNoyau"
                           @change="onRoleChange"
                         />
@@ -1053,10 +1220,10 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                     </div>
                     <div class="col-md-4">
                       <div class="form-check">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="isDecanal" 
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="isDecanal"
                           v-model="editForm.isDecanal"
                           @change="onRoleChange"
                         />
@@ -1067,10 +1234,10 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                     </div>
                     <div class="col-md-4">
                       <div class="form-check">
-                        <input 
-                          class="form-check-input" 
-                          type="checkbox" 
-                          id="isDicoces" 
+                        <input
+                          class="form-check-input"
+                          type="checkbox"
+                          id="isDicoces"
                           v-model="editForm.isDicoces"
                           @change="onRoleChange"
                         />
@@ -1088,32 +1255,32 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
                     <h6 class="mb-0 text-primary">
                       <i class="fas fa-key me-2"></i>Changer le mot de passe
                     </h6>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       class="btn btn-outline-secondary btn-sm"
                       @click="showPasswordSection = !showPasswordSection"
                     >
                       {{ showPasswordSection ? 'Masquer' : 'Afficher' }}
                     </button>
                   </div>
-                  
+
                   <div v-if="showPasswordSection" class="bg-light p-3 rounded">
                     <div class="row">
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Nouveau mot de passe</label>
-                        <input 
-                          class="form-control" 
-                          v-model="passwordForm.newPassword" 
-                          type="password" 
+                        <input
+                          class="form-control"
+                          v-model="passwordForm.newPassword"
+                          type="password"
                           placeholder="Saisir le nouveau mot de passe"
                         />
                       </div>
                       <div class="col-md-6 mb-3">
                         <label class="form-label">Confirmer le mot de passe</label>
-                        <input 
-                          class="form-control" 
-                          v-model="passwordForm.confirmPassword" 
-                          type="password" 
+                        <input
+                          class="form-control"
+                          v-model="passwordForm.confirmPassword"
+                          type="password"
                           placeholder="Confirmer le nouveau mot de passe"
                         />
                       </div>
@@ -1127,12 +1294,12 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
               </form>
             </div>
           </div>
-          
+
           <div class="modal-footer border-top">
             <template v-if="!isEditing">
-              <button 
-                class="btn btn-warning" 
-                @click="startEditing" 
+              <button
+                class="btn btn-warning"
+                @click="startEditing"
                 :disabled="!canEditPerson"
                 v-if="canEditPerson"
               >
@@ -1143,9 +1310,9 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
               </button>
             </template>
             <template v-else>
-              <button 
-                class="btn btn-primary" 
-                @click="updatePerson" 
+              <button
+                class="btn btn-primary"
+                @click="updatePerson"
                 :disabled="isUpdating"
               >
                 <span v-if="isUpdating" class="spinner-border spinner-border-sm me-2"></span>
@@ -1164,7 +1331,6 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
 </template>
 
 <style scoped>
-/* Les styles restent exactement les mêmes */
 .table-container {
   max-height: 40.5rem;
   overflow-y: auto;
@@ -1177,6 +1343,37 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
   z-index: 2;
   background: #fff;
   box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+
+#tableSect tfoot th {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: #f8f9fa;
+  box-shadow: 0 -3px 6px rgba(0, 0, 0, 0.15);
+  border-top: 2px solid #dee2e6;
+}
+
+.table-footer {
+  position: sticky;
+  bottom: 0;
+  background: white;
+  z-index: 10;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.stat-item {
+  padding: 8px 16px;
+  margin: 0 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+  display: inline-block;
+}
+
+.stat-item strong {
+  color: #0d6efd;
+  margin-left: 4px;
 }
 
 /* Animation de l'icône d'actualisation */
@@ -1212,14 +1409,19 @@ watch(() => editForm.value.phoneNumber, (newValue) => {
   .modal-dialog {
     margin: 1rem;
   }
-  
+
   .modal-body .row {
     margin-bottom: 0.5rem;
   }
-  
+
   .modal-body .col-md-6,
   .modal-body .col-md-4 {
     margin-bottom: 1rem;
+  }
+
+  .stat-item {
+    display: block;
+    margin: 5px 0;
   }
 }
 

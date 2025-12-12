@@ -78,7 +78,7 @@ async function fetchAllPages(baseUrl) {
         hasMore = false
       }
     }
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`)
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`)
     return allItems
   } catch (error) {
     console.error(`Erreur récupération ${baseUrl}:`, error)
@@ -203,12 +203,12 @@ async function fetchLocationData() {
     paros.value = parRes
     users.value = usersRes
     
-    console.log('📍 Données localisation chargées:', {
-      sectors: secRes.length,
-      doyennes: doyRes.length,
-      paroisses: parRes.length,
-      users: usersRes.length
-    })
+    // console.log('📍 Données localisation chargées:', {
+    //   sectors: secRes.length,
+    //   doyennes: doyRes.length,
+    //   paroisses: parRes.length,
+    //   users: usersRes.length
+    // })
   } catch (error) {
     console.error('Erreur chargement localisation:', error)
     toast.error('Erreur chargement localisations')
@@ -349,7 +349,7 @@ async function loadModalData() {
         paroisse: extractIdFromUrl(person.paroisse) || "",
       }
       
-      console.log('📝 Données modal chargées:', modalData.value)
+      // console.log('📝 Données modal chargées:', modalData.value)
       
       // Appliquer les filtres basés sur les données actuelles
       filterDoyennes()
@@ -381,7 +381,7 @@ async function handleSubmit() {
       updatedAt: new Date().toISOString()
     }
 
-    console.log('📤 Payload de mise à jour:', payload)
+    // console.log('📤 Payload de mise à jour:', payload)
 
     if (modalData.value.id) {
       // Mettre à jour la personne
@@ -427,7 +427,7 @@ async function handleSubmit() {
             }
           )
           
-          console.log('🔐 Rôles utilisateur mis à jour:', rolesInit)
+          // console.log('🔐 Rôles utilisateur mis à jour:', rolesInit)
         }
       }
 

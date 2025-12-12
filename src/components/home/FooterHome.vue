@@ -8,21 +8,22 @@
           <h5 class="mb-3">Navigation</h5>
           <ul class="list-unstyled">
             <li><a href="/" class="text-white text-decoration-none d-block mb-1">Accueil</a></li>
-            <li><a href="/about" class="text-white text-decoration-none d-block mb-1">À propos</a></li>
-            <li><a href="/contact" class="text-white text-decoration-none d-block mb-1">Contact</a></li>
-            <li><a href="#" class="text-white text-decoration-none d-block mb-1">Politique de confidentialité</a></li>
+            <li><a href="/events" class="text-white text-decoration-none d-block mb-1">Evénements</a></li>
+            <li><a href="/news" class="text-white text-decoration-none d-block mb-1">Actualité</a></li>
+            <li><a href="/paroisses" class="text-white text-decoration-none d-block mb-1">Paroisses</a></li>
           </ul>
         </div>
 
         <!-- Réseaux sociaux -->
         <div class="col-md-4 text-start">
           <h5 class="mb-3">Suivez-nous</h5>
-          <div class="d-flex gap-3 flex-wrap">
-            <a href="#" class="text-white fs-4"><i class="bi bi-facebook"></i></a>
-            <a href="#" class="text-white fs-4"><i class="bi bi-twitter"></i></a>
-            <a href="#" class="text-white fs-4"><i class="bi bi-instagram"></i></a>
-            <a href="#" class="text-white fs-4"><i class="bi bi-youtube"></i></a>
-          </div>
+          <ul class="list-unstyled">
+            <li><a target="_blank" href="https://www.facebook.com/profile.php?id=100092526310267" class="text-white text-decoration-none d-block mb-1">Facebook</a></li>
+            <li><a target="_blank" href="https://www.tiktok.com/@mijerca.kin.news?_r=1&_t=ZS-92AYpRNrjTo" class="text-white text-decoration-none d-block mb-1">TikTok</a></li>
+            <!-- <li><a target="_blank" href="/contact" class="text-white text-decoration-none d-block mb-1">Instagram</a></li> -->
+            <li><a target="_blank" href="https://youtube.com/@rccarchikin7926?si=O_WHnecFw5B5RMSE" class="text-white text-decoration-none d-block mb-1">YouTube</a></li>
+            <li><a target="_blank" href="https://rccarchikin.org/" class="text-white text-decoration-none d-block mb-1">Renouveau Charismatique Catholique</a></li>
+          </ul>
         </div>
 
         <!-- Contact rapide -->
@@ -41,7 +42,12 @@
         <p class="mb-0">
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
-          <span class="d-block mt-1">Prod. by Beyin LQ</span>
+          <span class="d-block mt-1">
+            Prod. by 
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none mb-1">
+              Beyin LQ
+            </a>
+          </span>
         </p>
       </div>
     </div>

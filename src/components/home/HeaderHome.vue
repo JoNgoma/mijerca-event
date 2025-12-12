@@ -39,11 +39,26 @@ const route = useRoute()
             </a>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link fs-5">Enseignement</a>
+            <a
+              href="/news"
+              class="nav-link fs-5"
+              :class="{ active: route.path.startsWith('/news') }"
+            >
+              Actualité
+            </a>
           </li>
           <li class="nav-item">
-            <a href="#" class="nav-link fs-5">Actualité</a>
+            <a
+              href="/paroisses"
+              class="nav-link fs-5"
+              :class="{ active: route.path.startsWith('/paroisses') }"
+            >
+              Paroisses
+            </a>
           </li>
+          <!-- <li class="nav-item">
+            <a href="#" class="nav-link fs-5">Enseignement</a>
+          </li> -->
         </ul>
       </nav>
 
@@ -82,8 +97,28 @@ const route = useRoute()
             Evénements
           </a>
         </li>
-        <li class="nav-item"><a href="#" class="nav-link" @click="isOpen=false">Enseignement</a></li>
-        <li class="nav-item"><a href="#" class="nav-link" @click="isOpen=false">Actualité</a></li>
+        <li class="nav-item">
+          <a
+            href="/news"
+            class="nav-link"
+            :class="{ active: route.path.startsWith('/news') }"
+            @click="isOpen = false"
+          >
+            Actualité
+          </a>
+        </li>
+        <li class="nav-item">
+          <a
+            href="/paroisses"
+            class="nav-link"
+            :class="{ active: route.path.startsWith('/paroisses') }"
+            @click="isOpen = false"
+          >
+            Paroisses
+          </a>
+        </li>
+        <!-- <li class="nav-item"><a href="#" class="nav-link" @click="isOpen=false">Enseignement</a></li> -->
+
         <li class="nav-item mt-3">
           <a href="/sign-up" class="btn btn-primary w-75 mx-auto" @click="isOpen=false">S'enregistrer</a>
         </li>

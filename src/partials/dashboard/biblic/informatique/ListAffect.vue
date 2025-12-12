@@ -3,20 +3,8 @@ import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
 import { useRouter } from "vue-router";
-const router = useRouter();
 
-function goToPrint() {
-  const paroisseId = selectedParoisseId.value;
-  const list = jeunesParParoisse.value[paroisseId] || [];
-  
-  const selectedPersons = list.filter(j => selectedJeunes.value.includes(j.id));
-
-  // Enregistrer temporairement (proprement)
-  sessionStorage.setItem("selectedPersonsForBadges", JSON.stringify(selectedPersons));
-
-  router.push({ name: "info-a4-generator", params: { serviceType: 'a4-generator' } });
-}
-
+const router = useRouter()
 const toast = useToast()
 
 const props = defineProps({
@@ -24,6 +12,132 @@ const props = defineProps({
   date: { type: String, required: true },
 })
 
+// ==========================
+// FORMATAGE DU NOM COMPLET AVANCÉ
+// ==========================
+const formatFullName = (fullName) => {
+  if (!fullName) return '';
+  
+  // Liste des prépositions et articles à ne pas capitaliser (sauf en début de nom)
+  const lowerCaseWords = ['de', 'du', 'des', 'le', 'la', 'les', 'et', 'à', 'aux', 'en', 'sur', 'sous', 'dans', 'von', 'van'];
+  
+  // Liste des noms composés spéciaux
+  const specialCases = {
+    'mcdonald': 'McDonald',
+    'macdonald': 'MacDonald',
+    'o\'connor': 'O\'Connor',
+    'd\'artagnan': 'D\'Artagnan',
+    'de la': 'De La',
+    'van der': 'Van Der',
+    'de l\'': 'De L\'',
+    'des ': 'Des ',
+    'du ': 'Du ',
+    'del ': 'Del '
+  };
+  
+  // Convertir en minuscules
+  let formatted = fullName.toLowerCase().trim();
+  
+  // Appliquer les cas spéciaux d'abord
+  Object.entries(specialCases).forEach(([key, value]) => {
+    if (formatted.startsWith(key)) {
+      formatted = value + formatted.slice(key.length);
+    }
+  });
+  
+  // Séparer par espaces
+  const words = formatted.split(/\s+/);
+  
+  // Capitaliser chaque mot selon les règles
+  const resultWords = words.map((word, index) => {
+    // Capitaliser tous les mots en première position
+    if (index === 0) {
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    }
+    
+    // Ne pas capitaliser les petits mots (sauf s'ils font partie d'un nom composé)
+    if (lowerCaseWords.includes(word.toLowerCase())) {
+      // Vérifier si c'est une préposition entre deux parties du nom
+      if (index < words.length - 1 && words[index + 1].length > 2) {
+        return word.toLowerCase();
+      }
+    }
+    
+    // Capitaliser les autres mots
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+  
+  // Rejoindre les mots
+  let result = resultWords.join(' ');
+  
+  // Gérer les tirets
+  result = result.replace(/-\s*/g, '-').replace(/([a-z])-([a-z])/gi, (match, p1, p2) => {
+    return p1.toUpperCase() + '-' + p2.toUpperCase();
+  });
+  
+  // Gérer les apostrophes
+  result = result.replace(/'\s*/g, '\'').replace(/([a-z])'([a-z])/gi, (match, p1, p2) => {
+    return p1.toUpperCase() + '\'' + p2.toUpperCase();
+  });
+  
+  return result;
+};
+
+// ==========================
+// PAGINATION OPTIMISÉE
+// ==========================
+const token = localStorage.getItem('token')
+
+async function fetchAllPages(baseUrl, options = {}) {
+  let allItems = [];
+  let currentPage = 1;
+  let hasMore = true;
+
+  try {
+    while (hasMore) {
+      const url = new URL(baseUrl);
+      url.searchParams.set('page', currentPage);
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...options.headers
+        },
+        ...options
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.member && Array.isArray(data.member)) {
+        allItems = [...allItems, ...data.member];
+
+        // Vérifie s'il y a plus de pages
+        if (data.member.length === 0 ||
+            data.member.length < 30 ||
+            currentPage >= 50) {
+          hasMore = false;
+        } else {
+          currentPage++;
+        }
+      } else {
+        hasMore = false;
+      }
+    }
+
+    return allItems;
+  } catch (error) {
+    console.error('Erreur lors de la récupération paginée:', error);
+    throw error;
+  }
+}
+
+// ==========================
+// États et données
+// ==========================
 const loading = ref(false)
 const selectedDoyenne = ref('Tous')
 const selectedParoisseId = ref(null)
@@ -36,6 +150,15 @@ const allParticipators = ref([])
 const allMontants = ref([])
 const viewParoisses = ref([])
 
+// Sélection des jeunes
+const selectedJeunes = ref([])
+const allSelected = ref(false)
+const showJeunesModal = ref(false)
+const currentParoisse = ref(null)
+
+// ==========================
+// Fonctions utilitaires
+// ==========================
 function extractIdFromUrl(url) {
   if (!url) return null
   const parts = String(url).split('/').filter(Boolean)
@@ -44,9 +167,14 @@ function extractIdFromUrl(url) {
 
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
+// ==========================
+// Chargement des données avec pagination
+// ==========================
 async function fetchData() {
   try {
     loading.value = true
+    
+    // Utiliser la pagination optimisée pour toutes les requêtes
     const [
       doyennesRes,
       paroissesRes,
@@ -55,20 +183,29 @@ async function fetchData() {
       sectorsRes,
       montantsRes,
     ] = await Promise.all([
-      axios.get(`${API}/doyennes`).then(r => r.data?.member || []),
-      axios.get(`${API}/paroisses`).then(r => r.data?.member || []),
-      axios.get(`${API}/people`).then(r => r.data?.member || []),
-      axios.get(`${API}/participators`).then(r => r.data?.member || []),
-      axios.get(`${API}/sectors`).then(r => r.data?.member || []),
-      axios.get(`${API}/montants`).then(r => r.data?.member || []),
+      fetchAllPages(`${API}/doyennes`),
+      fetchAllPages(`${API}/paroisses`),
+      fetchAllPages(`${API}/people`),
+      fetchAllPages(`${API}/participators`),
+      fetchAllPages(`${API}/sectors`),
+      fetchAllPages(`${API}/montants`),
     ])
 
-    allDoyennes.value = doyennesRes
-    allParoisses.value = paroissesRes
-    allPeople.value = peopleRes
-    allParticipators.value = participatorsRes
-    allSectors.value = sectorsRes
-    allMontants.value = montantsRes
+    allDoyennes.value = doyennesRes || []
+    allParoisses.value = paroissesRes || []
+    allPeople.value = peopleRes || []
+    allParticipators.value = participatorsRes || []
+    allSectors.value = sectorsRes || []
+    allMontants.value = montantsRes || []
+
+    // console.log('📊 Données chargées:', {
+    //   doyennes: allDoyennes.value.length,
+    //   paroisses: allParoisses.value.length,
+    //   people: allPeople.value.length,
+    //   participators: allParticipators.value.length,
+    //   sectors: allSectors.value.length,
+    //   montants: allMontants.value.length
+    // })
 
     aggregateParoisses()
   } catch (err) {
@@ -126,6 +263,7 @@ function aggregateParoisses() {
   })
 
   viewParoisses.value = Object.values(agg)
+  // console.log('📊 Paroisses agrégées:', viewParoisses.value.length)
 }
 
 const doyennesBySector = computed(() => {
@@ -147,9 +285,9 @@ const countDoyennes = computed(() => new Set(filteredParoisses.value.map(p => p.
 const countParoisses = computed(() => filteredParoisses.value.length)
 const totalEffectifFiltre = computed(() => filteredParoisses.value.reduce((a, p) => a + (p.effectif || 0), 0))
 
-const showJeunesModal = ref(false)
-const currentParoisse = ref(null)
-
+// ==========================
+// Gestion des sélections de paroisses et jeunes
+// ==========================
 async function selectParoisse(paroId) {
   selectedParoisseId.value = paroId
   currentParoisse.value = viewParoisses.value.find(p => p.id === paroId)
@@ -157,11 +295,21 @@ async function selectParoisse(paroId) {
     await nextTick()
     showJeunesModal.value = true
   }
+  
+  // Réinitialiser la sélection des jeunes
+  selectedJeunes.value = []
+  allSelected.value = false
 }
 
+// ==========================
+// Préparation des jeunes par paroisse avec formatage des noms
+// ==========================
 const jeunesParParoisse = computed(() => {
   const result = {}
   if (!selectedParoisseId.value) return result
+
+  // Créer un tableau pour stocker et trier les jeunes
+  const jeunes = []
 
   allParticipators.value.forEach(part => {
     const person = allPeople.value.find(
@@ -187,26 +335,37 @@ const jeunesParParoisse = computed(() => {
     const devise = (montantRecord?.devise || 'FC').toUpperCase()
     const frais = Number(montantRecord?.frais || 0)
 
+    // Formater le nom complet
+    const formattedFullName = formatFullName(person.fullName)
+
     const jeune = {
       id: part.id,
       paroisse: paroisseObj ? paroisseObj.name : 'Non définie',
-      nom: `${person.gender} ${person.fullName}`.trim() || '—',
+      nom: `${person.gender} ${formattedFullName}`.trim() || '—',
+      fullName: formattedFullName, // Ajouter le nom formaté pour le tri
       dortoir: part.dortoir || '',
       carrefour: part.carrefour || '',
       arrivee: new Date(part.createdAt || props.date).toLocaleDateString('fr-FR'),
       badge: part.badge === true,
       montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise}`,
+      personId: extractIdFromUrl(person['@id']),
     }
 
-    if (!result[selectedParoisseId.value]) result[selectedParoisseId.value] = []
-    result[selectedParoisseId.value].push(jeune)
+    jeunes.push(jeune)
   })
+
+  // Trier les jeunes par ordre alphabétique du nom complet
+  jeunes.sort((a, b) => a.fullName.localeCompare(b.fullName))
+
+  // Stocker dans le résultat
+  result[selectedParoisseId.value] = jeunes
+  
   return result
 })
 
-const selectedJeunes = ref([])
-const allSelected = ref(false)
-
+// ==========================
+// Gestion de la sélection des jeunes
+// ==========================
 function toggleSelectAll() {
   const list = jeunesParParoisse.value[selectedParoisseId.value] || []
   if (allSelected.value) {
@@ -231,14 +390,38 @@ function toggleJeuneSelection(id) {
   toggleSingleSelection()
 }
 
-watch(selectedDoyenne, () => (selectedParoisseId.value = null))
+// ==========================
+// Impression
+// ==========================
+function goToPrint() {
+  const paroisseId = selectedParoisseId.value;
+  const list = jeunesParParoisse.value[paroisseId] || [];
+  
+  const selectedPersons = list.filter(j => selectedJeunes.value.includes(j.id));
+
+  // Enregistrer temporairement (proprement)
+  sessionStorage.setItem("selectedPersonsForBadges", JSON.stringify(selectedPersons));
+
+  router.push({ name: "info-a4-generator", params: { serviceType: 'a4-generator' } });
+}
+
+// ==========================
+// Watchers et lifecycle hooks
+// ==========================
+watch(selectedDoyenne, () => {
+  selectedParoisseId.value = null
+  selectedJeunes.value = []
+  allSelected.value = false
+})
+
 onMounted(fetchData)
 </script>
 
 <template>
   <div class="tab-pane" :id="id" role="tabpanel">
     <div v-if="loading" class="text-center my-5">
-      <span class="spinner-border"></span> Chargement des données...
+      <span class="spinner-border"></span> 
+      <p class="mt-2">Chargement des données...</p>
     </div>
 
     <div v-else class="row g-3">
@@ -256,7 +439,11 @@ onMounted(fetchData)
           <div class="table-container">
             <table class="table table-striped table-borderless align-middle">
               <thead class="table-light">
-                <tr><th>Doyenné</th><th>Paroisse</th><th>Effectif</th></tr>
+                <tr>
+                  <th>Doyenné</th>
+                  <th>Paroisse</th>
+                  <th>Effectif</th>
+                </tr>
               </thead>
               <tbody>
                 <tr
@@ -274,7 +461,11 @@ onMounted(fetchData)
                 </tr>
               </tbody>
               <tfoot class="table-light fw-semibold">
-                <tr><td>{{ countDoyennes }} Doyenné{{ countDoyennes>1?'s':'' }}</td><td>{{ countParoisses }} Paroisse{{ countParoisses>1?'s':'' }}</td><td>{{ totalEffectifFiltre }}</td></tr>
+                <tr>
+                  <td>{{ countDoyennes }} Doyenné{{ countDoyennes>1?'s':'' }}</td>
+                  <td>{{ countParoisses }} Paroisse{{ countParoisses>1?'s':'' }}</td>
+                  <td>{{ totalEffectifFiltre }}</td>
+                </tr>
               </tfoot>
             </table>
           </div>
@@ -287,6 +478,9 @@ onMounted(fetchData)
           <div class="card-header bg-light fw-semibold mx-2 d-flex justify-content-between align-items-center">
             <span v-if="selectedParoisseId" class="text-primary">
               {{ viewParoisses.find(x => x.id === selectedParoisseId)?.nom }}
+              <small class="text-muted ms-2">
+                ({{ jeunesParParoisse[selectedParoisseId]?.length || 0 }} jeunes)
+              </small>
             </span>
 
             <div v-if="selectedParoisseId" class="form-check d-flex align-items-center gap-2 m-0">
@@ -300,14 +494,14 @@ onMounted(fetchData)
               <label class="form-check-label m-0" for="selectAll">
                 Tout sélectionner
               </label>
-              </div>
+            </div>
           </div>
 
           <div class="table-container">
             <table class="table table-hover align-middle">
               <thead class="table-light">
                 <tr>
-                  <th></th>
+                  <th style="width: 40px;"></th>
                   <th>Noms</th>
                   <th>Dortoir</th>
                   <th>Carrefour</th>
@@ -330,9 +524,8 @@ onMounted(fetchData)
                   <td>
                     <input 
                       type="checkbox" 
-                      v-model="selectedJeunes" 
-                      :value="j.id"
-                      @change.stop="toggleSingleSelection"
+                      :checked="selectedJeunes.includes(j.id)"
+                      @change.stop="() => toggleJeuneSelection(j.id)"
                     />
                   </td>
                   <td>{{ j.nom }}</td>
@@ -354,12 +547,22 @@ onMounted(fetchData)
               </tbody>
             </table>
           </div>
-        </div>
-        <div v-if="selectedJeunes.length" class="text-right">
-          <button class="btn btn-primary" @click="goToPrint">
-            <span class="icon mdi mdi-print mr-2"></span>
-            Imprimer
-          </button>
+          
+          <div class="card-footer bg-light border-top">
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">
+                {{ selectedJeunes.length }} jeune{{ selectedJeunes.length > 1 ? 's' : '' }} sélectionné{{ selectedJeunes.length > 1 ? 's' : '' }}
+              </small>
+              <button 
+                v-if="selectedJeunes.length" 
+                class="btn btn-primary btn-sm"
+                @click="goToPrint"
+              >
+                <span class="icon mdi mdi-print mr-2"></span>
+                Imprimer
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -367,8 +570,41 @@ onMounted(fetchData)
 </template>
 
 <style scoped>
-.table-container { max-height: 30rem; overflow-y: auto; }
-.selectable-row { cursor: pointer; }
-.selectable-row.active { background-color: #e6f0ff; font-weight: 600; }
-.badge { border-radius: 4px; padding: 0.35em 0.75em; font-size: 0.85rem; }
+.table-container { 
+  max-height: 30rem; 
+  overflow-y: auto; 
+  position: relative;
+}
+
+.selectable-row { 
+  cursor: pointer; 
+  transition: background-color 0.2s;
+}
+
+.selectable-row:hover { 
+  background-color: #f8f9fa; 
+}
+
+.selectable-row.active { 
+  background-color: #e6f0ff; 
+  font-weight: 600; 
+}
+
+.badge { 
+  border-radius: 4px; 
+  padding: 0.35em 0.75em; 
+  font-size: 0.85rem; 
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #f8f9fa;
+}
+
+.spinner-border {
+  width: 3rem;
+  height: 3rem;
+}
 </style>

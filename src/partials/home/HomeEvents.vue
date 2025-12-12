@@ -10,7 +10,7 @@ const events = [
   { id: 4, type: 'Montagne', title: "Inye 2025", date: "26/12/2025", img: img1, description: "Pèlerinage nocturne sur la montagne pour vivre un face-à-face avec Dieu dans le silence et la prière." },
   { id: 5, type: 'Come to Me', title: "Come to Me 2024", date: "15/01/2026", img: img2, description: "Veillée d’adoration et de louange chaque 14 février pour se rapprocher du cœur de Jésus." },
   { id: 6, type: 'Come to Me', title: "Come to Me 2025", date: "05/02/2026", img: img3, description: "Un moment unique de prière, de méditation et de renouvellement spirituel au pied du Saint-Sacrement." },
-  { id: 7, type: 'JDM', title: "JDM 2025", date: "05/02/2026", img: img2, description: "La Journée Diocésaine des Jeunes rassemble toute la jeunesse pour célébrer la foi et l’unité en Christ." },
+  { id: 7, type: 'JDM', title: "JDM 2025", date: "05/02/2026", img: img2, description: "La Journée Diocésaine du MIJERCA rassemble toute la jeunesse pour célébrer la foi et l’unité en Christ." },
 ]
 
 // Groupement par type
