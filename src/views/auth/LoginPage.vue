@@ -75,8 +75,8 @@
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
           <span class="d-block mt-1">
-            Prod. by 
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none mb-1">
+            Prod. by
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none mb-1">
               Beyin LQ
             </a>
           </span>
@@ -117,34 +117,34 @@ async function fetchAllPages(baseUrl, options = {}) {
   let allItems = [];
   let currentPage = 1;
   let hasMore = true;
-  
+
   try {
     const token = localStorage.getItem("token");
-    
+
     while (hasMore) {
       const url = new URL(baseUrl);
       url.searchParams.set('page', currentPage);
-      
+
       const response = await fetch(url, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/ld+json",
           ...options.headers
         },
         ...options
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member];
-        
+
         // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
+        if (data.member.length === 0 ||
             data.member.length < 30 ||
             currentPage >= 50) {
           hasMore = false;
@@ -155,7 +155,7 @@ async function fetchAllPages(baseUrl, options = {}) {
         hasMore = false;
       }
     }
-    
+
     console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {

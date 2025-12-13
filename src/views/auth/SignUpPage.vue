@@ -13,13 +13,13 @@
             <input type="email" id="inputEmail" class="form-control" placeholder="Email" required="" autofocus=""> <label for="inputEmail">johndoe@gmail.com</label>
           </div>
         </div>
-        
+
         <div class="form-group">
           <div class="form-label-group">
             <input type="text" id="inputUsername" class="form-control" placeholder="Noms" required=""> <label for="inputUser">John Doe</label>
           </div>
         </div>
-        
+
         <div class="form-group">
           <div class="form-label-group">
             <input type="number" id="inputNumber" class="form-control" placeholder="Phone" required=""> <label for="inputNum">0891234567</label>
@@ -35,16 +35,16 @@
         <div class="form-group">
           <div class="form-label-group">
             <input type="password2" id="inputPassword2" class="form-control" placeholder="Mot de passe" required=""> <label for="inputPassword2">Confirmer mot de passe</label>
-          </div>        
+          </div>
         </div>
-        
+
         <div class="form-group">
           <button class="btn btn-lg btn-primary btn-block" type="submit" :disabled="isLoading">
             <span v-if="isLoading" class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             <span v-else>S'inscrire</span>
           </button>
         </div>
-        
+
         <div class="form-group">
             <p class="text-end mb-2">
               Avez-vous déjà un compte? <router-link to="/sign-in">Se connecter</router-link>
@@ -57,8 +57,8 @@
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
           <span class="d-block mt-1">
-            Prod. by 
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none mb-1">
+            Prod. by
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none mb-1">
               Beyin LQ
             </a>
           </span>
@@ -94,7 +94,7 @@ function handleLogup() {
       toast.error('Connexion échouée. Vérifiez vos identifiants.')
       error.value = 'Connexion échouée. Vérifiez vos identifiants.'
       console.error(err)
-    } 
+    }
     // loading
     finally {
       isLoading.value = false

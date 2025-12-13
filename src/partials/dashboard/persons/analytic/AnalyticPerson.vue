@@ -175,7 +175,7 @@ async function fetchCurrentUser() {
       headers: { Authorization: `Bearer ${token}` },
     })
     currentUser.value = res.data.member?.find((u) => u.username === username)
-  
+
     if (currentUser.value) {
       // Récupérer toutes les personnes pour trouver celle correspondante
       const people = await fetchAllPagesAxios(`${API_URL}/people`)
@@ -211,13 +211,13 @@ async function fetchAllDoyennes() {
 async function fetchSectorId() {
   try {
     isLoading.value = true
-    
+
     // D'abord récupérer le secteur
     const res = await axios.get(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
     const sec = res.data.member?.find((s) => s.name === sectorName.value)
-    
+
     if (sec) {
       sectorId.value = sec.id
       // Charger les données en parallèle
@@ -226,7 +226,7 @@ async function fetchSectorId() {
         fetchAllDoyennes(),
         fetchPeople(), // Cette fonction va filtrer selon le service
       ])
-      
+
       // Après chargement des données, initialiser DataTables
       setTimeout(() => {
         initDataTable()
@@ -245,7 +245,7 @@ async function fetchSectorId() {
 async function fetchPeople() {
   try {
     const people = await fetchAllPagesAxios(`${API_URL}/people`)
-    
+
     // DEBUG: Afficher les données brutes
     console.log('📊 Toutes les personnes chargées:', people.length)
     console.log('📍 Service actuel:', LocalisationService.value)
@@ -347,10 +347,10 @@ onMounted(async () => {
 
   // === SSE ===
   eventSource = new EventSource(`${API_URL.replace('/api', '')}/sse/people`)
-  
+
   eventSource.onmessage = async (event) => {
     const data = JSON.parse(event.data)
-    
+
     // Rafraîchir les données
     await fetchPeople()
   }
@@ -375,8 +375,8 @@ onUnmounted(() => {
           <div class="card card-table">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Statistique - {{ nameService }}</span>
-              <!-- <button 
-                @click="handleRefresh" 
+              <!-- <button
+                @click="handleRefresh"
                 class="btn btn-outline-primary btn-sm"
                 :disabled="isLoading"
                 title="Actualiser les données"
@@ -446,7 +446,7 @@ onUnmounted(() => {
 
 /* Conteneur du tableau avec hauteur maximale de 45rem */
 .table-responsive {
-  max-height: 45rem; /* 45rem = 720px */
+  /* max-height: 45rem;  */
   overflow: auto;
   position: relative;
 }
@@ -509,7 +509,7 @@ onUnmounted(() => {
   .table-responsive {
     max-height: 35rem; /* Réduire sur mobile */
   }
-  
+
   .d-none.d-md-table-cell {
     display: none !important;
   }
@@ -519,13 +519,13 @@ onUnmounted(() => {
   .table-responsive {
     max-height: 30rem; /* Réduire encore plus sur petits écrans */
   }
-  
+
   .card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
   }
-  
+
   .card-header .btn {
     align-self: flex-end;
   }

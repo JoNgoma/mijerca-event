@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
 
 const toast = useToast()
 
@@ -23,6 +25,28 @@ const allParticipators = ref([])
 const allMontants = ref([])
 
 const viewParoisses = ref([])
+
+// Informations du camp biblique (pour l'impression)
+const campBiblique = ref({
+  name: "CAMP BIBLIQUE 2025",
+  date: "",
+  effectif: 0,
+  total: "264 000 F + 200$",
+  carrefour: "12",
+  dortoir: "3"
+})
+
+// Formater la date pour l'impression
+watch(() => props.date, (newDate) => {
+  if (newDate) {
+    const dateObj = new Date(newDate)
+    campBiblique.value.date = dateObj.toLocaleDateString('fr-FR', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    }).toUpperCase()
+  }
+}, { immediate: true })
 
 // === FONCTION PAGINATION OPTIMISÉE ===
 async function fetchAllPages(baseUrl) {
@@ -247,7 +271,10 @@ const jeunesParParoisse = computed(() => {
     const frais = Number(montantRecord?.frais || 0)
 
     const jeune = {
+      id: person['@id'],
       nom: `${person.gender} ${person.fullName}`.trim() || '—',
+      gender: person.gender,
+      fullName: person.fullName,
       dortoir: part.dortoir || '',
       carrefour: part.carrefour || '',
       arrivee: new Date(part.createdAt).toLocaleDateString('fr-FR'),
@@ -264,6 +291,160 @@ const jeunesParParoisse = computed(() => {
   console.log(`👥 ${result[selectedParoisseId.value]?.length || 0} jeunes trouvés pour la paroisse sélectionnée`)
   return result
 })
+
+// ==========================
+// FONCTION D'IMPRESSION PDF
+// ==========================
+async function goToPrint() {
+  try {
+    if (!selectedParoisseId.value) {
+      toast.warning('Veuillez sélectionner une paroisse')
+      return
+    }
+
+    const jeunes = jeunesParParoisse.value[selectedParoisseId.value] || []
+    if (jeunes.length === 0) {
+      toast.warning('Aucun jeune à imprimer pour cette paroisse')
+      return
+    }
+
+    const paroisse = viewParoisses.value.find(p => p.id === selectedParoisseId.value)
+    if (!paroisse) {
+      toast.error('Paroisse non trouvée')
+      return
+    }
+
+    // Mettre à jour l'effectif pour l'impression
+    campBiblique.value.effectif = jeunes.length
+
+    // Calculer les totaux pour cette paroisse
+    let totalUSD = 0
+    let totalFC = 0
+    
+    jeunes.forEach(j => {
+      if (j.montantDevise === '$') {
+        totalUSD += j.montantValue
+      } else {
+        totalFC += j.montantValue
+      }
+    })
+    
+    campBiblique.value.total = `${totalUSD.toLocaleString('fr-FR')} $ + ${totalFC.toLocaleString('fr-FR')} FC`
+
+    // Fonction pour diviser en groupes de 3
+    const chunkArray = (array, size) => {
+      const result = []
+      for (let i = 0; i < array.length; i += size) {
+        result.push(array.slice(i, i + size))
+      }
+      return result
+    }
+    
+    // Diviser les jeunes en groupes de 3
+    const groupedJeunes = chunkArray(jeunes, 3)
+    
+    // Créer un élément HTML temporaire pour le PDF
+    const pdfContent = document.createElement('div')
+    pdfContent.style.cssText = `
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      width: 210mm;
+      padding: 20mm;
+      font-family: Arial, sans-serif;
+      font-size: 12px;
+      background-color: white;
+    `
+    
+    // Construire le contenu HTML du PDF avec tableau
+    let tableHTML = '<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">'
+    
+    groupedJeunes.forEach((group) => {
+      tableHTML += '<tr>'
+      
+      // Ajouter les cellules pour chaque jeune du groupe
+      group.forEach(jeune => {
+        tableHTML += `
+          <td style="border: 1px solid #000; padding: 10px; width: 33.33%; vertical-align: top; height: 120px;">
+            <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Doyenné ${paroisse.doyenneName}</div>
+            <div style="margin-bottom: 5px; text-align: center;">${paroisse.nom}</div>
+            <div style="margin-bottom: 5px; text-align: center;">${jeune.gender} ${jeune.fullName}</div>
+            <div style="margin-bottom: 5px; text-align: center;">Carrefour : ${jeune.carrefour || campBiblique.value.carrefour}</div>
+            <div style="text-align: center;">Dortoir : ${jeune.dortoir || campBiblique.value.dortoir}</div>
+          </td>
+        `
+      })
+      
+      // Ajouter des cellules vides pour compléter la ligne si nécessaire
+      for (let i = group.length; i < 3; i++) {
+        tableHTML += '<td style="border: 1px solid #000; width: 33.33%; height: 120px;"></td>'
+      }
+      
+      tableHTML += '</tr>'
+    })
+    
+    tableHTML += '</table>'
+    
+    pdfContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 20px;">
+        <h1 style="font-size: 20px; margin-bottom: 10px; font-weight: bold;">
+          ${campBiblique.value.name} : LE ${campBiblique.value.date}
+        </h1>
+        <div style="display: flex; justify-content: space-between; font-size: 16px; margin-bottom: 20px;">
+          <div><strong>EFFECTIF : ${campBiblique.value.effectif} JEUNES</strong></div>
+          <div><strong>TOTAL : ${campBiblique.value.total}</strong></div>
+        </div>
+      </div>
+      
+      ${tableHTML}
+      
+      <div style="margin-top: 30px; text-align: center; font-style: italic; font-size: 10px;">
+        MIJERCA Kinshasa, le ${new Date().toLocaleDateString('fr-FR', { 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}
+      </div>
+    `
+    
+    // Ajouter au DOM temporairement
+    document.body.appendChild(pdfContent)
+    
+    // Générer le PDF
+    const canvas = await html2canvas(pdfContent, {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      backgroundColor: '#ffffff'
+    })
+    
+    const imgData = canvas.toDataURL('image/png')
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    })
+    
+    const imgWidth = 210
+    const imgHeight = (canvas.height * imgWidth) / canvas.width
+    
+    pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
+    
+    // Télécharger le PDF
+    pdf.save(`${paroisse.nom}_${campBiblique.value.date.replace(/ /g, '_')}.pdf`)
+    
+    // Nettoyer
+    document.body.removeChild(pdfContent)
+    
+    toast.success('PDF généré avec succès')
+    
+  } catch (error) {
+    console.error('❌ Erreur lors de la génération du PDF:', error)
+    toast.error('Erreur lors de la génération du PDF')
+  }
+}
 
 // Rafraîchissement manuel
 async function refreshData() {
@@ -386,9 +567,19 @@ watch(
             <span v-if="selectedParoisseId" class="text-primary"> 
               {{ viewParoisses.find(x => x.id === selectedParoisseId)?.nom }}
             </span>
-            <small v-if="selectedParoisseId" class="text-muted">
-              {{ (jeunesParParoisse[selectedParoisseId] || []).length }} jeune(s)
-            </small>
+            <div v-if="selectedParoisseId">
+              <small class="text-muted mr-1">
+                {{ (jeunesParParoisse[selectedParoisseId] || []).length }} jeune(s)
+              </small>
+              <button  
+                  class="btn btn-primary btn-sm ml-2"
+                  @click="goToPrint"
+                  :disabled="loading"
+                >
+                  <span class="icon mdi mdi-print mr-1"></span>
+                  Imprimer
+              </button>
+            </div>
             <span v-else class="text-muted">
               <i class="fas fa-mouse-pointer me-2"></i>Sélectionnez une paroisse
             </span>
@@ -468,6 +659,13 @@ watch(
           <div class="modal-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <small class="text-muted">{{ (jeunesParParoisse[currentParoisse?.id] || []).length }} jeune(s)</small>
+              <button  
+                  class="btn btn-primary btn-sm"
+                  @click="goToPrint"
+                >
+                  <span class="icon mdi mdi-print mr-1"></span>
+                  Imprimer
+              </button>
             </div>
             <table class="table table-hover">
               <thead>

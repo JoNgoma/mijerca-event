@@ -58,19 +58,19 @@ async function fetchAllPages(baseUrl) {
   let allItems = [];
   let currentPage = 1;
   let hasMore = true;
-  
+
   try {
     while (hasMore) {
       const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
-      
+
       const response = await axios.get(url);
       const data = response.data;
-      
+
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member];
-        
+
         // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
+        if (data.member.length === 0 ||
             data.member.length < 30 ||
             currentPage >= 50) {
           hasMore = false;
@@ -81,7 +81,7 @@ async function fetchAllPages(baseUrl) {
         hasMore = false;
       }
     }
-    
+
     console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
@@ -150,7 +150,7 @@ onMounted(async () => {
       fetchAllPages(`${API_URL}/doyennes`),
       fetchAllPages(`${API_URL}/paroisses`)
     ])
-    
+
     sectors.value = sectorData || []
     doyennes.value = doyenneData || []
     paroisses.value = paroisseData || []
@@ -305,7 +305,7 @@ async function submitInfoModal() {
     // Recherche paginée de la personne
     const allPeople = await fetchAllPages(`${API_URL}/people?phoneNumber=${cleanedNumber2}`)
     const person = allPeople.find(d => d.phoneNumber === cleanedNumber2)
-    
+
     if (person) {
       router.push({ path: "/update-info", query: { id: person.id || person["@id"] } })
       showInfoModal.value = false
@@ -510,8 +510,8 @@ async function registerUser(roleValues, isResponsible) {
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
           <span class="d-block mt-1">
-            Prod. by 
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none mb-1">
+            Prod. by
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none mb-1">
               Beyin LQ
             </a>
           </span>
@@ -529,17 +529,17 @@ async function registerUser(roleValues, isResponsible) {
           <div class="form-group">
             <label for="accessCode">Code d'accès</label>
             <div class="input-group">
-              <input 
+              <input
                 id="accessCode"
-                :type="showPassword ? 'text' : 'password'" 
-                class="form-control" 
-                v-model="accessCode" 
+                :type="showPassword ? 'text' : 'password'"
+                class="form-control"
+                v-model="accessCode"
                 placeholder="Saisir le code d'accès"
                 @keyup.enter="validateAccessCode"
               />
-              <button 
-                class="btn btn-outline-secondary" 
-                type="button" 
+              <button
+                class="btn btn-outline-secondary"
+                type="button"
                 @click="togglePasswordVisibility"
               >
                 <i :class="showPassword ? 'px-1 mdi mdi-eye-off' : 'px-1 mdi mdi-eye text-primary'"></i>
@@ -569,7 +569,7 @@ async function registerUser(roleValues, isResponsible) {
             <input type="checkbox" class="form-check-input" v-model="role.value" :id="role.key" />
             <label class="form-check-label" :for="role.key">{{ role.label }}</label>
           </div>
-          
+
           <div class="alert alert-info small mb-3">
             <i class="fas fa-info-circle me-1"></i>
             Veuillez sélectionner au moins un type de responsabilité
