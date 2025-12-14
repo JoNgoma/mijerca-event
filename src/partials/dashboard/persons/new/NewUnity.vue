@@ -300,11 +300,11 @@ function validatePhoneNumber() {
   }
 
   // Vérification des préfixes autorisés
-  const validPrefixes = ['081', '082', '083', '084', '085', '089', '09']
+  const validPrefixes = ['080', '081', '082', '083', '084', '085', '086', '089', '09']
   const hasValidPrefix = validPrefixes.some(prefix => cleanedNumber.startsWith(prefix))
   
   if (!hasValidPrefix) {
-    phoneError.value = "Le numéro doit commencer par : 081, 082, 083, 084, 085, 089 ou 09"
+    phoneError.value = "Le numéro doit commencer par : 080, 081, 082, 083, 084, 085, 086, 089 ou 09"
     return false
   }
 

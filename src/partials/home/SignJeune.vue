@@ -110,9 +110,9 @@ const formatPhone = (target) => {
 
 const validatePhone = (number) => {
   const cleaned = number.replace(/\s+/g, '')
-  const validPrefixes = ["081", "082", "083", "084", "085", "089", "09"]
+  const validPrefixes = ['080', '081', '082', '083', '084', '085', '086', '089', '09']
   const hasValidPrefix = validPrefixes.some(prefix => cleaned.startsWith(prefix))
-  if (!hasValidPrefix) return "Le numéro doit commencer par 081, 082, 083, 084, 085, 089 ou 09."
+  if (!hasValidPrefix) return "Le numéro doit commencer par 080, 081, 082, 083, 084, 085, 086, 089 ou 09."
   if (cleaned.length < 10) return "Le numéro doit contenir au moins 10 chiffres."
   return ""
 }
@@ -506,12 +506,12 @@ async function registerUser(roleValues, isResponsible) {
       </div>
 
       <div class="splash-footer text-center">
-        <p class="copyright mb-0">
+        <p class="copyright">
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
-          <span class="d-block mt-1">
+          <span class="d-block mt-1 pb-3">
             Prod. by
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none mb-1">
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none">
               Beyin LQ
             </a>
           </span>

@@ -356,9 +356,9 @@ function submitModal() {
         <p class="copyright mb-0">
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
-          <span class="d-block mt-1">
+          <span class="d-block mt-1  pb-3">
             Prod. by 
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none mb-1">
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-decoration-none">
               Beyin LQ
             </a>
           </span>

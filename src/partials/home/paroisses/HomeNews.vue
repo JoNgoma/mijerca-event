@@ -461,7 +461,10 @@ onMounted(() => {
           </div>
           
           <div class="mt-4">
-            <h5><i class="mdi mdi-phone text-primary mr-2"></i>Contact & Informations</h5>
+            <h5>
+              <i class="mdi mdi-phone text-primary mr-2"></i><strong>
+                <strong>Contact & Informations</strong></strong>
+              </h5>
             <p>Pour toute question concernant le Camp Biblique 2025 :</p>
             <ul>
               <li>Email : <a href="mailto:info@mijerca.rccarchikin.org">info@mijerca.rccarchikin.org </a></li>

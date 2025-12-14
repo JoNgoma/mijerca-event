@@ -2,10 +2,8 @@
 import axios from "axios"
 import { onMounted, ref, computed } from "vue"
 import { useToast } from 'vue-toastification'
-import { useRouter } from 'vue-router'
 
 const toast = useToast()
-const router = useRouter()
 
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
@@ -157,9 +155,9 @@ const formatPhone = (target) => {
 
 const validatePhone = (number) => {
   const cleaned = number.replace(/\s+/g, '')
-  const validPrefixes = ["081", "082", "083", "084", "085", "089", "09"]
+  const validPrefixes = ['080', '081', '082', '083', '084', '085', '086', '089', '09']
   const hasValidPrefix = validPrefixes.some(prefix => cleaned.startsWith(prefix))
-  if (!hasValidPrefix) return "Le numéro doit commencer par 081, 082, 083, 084, 085, 089 ou 09."
+  if (!hasValidPrefix) return "Le numéro doit commencer par 080, 081, 082, 083, 084, 085, 086, 089 ou 09."
   if (cleaned.length < 10) return "Le numéro doit contenir au moins 10 chiffres."
   return ""
 }

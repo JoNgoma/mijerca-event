@@ -29,9 +29,9 @@
         <!-- Contact rapide -->
         <div class="col-md-4 text-start">
           <h5 class="mb-3">Contact</h5>
-          <p class="mb-1"><strong>Email :</strong> info@mijerca.rccarchikin.org </p>
-          <p class="mb-1"><strong>Téléphone :</strong> +243 840 306 094 </p>
-          <p class="mb-0"><strong>Adresse :</strong> Avenue des Orangers, Kinshasa/Kalamu, RDC </p>
+          <p class="mb-1"><strong>Email :</strong> <a class="text-white" href="mailto:info@mijerca.rccarchikin.org"> info@mijerca.rccarchikin.org</a></p>
+          <p class="mb-1"><strong>Téléphone :</strong> <a class="text-white" href="tel:+243 840 306 094"> +243 840 306 094</a> </p>
+          <p class="mb-0"><strong>Adresse :</strong> Avenue des Orangers, Kinshasa/ Kalamu, RDC </p>
         </div>
       </div>
 
@@ -42,9 +42,9 @@
         <p class="mb-0">
           &copy; MIJERCA Kinshasa 2025. Tous droits réservés.
           <br />
-          <span class="d-block mt-1">
+          <span class="d-block mt-1 pb-3">
             Prod. by 
-            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none mb-1">
+            <a target="_blank" href="https://josue-ngoma-folio.onrender.com/" class="text-white text-decoration-none">
               Beyin LQ
             </a>
           </span>
