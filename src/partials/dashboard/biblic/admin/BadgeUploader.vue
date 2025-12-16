@@ -82,9 +82,9 @@ const uploadImage = async () => {
     formData.append('folder', folder)
     formData.append('category', category.value)
 
-    console.log('Envoi vers:', `${API_URL_IMG}/upload-image`)
-    console.log('Dossier:', folder)
-    console.log('Catégorie:', category.value)
+    // console.log('Envoi vers:', `${API_URL_IMG}/upload-image`)
+    // console.log('Dossier:', folder)
+    // console.log('Catégorie:', category.value)
 
     const res = await axios.post(`${API_URL_IMG}/upload-image`, formData, {
       headers: {
@@ -93,7 +93,7 @@ const uploadImage = async () => {
       timeout: 30000, // 30 secondes timeout
     })
 
-    console.log('Réponse reçue:', res.data)
+    // console.log('Réponse reçue:', res.data)
 
     if (res.data.url) {
       uploadUrl.value = res.data.url

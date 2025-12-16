@@ -8,7 +8,7 @@
           <h5 class="mb-3">Navigation</h5>
           <ul class="list-unstyled">
             <li><a href="/" class="text-white text-decoration-none d-block mb-1">Accueil</a></li>
-            <li><a href="/events" class="text-white text-decoration-none d-block mb-1">Evénements</a></li>
+            <!-- <li><a href="/events" class="text-white text-decoration-none d-block mb-1">Evénements</a></li> -->
             <li><a href="/news" class="text-white text-decoration-none d-block mb-1">Actualité</a></li>
             <li><a href="/paroisses" class="text-white text-decoration-none d-block mb-1">Paroisses</a></li>
           </ul>

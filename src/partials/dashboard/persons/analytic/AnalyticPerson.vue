@@ -15,9 +15,6 @@ const isLoading = ref(false)
 const currentUser = ref(null)
 const currentPerson = ref(null)
 const allPeople = ref([])
-const doyennes = ref([])
-const paroisses = ref([])
-const dioceses = ref([])
 const allDoyennes = ref([])
 const allParoisses = ref([])
 const sectorId = ref(null)
@@ -26,56 +23,9 @@ const nameService = ref(currentService.value.name)
 // Référence pour DataTables
 let dataTable = null
 
-// SSE
-let eventSource = null
-
 // ==========================
 // PAGINATION OPTIMISÉE
 // ==========================
-async function fetchAllPages(baseUrl, options = {}) {
-  let allItems = []
-  let currentPage = 1
-  let hasMore = true
-
-  try {
-    while (hasMore) {
-      const url = new URL(baseUrl)
-      url.searchParams.set('page', currentPage)
-
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          ...options.headers,
-        },
-        ...options,
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`)
-      }
-
-      const data = await response.json()
-
-      if (data.member && Array.isArray(data.member)) {
-        allItems = [...allItems, ...data.member]
-
-        if (data.member.length === 0 || data.member.length < 30 || currentPage >= 50) {
-          hasMore = false
-        } else {
-          currentPage++
-        }
-      } else {
-        hasMore = false
-      }
-    }
-
-    return allItems
-  } catch (error) {
-    console.error('Erreur lors de la récupération paginée:', error)
-    throw error
-  }
-}
-
 async function fetchAllPagesAxios(baseUrl) {
   let allItems = []
   let currentPage = 1
@@ -128,7 +78,19 @@ const sectorName = computed(() => {
 })
 
 // ==========================
-// Initialiser/détruire DataTables
+// Gestion du redimensionnement de la fenêtre
+// ==========================
+const handleResize = () => {
+  if (dataTable) {
+    setTimeout(() => {
+      dataTable.destroy()
+      initDataTable()
+    }, 150)
+  }
+}
+
+// ==========================
+// Initialiser/détruire DataTables OPTIMISÉ
 // ==========================
 function initDataTable() {
   // Détruire l'instance existante
@@ -141,16 +103,58 @@ function initDataTable() {
   nextTick(() => {
     const tableElement = document.getElementById('table1')
     if (tableElement) {
+      // Calculer la hauteur dynamique basée sur la taille de l'écran
+      const screenHeight = window.innerHeight
+      const isMobile = screenHeight < 768
+      const isSmallScreen = screenHeight < 576
+      
+      let tableHeight
+      if (isSmallScreen) {
+        tableHeight = Math.max(300, screenHeight * 0.5) + 'px' // 50% de la hauteur de l'écran
+      } else if (isMobile) {
+        tableHeight = Math.max(400, screenHeight * 0.65) + 'px' // 65% de la hauteur de l'écran
+      } else {
+        tableHeight = '60vh' // 60% de la hauteur de la fenêtre sur desktop
+      }
+
       dataTable = $(tableElement).DataTable({
         responsive: true,
-        pageLength: 10,
+        pageLength: 25, // Plus d'éléments par page pour réduire la pagination
+        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tous"]],
         language: {
-          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json'
+          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json',
+          lengthMenu: "Afficher _MENU_ éléments",
+          search: "Rechercher:",
+          info: "Affichage de _START_ à _END_ sur _TOTAL_ personnes",
+          paginate: {
+            first: "Premier",
+            last: "Dernier",
+            next: "Suivant",
+            previous: "Précédent"
+          }
         },
         order: [[0, 'asc']],
-        scrollY: '45rem', // Hauteur fixe pour le défilement
+        scrollY: tableHeight, // Hauteur dynamique
         scrollCollapse: true,
-        paging: true
+        paging: true,
+        scrollX: true, // Activer le défilement horizontal sur mobile
+        fixedHeader: true, // En-tête fixe
+        
+        // OPTIMISATIONS DE PERFORMANCE CRITIQUES
+        deferRender: true, // Rendu différé: ne rend que les lignes visibles
+        scrollX: true,
+        fixedHeader: true,
+        processing: true, // Affiche "Traitement en cours..."
+        columnDefs: [
+          { responsivePriority: 1, targets: 0 }, // Nom complet prioritaire
+          { responsivePriority: 2, targets: 3 }, // Téléphone
+          { responsivePriority: 3, targets: 2 }, // Paroisse
+          { responsivePriority: 4, targets: 1 }, // Doyenné
+          {
+            targets: [1], // Colonne doyenné
+            visible: !isMobile // Masquer sur mobile
+          }
+        ]
       })
     }
   })
@@ -206,7 +210,7 @@ async function fetchAllDoyennes() {
 }
 
 // ==========================
-// Fetch doyennes, paroisses, diocèses
+// Fetch doyennes, paroisses, diocèses - OPTIMISÉ
 // ==========================
 async function fetchSectorId() {
   try {
@@ -220,7 +224,7 @@ async function fetchSectorId() {
 
     if (sec) {
       sectorId.value = sec.id
-      // Charger les données en parallèle
+      // Charger les données en parallèle pour optimiser le temps
       await Promise.all([
         fetchAllParoisses(),
         fetchAllDoyennes(),
@@ -244,9 +248,9 @@ async function fetchSectorId() {
 // ==========================
 async function fetchPeople() {
   try {
+    console.time('fetchPeople') // Mesure du temps d'exécution
     const people = await fetchAllPagesAxios(`${API_URL}/people`)
 
-    // DEBUG: Afficher les données brutes
     console.log('📊 Toutes les personnes chargées:', people.length)
     console.log('📍 Service actuel:', LocalisationService.value)
     console.log('👤 Personne connectée:', currentPerson.value)
@@ -293,6 +297,7 @@ async function fetchPeople() {
       default:
         allPeople.value = []
     }
+    console.timeEnd('fetchPeople') // Fin de la mesure
   } catch (err) {
     console.error('❌ Erreur récupération personnes', err)
   }
@@ -339,31 +344,20 @@ async function handleRefresh() {
 }
 
 // ==========================
-// Montage SSE
+// Montage - SANS SSE
 // ==========================
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchSectorId()
-
-  // === SSE ===
-  eventSource = new EventSource(`${API_URL.replace('/api', '')}/sse/people`)
-
-  eventSource.onmessage = async (event) => {
-    const data = JSON.parse(event.data)
-
-    // Rafraîchir les données
-    await fetchPeople()
-  }
-
-  eventSource.onerror = (err) => {
-    console.error('❌ SSE error', err)
-    eventSource.close()
-  }
+  
+  // Écouter le redimensionnement de la fenêtre
+  window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   destroyDataTable()
-  if (eventSource) eventSource.close()
+  window.removeEventListener('resize', handleResize)
+  // Pas de SSE à fermer
 })
 </script>
 
@@ -375,51 +369,62 @@ onUnmounted(() => {
           <div class="card card-table">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Statistique - {{ nameService }}</span>
-              <!-- <button
-                @click="handleRefresh"
-                class="btn btn-outline-primary btn-sm"
-                :disabled="isLoading"
-                title="Actualiser les données"
-              >
-                <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
-                {{ isLoading ? 'Actualisation...' : 'Actualiser' }}
-              </button> -->
+              <!-- <div class="d-flex align-items-center gap-2">
+                <small class="text-muted me-2">{{ jeunes.length }} personnes listées</small>
+                <button
+                  @click="handleRefresh"
+                  class="btn btn-outline-primary btn-sm"
+                  :disabled="isLoading"
+                  title="Actualiser les données"
+                >
+                  <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
+                </button>
+              </div> -->
             </div>
-            <div class="card-body">
-              <div class="table-responsive p-2">
+            <div class="card-body p-2">
+              <div class="table-responsive-wrapper">
                 <div v-if="isLoading" class="text-center my-5">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden"></span>
                   </div>
                   <p>Chargement des données...</p>
                 </div>
-                <table v-else class="table table-striped table-hover" id="table1">
-                  <thead>
-                    <tr>
-                      <th>Nom complet</th>
-                      <th class="d-none d-md-table-cell">Doyenné</th>
-                      <th>Paroisse</th>
-                      <th>Téléphone</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="j in jeunes"
-                      :key="j.id || j.phoneNumber"
-                      :class="{
-                        'bg-noyau text-dark': j.isNoyau,
-                      }"
-                    >
-                      <td>{{ j.gender }} {{ j.fullName }}</td>
-                      <td class="d-none d-md-table-cell">{{ j.doyenne }}</td>
-                      <td>{{ j.paroisse }}</td>
-                      <td>{{ j.phoneNumber }}</td>
-                    </tr>
-                    <tr v-if="jeunes.length === 0 && !isLoading">
-                      <td colspan="4" class="text-center text-muted">Aucune donnée disponible</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div v-else class="table-responsive">
+                  <table class="table table-striped table-hover" id="table1">
+                    <thead>
+                      <tr>
+                        <th>Nom complet</th>
+                        <th class="doyenne-column">Doyenné</th>
+                        <th>Paroisse</th>
+                        <th>Téléphone</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        v-for="j in jeunes"
+                        :key="j.id || j.phoneNumber"
+                        :class="{
+                          'bg-noyau text-dark': j.isNoyau,
+                        }"
+                      >
+                        <td>{{ j.gender }} {{ j.fullName }}</td>
+                        <td class="doyenne-column">{{ j.doyenne }}</td>
+                        <td>{{ j.paroisse }}</td>
+                        <td>
+                          <a :href="`tel:${j.phoneNumber}`" class="text-decoration-none">
+                            {{ j.phoneNumber }}
+                          </a>
+                        </td>
+                      </tr>
+                      <tr v-if="jeunes.length === 0 && !isLoading">
+                        <td colspan="4" class="text-center text-muted py-4">
+                          <i class="fas fa-inbox fa-2x mb-2"></i><br>
+                          Aucune donnée disponible
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
@@ -430,45 +435,118 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Conteneur de la carte avec hauteur limitée */
+/* Conteneur principal de la carte */
 .card {
-  max-height: 60rem; /* Hauteur totale de la carte */
   display: flex;
   flex-direction: column;
+  min-height: 400px; /* Hauteur minimale */
 }
 
-/* Corps de la carte avec hauteur fixe */
+/* Corps de la carte avec hauteur flexible */
 .card-body {
   flex: 1;
   overflow: hidden;
   padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* Conteneur du tableau avec hauteur maximale de 45rem */
+/* Conteneur pour le tableau responsive */
+.table-responsive-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+/* Tableau responsive */
 .table-responsive {
-  /* max-height: 45rem;  */
+  flex: 1;
   overflow: auto;
   position: relative;
+  min-height: 200px;
 }
 
-/* En-tête du tableau fixe */
-.table-responsive table thead {
+/* En-tête fixe du tableau */
+.table-responsive table thead th {
   position: sticky;
   top: 0;
+  background-color: #f8f9fa;
   z-index: 10;
-}
-
-.table-responsive table thead th {
-  background-color: #fff;
   box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Style pour les noyaux */
 .bg-noyau {
-  background-color: #d7ddd7 !important;
-  color: black !important;
+  background-color: #e8f5e9 !important;
+}
+
+/* Style pour les liens téléphone */
+a[href^="tel:"] {
+  color: #0d6efd;
+  transition: color 0.2s;
+}
+
+a[href^="tel:"]:hover {
+  color: #0a58ca;
+  text-decoration: underline !important;
+}
+
+/* Style pour les colonnes */
+.doyenne-column {
+  min-width: 150px;
+}
+
+/* Styles pour DataTables */
+.dataTables_wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.dataTables_scroll {
+  flex: 1;
+  min-height: 0;
+}
+
+/* Ajustements pour mobile */
+@media (max-width: 768px) {
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .table-responsive {
+    max-height: 70vh;
+  }
+  
+  .card-header .btn {
+    align-self: flex-end;
+    margin-top: -2.5rem;
+  }
+  
+  .doyenne-column {
+    display: none;
+  }
+  
+  /* Ajuster la taille de police sur mobile */
+  .table td, .table th {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+  }
+  
+  /* Réduire l'espacement sur très petits écrans */
+  @media (max-width: 360px) {
+    .table td, .table th {
+      font-size: 0.8125rem;
+      padding: 0.375rem;
+    }
+  }
 }
 
 /* Animation de l'icône d'actualisation */
@@ -485,49 +563,28 @@ onUnmounted(() => {
   }
 }
 
-/* Ajustement du style DataTables */
-.dataTables_wrapper {
-  width: 100%;
-  max-height: 45rem;
+/* Style pour le message vide */
+.text-center.text-muted {
+  font-size: 1.1rem;
+  color: #6c757d;
 }
 
-.dataTables_wrapper .dataTables_scroll {
-  max-height: 45rem;
+/* Améliorer la visibilité des lignes au survol */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
-.dataTables_wrapper .dataTables_scrollBody {
-  max-height: calc(45rem - 40px) !important; /* Ajuster selon la hauteur de l'en-tête */
-}
-
-/* Style pour les en-têtes dans le défilement DataTables */
-.dataTables_scrollHead thead th {
-  background-color: #fff;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
+/* Ajustements pour les écrans très hauts */
+@media (min-height: 900px) {
   .table-responsive {
-    max-height: 35rem; /* Réduire sur mobile */
-  }
-
-  .d-none.d-md-table-cell {
-    display: none !important;
+    max-height: 70vh;
   }
 }
 
-@media (max-width: 576px) {
+/* Ajustements pour les écrans larges */
+@media (min-width: 1200px) {
   .table-responsive {
-    max-height: 30rem; /* Réduire encore plus sur petits écrans */
-  }
-
-  .card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-
-  .card-header .btn {
-    align-self: flex-end;
+    max-height: 80vh;
   }
 }
 </style>

@@ -53,7 +53,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -76,7 +76,7 @@ async function fetchSectors() {
   try {
     const res = await fetchAllPages(`${API}/sectors`)
     allSectors.value = res || []
-    console.log(`🏛️ ${allSectors.value.length} secteurs chargés`)
+    // console.log(`🏛️ ${allSectors.value.length} secteurs chargés`)
   } catch (err) {
     console.error('Erreur fetch sectors', err)
   }
@@ -85,7 +85,7 @@ async function fetchSectors() {
 async function fetchDates() {
   loading.value = true
   try {
-    console.log('🔄 Chargement des données avec pagination...')
+    // console.log('🔄 Chargement des données avec pagination...')
     
     const [participators, paroisses, people, montants] = await Promise.all([
       fetchAllPages(`${API}/participators`),
@@ -99,7 +99,7 @@ async function fetchDates() {
     allPeople.value = people
     allMontants.value = montants
 
-    console.log(`📈 Données chargées: ${participators.length} participants, ${paroisses.length} paroisses, ${people.length} personnes, ${montants.length} montants`)
+    // console.log(`📈 Données chargées: ${participators.length} participants, ${paroisses.length} paroisses, ${people.length} personnes, ${montants.length} montants`)
 
     const datesSet = new Set()
     participators.forEach(p => {
@@ -201,7 +201,7 @@ allSectors.value.forEach(sector => {
 })
 
   summaryData.value = Object.values(agg)
-  console.log(`📊 Résumé calculé: ${summaryData.length} secteurs pour le ${selectedDate.value}`)
+  // console.log(`📊 Résumé calculé: ${summaryData.length} secteurs pour le ${selectedDate.value}`)
   renderChart()
 }
 

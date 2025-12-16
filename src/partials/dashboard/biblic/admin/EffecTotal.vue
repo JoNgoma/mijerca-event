@@ -55,7 +55,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -124,7 +124,7 @@ async function computeServiceStats() {
         s => s.campBiblic === `/api/camp_bibliques/${campId.value}`
       )
 
-      console.log(`📊 ${service.name}: ${campRecords.length} enregistrements pour ce camp`)
+      // console.log(`📊 ${service.name}: ${campRecords.length} enregistrements pour ce camp`)
 
       // Extraire les users liés à ces services
       const serviceUserIds = campRecords
@@ -175,7 +175,7 @@ async function computeServiceStats() {
   }
 
   viewServices.value = results
-  console.log('🎯 Statistiques calculées:', results)
+  // console.log('🎯 Statistiques calculées:', results)
 }
 
 // === Actualisation manuelle ===

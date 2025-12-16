@@ -45,7 +45,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -67,7 +67,7 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 async function fetchData() {
   try {
     loading.value = true
-    console.log('🔄 Chargement des données avec pagination...')
+    // console.log('🔄 Chargement des données avec pagination...')
 
     const [sectorsRes, doyennesRes, paroissesRes, peopleRes, participatorsRes] = await Promise.all([
       fetchAllPages(`${API}/sectors`),
@@ -83,7 +83,7 @@ async function fetchData() {
     allPeople.value = peopleRes
     allParticipators.value = participatorsRes
 
-    console.log(`📈 Données chargées: ${sectorsRes.length} secteurs, ${doyennesRes.length} doyennes, ${paroissesRes.length} paroisses, ${peopleRes.length} personnes, ${participatorsRes.length} participants`)
+    // console.log(`📈 Données chargées: ${sectorsRes.length} secteurs, ${doyennesRes.length} doyennes, ${paroissesRes.length} paroisses, ${peopleRes.length} personnes, ${participatorsRes.length} participants`)
 
     aggregateSectors()
   } catch (err) {
@@ -149,7 +149,7 @@ function aggregateSectors() {
     total: s.freres + s.soeurs,
   }))
 
-  console.log(`🏛️ ${viewSectors.value.length} secteurs agrégés (${totalParticipants} participants au total)`)
+  // console.log(`🏛️ ${viewSectors.value.length} secteurs agrégés (${totalParticipants} participants au total)`)
 }
 
 // Fonction de rafraîchissement manuel

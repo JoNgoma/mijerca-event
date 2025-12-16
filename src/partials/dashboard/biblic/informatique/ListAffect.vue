@@ -18,10 +18,8 @@ const props = defineProps({
 const formatFullName = (fullName) => {
   if (!fullName) return '';
   
-  // Liste des prépositions et articles à ne pas capitaliser (sauf en début de nom)
   const lowerCaseWords = ['de', 'du', 'des', 'le', 'la', 'les', 'et', 'à', 'aux', 'en', 'sur', 'sous', 'dans', 'von', 'van'];
   
-  // Liste des noms composés spéciaux
   const specialCases = {
     'mcdonald': 'McDonald',
     'macdonald': 'MacDonald',
@@ -35,47 +33,36 @@ const formatFullName = (fullName) => {
     'del ': 'Del '
   };
   
-  // Convertir en minuscules
   let formatted = fullName.toLowerCase().trim();
   
-  // Appliquer les cas spéciaux d'abord
   Object.entries(specialCases).forEach(([key, value]) => {
     if (formatted.startsWith(key)) {
       formatted = value + formatted.slice(key.length);
     }
   });
   
-  // Séparer par espaces
   const words = formatted.split(/\s+/);
   
-  // Capitaliser chaque mot selon les règles
   const resultWords = words.map((word, index) => {
-    // Capitaliser tous les mots en première position
     if (index === 0) {
       return word.charAt(0).toUpperCase() + word.slice(1);
     }
     
-    // Ne pas capitaliser les petits mots (sauf s'ils font partie d'un nom composé)
     if (lowerCaseWords.includes(word.toLowerCase())) {
-      // Vérifier si c'est une préposition entre deux parties du nom
       if (index < words.length - 1 && words[index + 1].length > 2) {
         return word.toLowerCase();
       }
     }
     
-    // Capitaliser les autres mots
     return word.charAt(0).toUpperCase() + word.slice(1);
   });
   
-  // Rejoindre les mots
   let result = resultWords.join(' ');
   
-  // Gérer les tirets
   result = result.replace(/-\s*/g, '-').replace(/([a-z])-([a-z])/gi, (match, p1, p2) => {
     return p1.toUpperCase() + '-' + p2.toUpperCase();
   });
   
-  // Gérer les apostrophes
   result = result.replace(/'\s*/g, '\'').replace(/([a-z])'([a-z])/gi, (match, p1, p2) => {
     return p1.toUpperCase() + '\'' + p2.toUpperCase();
   });
@@ -92,12 +79,12 @@ async function fetchAllPages(baseUrl, options = {}) {
   let allItems = [];
   let currentPage = 1;
   let hasMore = true;
-
+  
   try {
     while (hasMore) {
       const url = new URL(baseUrl);
       url.searchParams.set('page', currentPage);
-
+      
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -105,17 +92,16 @@ async function fetchAllPages(baseUrl, options = {}) {
         },
         ...options
       });
-
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-
+      
       const data = await response.json();
-
+      
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member];
 
-        // Vérifie s'il y a plus de pages
         if (data.member.length === 0 ||
             data.member.length < 30 ||
             currentPage >= 50) {
@@ -148,6 +134,12 @@ const allParoisses = ref([])
 const allPeople = ref([])
 const allParticipators = ref([])
 const allMontants = ref([])
+const allUsers = ref([])
+const allAdministrations = ref([])
+const allFinances = ref([])
+const allInformatiques = ref([])
+const allHebergements = ref([])
+
 const viewParoisses = ref([])
 
 // Sélection des jeunes
@@ -168,13 +160,91 @@ function extractIdFromUrl(url) {
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 // ==========================
+// Vérifier si une personne est responsable et obtenir son service
+// ==========================
+const getPersonServiceInfo = (person) => {
+  if (!person) return { isResponsable: false, serviceLabel: '' }
+  
+  // Vérifier si la personne est diocésaine
+  if (person.isDicoces) {
+    return { isResponsable: true, serviceLabel: 'Service Diocésain' }
+  }
+  
+  const personId = extractIdFromUrl(person['@id'])
+  let serviceLabel = ''
+  let isResponsable = false
+  
+  // Vérifier si la personne est dans les administrations
+  const isInAdministration = allAdministrations.value.some(admin => {
+    const adminUserIds = (admin.user || []).map(userUrl => extractIdFromUrl(userUrl))
+    return adminUserIds.some(userId => {
+      const user = allUsers.value.find(u => extractIdFromUrl(u['@id']) === userId)
+      if (user && extractIdFromUrl(user.person) === personId) {
+        serviceLabel = 'Commission Administration'
+        isResponsable = true
+        return true
+      }
+      return false
+    })
+  })
+  
+  // Vérifier si la personne est dans les finances
+  const isInFinance = allFinances.value.some(finance => {
+    const financeUserIds = (finance.user || []).map(userUrl => extractIdFromUrl(userUrl))
+    return financeUserIds.some(userId => {
+      const user = allUsers.value.find(u => extractIdFromUrl(u['@id']) === userId)
+      if (user && extractIdFromUrl(user.person) === personId) {
+        serviceLabel = 'Commission Administration - Finances'
+        isResponsable = true
+        return true
+      }
+      return false
+    })
+  })
+  
+  // Vérifier si la personne est dans les informatiques
+  const isInInformatique = allInformatiques.value.some(info => {
+    const infoUserIds = (info.user || []).map(userUrl => extractIdFromUrl(userUrl))
+    return infoUserIds.some(userId => {
+      const user = allUsers.value.find(u => extractIdFromUrl(u['@id']) === userId)
+      if (user && extractIdFromUrl(user.person) === personId) {
+        serviceLabel = 'Commission Secrétariat'
+        isResponsable = true
+        return true
+      }
+      return false
+    })
+  })
+  
+  // Vérifier si la personne est dans les hébergements
+  const isInHebergement = allHebergements.value.some(heb => {
+    const hebUserIds = (heb.user || []).map(userUrl => extractIdFromUrl(userUrl))
+    return hebUserIds.some(userId => {
+      const user = allUsers.value.find(u => extractIdFromUrl(u['@id']) === userId)
+      if (user && extractIdFromUrl(user.person) === personId) {
+        serviceLabel = 'Commission Hébergement'
+        isResponsable = true
+        return true
+      }
+      return false
+    })
+  })
+  
+  // Si la personne est responsable mais n'est dans aucun service spécifique
+  if (isResponsable && !serviceLabel) {
+    serviceLabel = 'Service Diocésain'
+  }
+  
+  return { isResponsable, serviceLabel }
+}
+
+// ==========================
 // Chargement des données avec pagination
 // ==========================
 async function fetchData() {
   try {
     loading.value = true
     
-    // Utiliser la pagination optimisée pour toutes les requêtes
     const [
       doyennesRes,
       paroissesRes,
@@ -182,6 +252,11 @@ async function fetchData() {
       participatorsRes,
       sectorsRes,
       montantsRes,
+      usersRes,
+      administrationsRes,
+      financesRes,
+      informatiquesRes,
+      hebergementsRes,
     ] = await Promise.all([
       fetchAllPages(`${API}/doyennes`),
       fetchAllPages(`${API}/paroisses`),
@@ -189,6 +264,11 @@ async function fetchData() {
       fetchAllPages(`${API}/participators`),
       fetchAllPages(`${API}/sectors`),
       fetchAllPages(`${API}/montants`),
+      fetchAllPages(`${API}/users`),
+      fetchAllPages(`${API}/administrations`),
+      fetchAllPages(`${API}/finances`),
+      fetchAllPages(`${API}/informatiques`),
+      fetchAllPages(`${API}/hebergements`),
     ])
 
     allDoyennes.value = doyennesRes || []
@@ -197,15 +277,11 @@ async function fetchData() {
     allParticipators.value = participatorsRes || []
     allSectors.value = sectorsRes || []
     allMontants.value = montantsRes || []
-
-    // console.log('📊 Données chargées:', {
-    //   doyennes: allDoyennes.value.length,
-    //   paroisses: allParoisses.value.length,
-    //   people: allPeople.value.length,
-    //   participators: allParticipators.value.length,
-    //   sectors: allSectors.value.length,
-    //   montants: allMontants.value.length
-    // })
+    allUsers.value = usersRes || []
+    allAdministrations.value = administrationsRes || []
+    allFinances.value = financesRes || []
+    allInformatiques.value = informatiquesRes || []
+    allHebergements.value = hebergementsRes || []
 
     aggregateParoisses()
   } catch (err) {
@@ -263,7 +339,6 @@ function aggregateParoisses() {
   })
 
   viewParoisses.value = Object.values(agg)
-  // console.log('📊 Paroisses agrégées:', viewParoisses.value.length)
 }
 
 const doyennesBySector = computed(() => {
@@ -296,7 +371,6 @@ async function selectParoisse(paroId) {
     showJeunesModal.value = true
   }
   
-  // Réinitialiser la sélection des jeunes
   selectedJeunes.value = []
   allSelected.value = false
 }
@@ -308,7 +382,6 @@ const jeunesParParoisse = computed(() => {
   const result = {}
   if (!selectedParoisseId.value) return result
 
-  // Créer un tableau pour stocker et trier les jeunes
   const jeunes = []
 
   allParticipators.value.forEach(part => {
@@ -335,31 +408,28 @@ const jeunesParParoisse = computed(() => {
     const devise = (montantRecord?.devise || 'FC').toUpperCase()
     const frais = Number(montantRecord?.frais || 0)
 
-    // Formater le nom complet
     const formattedFullName = formatFullName(person.fullName)
+    const { isResponsable, serviceLabel } = getPersonServiceInfo(person)
 
     const jeune = {
       id: part.id,
       paroisse: paroisseObj ? paroisseObj.name : 'Non définie',
       nom: `${person.gender} ${formattedFullName}`.trim() || '—',
-      fullName: formattedFullName, // Ajouter le nom formaté pour le tri
+      fullName: formattedFullName,
       dortoir: part.dortoir || '',
       carrefour: part.carrefour || '',
       arrivee: new Date(part.createdAt || props.date).toLocaleDateString('fr-FR'),
       badge: part.badge === true,
       montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise}`,
       personId: extractIdFromUrl(person['@id']),
+      isResponsable: isResponsable,
+      serviceLabel: person.isDicoces ? 'Service Diocésain' : serviceLabel,
     }
-
     jeunes.push(jeune)
   })
 
-  // Trier les jeunes par ordre alphabétique du nom complet
   jeunes.sort((a, b) => a.fullName.localeCompare(b.fullName))
-
-  // Stocker dans le résultat
   result[selectedParoisseId.value] = jeunes
-  
   return result
 })
 
@@ -399,8 +469,23 @@ function goToPrint() {
   
   const selectedPersons = list.filter(j => selectedJeunes.value.includes(j.id));
 
-  // Enregistrer temporairement (proprement)
-  sessionStorage.setItem("selectedPersonsForBadges", JSON.stringify(selectedPersons));
+  // Sauvegarder avec toutes les informations nécessaires pour les badges
+  const personsData = selectedPersons.map(p => ({
+    id: p.id,
+    nom: p.nom,
+    paroisse: p.paroisse,
+    dortoir: p.dortoir,
+    carrefour: p.carrefour,
+    isResponsable: p.isResponsable,
+    // Ajouter les champs supplémentaires nécessaires
+    prenom: p.prenom,
+    service: p.serviceLabel || p.service || '',
+    isDicoces: p.isDecoces || false,
+    // Champ isDecoces pour compatibilité avec la logique des badges
+    isDecoces: p.isDecoces || false
+  }));
+  
+  sessionStorage.setItem("selectedPersonsForBadges", JSON.stringify(personsData));
 
   router.push({ name: "info-a4-generator", params: { serviceType: 'a4-generator' } });
 }

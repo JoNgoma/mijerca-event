@@ -50,7 +50,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -214,7 +214,7 @@ function buildPeopleOptions() {
     // ✅ trier par ordre alphabétique sur fullName
     .sort((a, b) => a.fullName.localeCompare(b.fullName))
 
-  console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour la paroisse sélectionnée`)
+  // console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour la paroisse sélectionnée`)
 }
 
 // === Déplacements via change (plus fiable que @click sur <option>) ===

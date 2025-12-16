@@ -19,15 +19,63 @@ const preRegistration = ref({
 // Données du camp
 const campInfo = ref({
   name: "Camp Biblique 2025",
-  date: "Décembre 2025",
+  date: "Du 26 au 30 Décembre 2025",
   location: {
     name: "En cours de détermination",
     status: "loading"
   },
   theme: {
-    title: "En cours de préparation",
-    description: "Le thème sera dévoilé avec l'affiche officielle",
-    status: "loading"
+    title: "Les Épîtres Catholiques",
+    description: "Une étude approfondie des Épîtres Catholiques (Jacques, Pierre, Jean, Jude) et leur application dans la vie des jeunes chrétiens.",
+    subtopics: [
+      {
+        title: "Épître de Jacques : Une foi vivante et agissante",
+        orientations: [
+          "Présentation de l'auteur",
+          "La pertinence actuelle de l'Épître",
+          "Valorisation des œuvres qui accompagnent la foi",
+          "Inviter les jeunes à devenir praticien de la parole de Dieu"
+        ]
+      },
+      {
+        title: "Épîtres de Pierre 1 et 2 : L'espérance au cœur de l'épreuve",
+        orientations: [
+          "La présentation de l'auteur",
+          "La persévérance dans les épreuves",
+          "La vie de sainteté",
+          "L'espérance du retour du Christ"
+        ]
+      },
+      {
+        title: "1-2-3 Jean : Vérité, amour et vigilance",
+        orientations: [
+          "La présentation de l'auteur",
+          "Le contexte de la rédaction de ses livres",
+          "Vivre l'amour pur, la vérité et la Fidélité",
+          "Mise en garde contre les faux enseignements"
+        ]
+      },
+      {
+        title: "Épître de Jude : Résister à la corruption spirituelle",
+        orientations: [
+          "La présentation de l'auteur",
+          "La pertinence actuelle de l'Épître",
+          "La prière persévérante",
+          "Mettre en garde contre les dérives doctrinales et morales"
+        ]
+      }
+    ],
+    canonicalStudy: {
+      title: "De la parole apostolique à la norme ecclésiale",
+      description: "Lecture canonique des épîtres universelles",
+      orientations: [
+        "Relier l'épître de Jacques qui insiste sur les œuvres et la justice sociale, aux normes canoniques sur la charité et la mission sociale de l'Église (Can. 839 P 1)",
+        "Structure ecclésiale (hiérarchie et la gouvernance - Can. 127 et 1263) en s'inspirant des épîtres de Pierre et Jean qui évoquent les responsabilités des anciens, la vigilance doctrinale, et la communion fraternelle",
+        "Correction et discipline : lier les procédures canoniques de correction et de protection de la foi (Can. 1371) à l'épître de Jude qui met en garde contre les faux docteurs",
+        "Canons spécifiques aux associations privées de fidèles (Can. 321-326) cas du Renouveau Catholique"
+      ]
+    },
+    status: "loaded"
   },
   poster: {
     image: campPosterPlaceholder,
@@ -37,37 +85,37 @@ const campInfo = ref({
   highlights: [
     {
       id: 1,
-      icon: "mdi-slideshare",
+      icon: "mdi-receipt",
+      title: "Études Bibliques",
+      description: "Exploration approfondie des Épîtres Catholiques"
+    },
+    {
+      id: 2,
+      icon: "mdi-pin-assistant",
       title: "Moments de Prière",
       description: "Sessions de prière collective et personnelle"
     },
     {
-      id: 2,
-      icon: "mdi-face",
-      title: "Études Bibliques",
-      description: "Exploration approfondie des Écritures"
-    },
-    {
       id: 3,
-      icon: "mdi-music-note",
+      icon: "mdi-collection-speaker",
       title: "Louanges & Adoration",
       description: "Célébrations en musique et chants"
     },
     {
       id: 4,
-      icon: "mdi-account-group",
-      title: "Communauté Fraternelle",
-      description: "Partages et activités de groupe"
+      icon: "mdi-collection-item-9",
+      title: "Carrefour",
+      description: "Partages et témoignages"
     },
     {
       id: 5,
-      icon: "mdi-nature",
-      title: "Retraite Spirituelle",
-      description: "Rencontre avec Dieu dans la nature"
+      icon: "mdi-labels",
+      title: "Enseignements",
+      description: "Orientations pratiques pour la vie chrétienne"
     },
     {
       id: 6,
-      icon: "mdi-campfire",
+      icon: "mdi-lamp",
       title: "Veillées Spirituelles",
       description: "Nuits de recueillement et partage"
     }
@@ -77,7 +125,7 @@ const campInfo = ref({
     hours: 0,
     minutes: 0,
     seconds: 0,
-    targetDate: new Date(new Date().getFullYear(), 11, 26, 18, 0, 0) // 11 = décembre (0-indexé)
+    targetDate: new Date(2025, 11, 26, 18, 0, 0) // 26 Décembre 2025 à 18h
   }
 })
 
@@ -182,7 +230,7 @@ onMounted(() => {
           </h1>
           
           <p class="camp-subtitle lead fs-3 mb-4">
-            Une expérience spirituelle transformatrice pour la jeunesse
+            « Les Épîtres Catholiques » : Une foi vivante et agissante
           </p>
           
           <!-- Compte à rebours -->
@@ -217,12 +265,8 @@ onMounted(() => {
           
           <!-- Call to Action -->
           <div class="camp-actions">
-            <!-- <button @click="showModal = true" class="btn btn-primary btn-lg mr-3">
-              <i class="mdi mdi-information-outline mr-2"></i>
-              Détail sur l'activité
-            </button> -->
             <a href="/sign-up" class="btn btn-outline-light btn-lg">
-              <i class="mdi mdi-pencil"></i>
+              <i class="mdi mdi-edit mr-1"></i>
               Pré-inscription
             </a>
           </div>
@@ -238,40 +282,39 @@ onMounted(() => {
             <h2 class="camp-heading-primary mb-4">
               Camp Biblique 2025
               <span class="camp-subtitle-sm d-block mt-2">
-                Préparation en cours...
+                « Les Épîtres Catholiques »
               </span>
             </h2>
             
             <p class="camp-text-lg mb-4">
-              Le <strong>Camp Biblique 2025</strong> est en pleine préparation ! Cette édition promet d'être une expérience spirituelle unique pour les jeunes désireux de renforcer leur foi et de grandir dans leur relation avec Dieu.
+              Le <strong>Camp Biblique 2025</strong> aura lieu <strong>du 26 au 30 Décembre 2025</strong>. Cette édition spéciale sera dédiée à l'étude approfondie des <strong>Épîtres Catholiques</strong> (Jacques, Pierre, Jean, Jude), offrant aux jeunes une immersion totale dans la Parole de Dieu pour fortifier leur foi et les équiper pour leur vie chrétienne.
             </p>
             
-            <!-- Informations en cours de chargement -->
-            <div class="camp-loading-info">
+            <!-- Informations détaillées -->
+            <div class="camp-detailed-info">
               <div class="info-item mb-4">
                 <h5 class="d-flex align-items-center">
-                  <i class="mdi mdi-map-marker-outline text-primary me-3 fs-4"></i>
+                  <i class="mdi mdi-calendar text-dark mr-1 fs-4"></i>
+                  Dates exactes
+                </h5>
+                <h4 class="text-primary mt-2">Du 26 au 30 Décembre 2025</h4>
+              </div>
+              
+              <div class="info-item mb-4">
+                <h5 class="d-flex align-items-center">
+                  <i class="mdi mdi-my-location text-dark mr-1 fs-4"></i>
                   Lieu du Camp
                 </h5>
                 <small class="text-muted">En cours de finalisation - Annonce prévue avant le 20 Décembre</small>
               </div>
               
-              <div class="info-item mb-4">
-                <h5 class="d-flex align-items-center">
-                  <i class="mdi mdi-book-open-page-variant text-primary me-3 fs-4"></i>
+              <div class="info-item">
+                <h5 class="d-flex align-items-center mb-3">
+                  <i class="mdi mdi-receipt text-dark mr-1 fs-4"></i>
                   Thème Principal
                 </h5>
-                <small class="text-muted">En préparation - Révélation avec l'affiche officielle</small>
-              </div>
-              
-              <!-- Dans la section Informations principales -->
-              <div class="info-item">
-                <h5 class="d-flex align-items-center">
-                  <i class="mdi mdi-calendar-clock text-primary me-3 fs-4"></i>
-                  Dates exactes
-                </h5>
-                <!-- Modifier cette ligne -->
-                <h4 class="mt-3">Du 26 au 30 Décembre {{ new Date().getFullYear() }}</h4>
+                <h4 class="text-success">« Les Épîtres Catholiques »</h4>
+                <p class="mt-2">Une foi vivante et agissante - L'espérance au cœur de l'épreuve - Vérité, amour et vigilance - Résister à la corruption spirituelle</p>
               </div>
             </div>
           </div>
@@ -282,8 +325,8 @@ onMounted(() => {
               <div class="card border-0 shadow-lg">
                 <div class="card-body p-4">
                   <div class="text-center mb-4">
-                    <i class="mdi mdi-campfire display-1 text-warning"></i>
-                    <h3 class="mt-3">Édition Spéciale 2025</h3>
+                    <i class="mdi mdi-layers display-1 text-warning"></i>
+                    <h3 class="mt-3">Étude des Épîtres Catholiques</h3>
                   </div>
                   
                   <div class="camp-stats">
@@ -293,12 +336,12 @@ onMounted(() => {
                         <div class="stat-label">Jours d'immersion</div>
                       </div>
                       <div class="col-6 mb-4">
-                        <div class="stat-number text-primary">24/7</div>
-                        <div class="stat-label">Vie communautaire</div>
+                        <div class="stat-number text-primary">4</div>
+                        <div class="stat-label">Épîtres étudiées</div>
                       </div>
                       <div class="col-6">
-                        <div class="stat-number text-primary">1000+</div>
-                        <div class="stat-label">Participants attendus</div>
+                        <div class="stat-number text-primary">20+</div>
+                        <div class="stat-label">Sessions bibliques</div>
                       </div>
                       <div class="col-6">
                         <div class="stat-number text-primary">5+</div>
@@ -309,8 +352,8 @@ onMounted(() => {
                   
                   <div class="text-center mt-4">
                     <button @click="showModal = true" class="btn btn-outline-primary">
-                      <i class="mdi mdi-information-slab-circle-outline me-2"></i>
-                      Plus d'informations
+                      <i class="mdi mdi-info mr-1"></i>
+                      Programme détaillé
                     </button>
                   </div>
                 </div>
@@ -321,46 +364,136 @@ onMounted(() => {
       </div>
     </section>
 
-    <!-- Section Affiche officielle -->
-    <section class="camp-section camp-poster-section bg-light">
+    <!-- Section Thème et Sous-thèmes -->
+    <section class="camp-section camp-theme-section bg-light">
       <div class="camp-container">
         <div class="text-center mb-5">
           <h2 class="camp-heading-secondary">
-            Affiche Officielle 2025
+            Thème 2025 : Les Épîtres Catholiques
             <span class="camp-subtitle-sm d-block mt-2">
-              En cours de création - Dévoilement imminent
+              Une étude approfondie pour une foi vivante et agissante
             </span>
           </h2>
         </div>
         
-        <div class="camp-poster-container">
-          <div class="camp-poster-placeholder">
-            <div class="poster-image-wrapper">
-              <img :src="campPosterPlaceholder" alt="Affiche Camp Biblique 2025" class="poster-image">
-              <div class="poster-overlay">
-                <div class="overlay-content">
-                  <i class="mdi mdi-image-filter-hdr display-1 text-white mb-3"></i>
-                  <h3 class="text-white">Affiche à venir</h3>
-                  <p class="text-white mb-0">Camp Biblique 2025</p>
-                  <small class="text-white-50">Dévoilement avant le 20 Décembre</small>
-                </div>
+        <div class="row g-4">
+          <!-- Sous-thème 1 -->
+          <div class="col-md-6 col-lg-3">
+            <div class="camp-theme-card">
+              <div class="theme-icon bg-primary">
+                <i class="mdi mdi-fire
+"></i>
               </div>
+              <h5 class="mt-3 text-primary">Épître de Jacques</h5>
+              <h6 class="text-muted mb-3">Une foi vivante et agissante</h6>
+              <ul class="theme-orientations">
+                <li>Présentation de l'auteur</li>
+                <li>Pertinence actuelle de l'Épître</li>
+                <li>Œuvres qui accompagnent la foi</li>
+                <li>Devenir praticien de la Parole</li>
+              </ul>
             </div>
-            
-            <div class="poster-info mt-4">
-              <div class="row">
-                <div class="col-md-6">
-                  <div class="info-box">
-                    <i class="mdi mdi-palette text-primary fs-3"></i>
-                    <h5 class="mt-2">Design en cours</h5>
-                    <p class="text-muted">Nos designers travaillent sur une affiche exceptionnelle</p>
+          </div>
+          
+          <!-- Sous-thème 2 -->
+          <div class="col-md-6 col-lg-3">
+            <div class="camp-theme-card">
+              <div class="theme-icon bg-success">
+                <i class="mdi mdi-label-heart"></i>
+              </div>
+              <h5 class="mt-3 text-success">Épîtres de Pierre</h5>
+              <h6 class="text-muted mb-3">L'espérance au cœur de l'épreuve</h6>
+              <ul class="theme-orientations">
+                <li>Présentation de l'auteur</li>
+                <li>Persévérance dans les épreuves</li>
+                <li>Vie de sainteté</li>
+                <li>Espérance du retour du Christ</li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Sous-thème 3 -->
+          <div class="col-md-6 col-lg-3">
+            <div class="camp-theme-card">
+              <div class="theme-icon bg-warning">
+                <i class="mdi mdi-shield-check"></i>
+              </div>
+              <h5 class="mt-3 text-warning">1-2-3 Jean</h5>
+              <h6 class="text-muted mb-3">Vérité, amour et vigilance</h6>
+              <ul class="theme-orientations">
+                <li>Présentation de l'auteur</li>
+                <li>Contexte de rédaction</li>
+                <li>Vivre l'amour pur et la vérité</li>
+                <li>Mise en garde contre faux enseignements</li>
+              </ul>
+            </div>
+          </div>
+          
+          <!-- Sous-thème 4 -->
+          <div class="col-md-6 col-lg-3">
+            <div class="camp-theme-card">
+              <div class="theme-icon bg-danger">
+                <i class="mdi mdi-shield-security"></i>
+              </div>
+              <h5 class="mt-3 text-danger">Épître de Jude</h5>
+              <h6 class="text-muted mb-3">Résister à la corruption spirituelle</h6>
+              <ul class="theme-orientations">
+                <li>Présentation de l'auteur</li>
+                <li>Pertinence actuelle</li>
+                <li>Prière persévérante</li>
+                <li>Garde contre dérives doctrinales</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Étude canonique -->
+        <div class="camp-canonical-study mt-5 pt-1">
+          <div class="card border-primary">
+            <div class="card-header bg-primary text-white m-0 px-4">
+              <h4 class="mb-0">
+                <i class="mdi mdi-balance mr-2"></i>
+                Étude canonique : De la parole apostolique à la norme ecclésiale
+              </h4>
+            </div>
+            <div class="card-body">
+              <p class="lead">Lecture canonique des épîtres universelles dans le contexte de l'Église Catholique</p>
+              
+              <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                  <div class="d-flex">
+                    <i class="mdi mdi-scale-balance text-primary fs-4 me-3"></i>
+                    <div>
+                      <h6>Justice sociale et charité</h6>
+                      <small>L'épître de Jacques et les normes canoniques (Can. 839 P 1)</small>
+                    </div>
                   </div>
                 </div>
-                <div class="col-md-6">
-                  <div class="info-box">
-                    <i class="mdi mdi-format-color-fill text-primary fs-3"></i>
-                    <h5 class="mt-2">Soyez alertés</h5>
-                    <p class="text-muted">Nous vous notifierons dès que l'affiche sera disponible</p>
+                <div class="col-md-6 mb-3">
+                  <div class="d-flex">
+                    <i class="mdi mdi-account-group text-primary fs-4 me-3"></i>
+                    <div>
+                      <h6>Structure ecclésiale</h6>
+                      <small>Hiérarchie et gouvernance (Can. 127 et 1263)</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="d-flex">
+                    <i class="mdi mdi-gavel text-primary fs-4 me-3"></i>
+                    <div>
+                      <h6>Correction et discipline</h6>
+                      <small>Procédures canoniques (Can. 1371)</small>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-3">
+                  <div class="d-flex">
+                    <i class="mdi mdi-account-multiple text-primary fs-4 me-3"></i>
+                    <div>
+                      <h6>Associations de fidèles</h6>
+                      <small>Canons spécifiques (Can. 321-326)</small>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -371,11 +504,11 @@ onMounted(() => {
     </section>
 
     <!-- Section Points forts -->
-    <!-- <section class="camp-section camp-highlights-section">
+    <section class="camp-section camp-highlights-section">
       <div class="camp-container">
         <div class="text-center mb-5">
           <h2 class="camp-heading-primary">
-            Ce qui vous attend
+            Ce qui vous attend au camp Biblique 2025
             <span class="camp-subtitle-sm d-block mt-2">
               Une expérience spirituelle complète et transformatrice
             </span>
@@ -383,10 +516,10 @@ onMounted(() => {
         </div>
         
         <div class="row g-4">
-          <div v-for="highlight in campInfo.highlights" :key="highlight.id" class="col-md-6 col-lg-4">
+          <div v-for="highlight in campInfo.highlights" :key="highlight.id" class="col-md-6 col-lg-4 mb-4">
             <div class="camp-highlight-card">
               <div class="highlight-icon">
-                <i :class="`mdi ${highlight.icon}`"></i>
+                <i :class="`mdi ${highlight.icon} text-dark`"></i>
               </div>
               <h5 class="mt-3">{{ highlight.title }}</h5>
               <p class="text-muted">{{ highlight.description }}</p>
@@ -394,27 +527,27 @@ onMounted(() => {
           </div>
         </div>
       </div>
-    </section> -->
+    </section>
 
     <!-- Section Call to Action finale -->
-    <section class="camp-section camp-cta-section">
+    <section class="camp-section camp-cta-section bg-primary text-white">
       <div class="camp-container text-center">
-        <h2 class="camp-heading-primary mb-4">
-          Prêt à rejoindre le camp biblique 2025 ?
+        <h2 class="camp-heading-primary mb-4 text-white">
+          Prêt à approfondir votre foi ?
         </h2>
         
         <p class="camp-text-lg mb-5 mx-auto" style="max-width: 600px;">
-          Le Camp Biblique 2025 sera un moment charnière dans votre vie de foi. Ne manquez pas cette opportunité de grandir spirituellement au sein d'une communauté fraternelle.
+          Le Camp Biblique 2025 sera une opportunité unique d'étudier les Épîtres Catholiques et de renforcer votre relation avec Dieu. Inscrivez-vous dès maintenant pour réserver votre place !
         </p>
         
         <div class="camp-cta-buttons">
-          <a href="/sign-up" class="btn btn-primary btn-lg mr-3">
-            <i class="mdi mdi-pencil-plus me-2"></i>
+          <a href="/sign-up" class="btn btn-light btn-lg text-primary mr-3">
+            <i class="mdi mdi-edit mr-1"></i>
             Pré-inscription
           </a>
-          <button @click="showModal = true" class="btn btn-outline-primary btn-lg">
-            <i class="mdi mdi-information-variant me-2"></i>
-            Plus d'informations
+          <button @click="showModal = true" class="btn btn-outline-light btn-lg">
+            <i class="mdi mdi-info mr-1"></i>
+            Programme détaillé
           </button>
         </div>
       </div>
@@ -434,49 +567,105 @@ onMounted(() => {
         </div>
         
         <div class="camp-modal-body">
-          <div class="row">
+          <div class="row mb-4">
             <div class="col-md-6">
-              <h5 class="mb-3">
-                <i class="mdi mdi-format-align-left text-primary mr-2"></i>
-                <strong><strong> Informations pratiques </strong></strong>
+              <h5 class="mb-3" style="font-weight: bold;">
+                <i class="mdi mdi-calendar mr-1"></i>
+                Informations pratiques
               </h5>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>Dates :</strong> Du 26 au 30 Decembre </li>
-                <li class="mb-2"><strong>Durée :</strong> 5 jours </li>
+                <li class="mb-2"><strong>Dates :</strong> Du 26 au 30 Décembre 2025</li>
+                <li class="mb-2"><strong>Durée :</strong> 5 jours complets</li>
                 <li class="mb-2"><strong>Lieu :</strong> En cours de détermination</li>
                 <li class="mb-2"><strong>Public :</strong> Jeunes de 12 à 35 ans</li>
+                <li class="mb-2"><strong>Participation :</strong> 10 $ par personne</li>
               </ul>
             </div>
             
             <div class="col-md-6">
-              <h5 class="mb-3">
-                <i class="mdi mdi-view-dashboard text-primary mr-2"></i>
-                <strong><strong>Tarifs & Inscriptions</strong></strong></h5>
+              <h5 class="mb-3" style="font-weight: bold;">
+                <i class="mdi mdi-book mr-1"></i>
+                Inscriptions
+              </h5>
               <ul class="list-unstyled">
-                <li class="mb-2"><strong>Pré-inscription :</strong> en ligne </li>
-                <li class="mb-2"><strong>Inscriptions :</strong> Toujours ouvert </li>
-                <li class="mb-2"><strong>Participation :</strong> 10 $ </li>
+                <li class="mb-2"><strong>Pré-inscription :</strong> En ligne uniquement</li>
+                <li class="mb-2"><strong>Date limite :</strong> 25 Décembre 2025</li>
+                <li class="mb-2"><strong>Places :</strong> Premier arrivé, premier servi</li>
               </ul>
             </div>
           </div>
           
-          <div class="mt-4">
-            <h5>
-              <i class="mdi mdi-phone text-primary mr-2"></i><strong>
-                <strong>Contact & Informations</strong></strong>
-              </h5>
+          <!-- Thème détaillé -->
+          <div class="camp-theme-details mb-4">
+            <h5 class="border-bottom pb-2 mb-3" style="font-weight: bold;">
+              <i class="mdi mdi-book mr-1"></i>
+              Programme détaillé du Thème
+            </h5>
+            
+            <div class="mb-4">
+              <h6 class="text-primary" style="font-size : 1.5rem;">Thème général : « Les Épîtres Catholiques »</h6>
+              <p>{{ campInfo.theme.description }}</p>
+            </div>
+            
+            <!-- Sous-thèmes -->
+            <div class="row g-3">
+              <div v-for="(subtopic, index) in campInfo.theme.subtopics" :key="index" class="col-md-6">
+                <div class="card h-100 border">
+                  <div class="card-body">
+                    <h6 class="card-title text-primary">{{ subtopic.title }}</h6>
+                    <ul class="small">
+                      <li v-for="(orientation, idx) in subtopic.orientations" :key="idx">{{ orientation }}</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Étude canonique -->
+            <div class="mt-4">
+              <div class="card border-primary">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0 text-primary">
+                    <i class="mdi mdi-balance mr-1"></i>
+                    {{ campInfo.theme.canonicalStudy.title }}
+                  </h6>
+                </div>
+                <div class="card-body">
+                  <p><strong>{{ campInfo.theme.canonicalStudy.description }}</strong></p>
+                  <ul class="small">
+                    <li v-for="(orientation, idx) in campInfo.theme.canonicalStudy.orientations" :key="idx">{{ orientation }}</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Contact -->
+          <div class="mt-4 pt-4 border-top">
+            <h5 style="font-weight: bold;">
+              <i class="mdi mdi-phone-msg text-primary mr-1"></i>
+              Contact & Informations
+            </h5>
             <p>Pour toute question concernant le Camp Biblique 2025 :</p>
-            <ul>
-              <li>Email : <a href="mailto:info@mijerca.rccarchikin.org">info@mijerca.rccarchikin.org </a></li>
-              <li>Téléphone : <a href="tel:+243 840 306 094"> +243 840 306 094 </a></li>
+            <ul class="list-unstyled">
+              <li class="mb-2">
+                <i class="mdi mdi-email mr-1"></i>
+                Email : <a href="mailto:info@mijerca.rccarchikin.org">info@mijerca.rccarchikin.org</a>
+              </li>
+              <li>
+                <i class="mdi mdi-phone mr-1"></i>
+                Téléphone : <a href="tel:+243840306094">+243 840 306 094</a>
+              </li>
             </ul>
           </div>
         </div>
         
         <div class="camp-modal-footer">
-          <button class="btn btn-primary" @click="showModal = false">
-            <i class="mdi mdi-check me-2"></i>
-            Compris
+          <a href="/sign-up" class="btn btn-primary mr-2">
+            Pré-inscription
+          </a>
+          <button class="btn btn-outline-primary" @click="showModal = false">
+            Fermer
           </button>
         </div>
       </div>
@@ -609,27 +798,6 @@ onMounted(() => {
   margin-top: 5px;
 }
 
-/* Loading Bars */
-.loading-bar {
-  height: 8px;
-  background-color: #e9ecef;
-  border-radius: 4px;
-  overflow: hidden;
-  margin: 10px 0;
-}
-
-.loading-progress {
-  height: 100%;
-  background: linear-gradient(90deg, var(--camp-color-primary), var(--camp-color-accent));
-  border-radius: 4px;
-  animation: loadingAnimation 1.5s infinite ease-in-out;
-}
-
-@keyframes loadingAnimation {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(200%); }
-}
-
 /* Visual Card */
 .camp-visual-card {
   transform: perspective(1000px) rotateY(-5deg);
@@ -651,45 +819,67 @@ onMounted(() => {
   color: var(--camp-color-text-light);
 }
 
-/* Poster Section */
-.camp-poster-placeholder {
-  max-width: 800px;
-  margin: 0 auto;
-}
-
-.poster-image-wrapper {
-  position: relative;
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
-}
-
-.poster-image {
-  width: 100%;
-  height: 400px;
-  object-fit: cover;
-  filter: brightness(0.7);
-}
-
-.poster-overlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
+/* Theme Cards */
+.camp-theme-card {
+  background: white;
+  padding: 25px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   height: 100%;
-  background: linear-gradient(45deg, rgba(74, 144, 226, 0.3), rgba(40, 167, 69, 0.3));
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.camp-theme-card:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+  border-color: var(--camp-color-primary);
+}
+
+.theme-icon {
+  width: 70px;
+  height: 70px;
+  margin: 0 auto;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: white;
+  font-size: 30px;
 }
 
-.info-box {
-  text-align: center;
-  padding: 20px;
-  background: white;
+.theme-orientations {
+  list-style: none;
+  padding-left: 0;
+  text-align: left;
+  margin-top: 15px;
+}
+
+.theme-orientations li {
+  padding: 5px 0;
+  padding-left: 20px;
+  position: relative;
+  font-size: 0.9rem;
+  color: var(--camp-color-text-light);
+}
+
+.theme-orientations li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--camp-color-primary);
+  font-weight: bold;
+}
+
+/* Canonical Study */
+.camp-canonical-study .card {
   border-radius: 15px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
-  height: 100%;
+  overflow: hidden;
+}
+
+.camp-canonical-study .card-header {
+  border-radius: 15px 15px 0 0 !important;
 }
 
 /* Highlights */
@@ -723,30 +913,6 @@ onMounted(() => {
   font-size: 30px;
 }
 
-/* Registration Section */
-.camp-registration-section {
-  position: relative;
-  overflow: hidden;
-}
-
-.camp-registration-section::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 300px;
-  height: 300px;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
-}
-
-.camp-registration-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-radius: 20px;
-  padding: 40px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
 /* Modal */
 .camp-modal-backdrop {
   position: fixed;
@@ -765,7 +931,7 @@ onMounted(() => {
 .camp-modal-content {
   background: white;
   border-radius: 20px;
-  max-width: 600px;
+  max-width: 800px;
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
@@ -823,6 +989,12 @@ onMounted(() => {
   text-align: right;
 }
 
+/* Theme Details in Modal */
+.camp-theme-details .card {
+  border-radius: 10px;
+  margin-bottom: 15px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .camp-hero {
@@ -857,10 +1029,6 @@ onMounted(() => {
     font-size: 1.75rem;
   }
   
-  .camp-registration-card {
-    padding: 25px;
-  }
-  
   .camp-modal-content {
     max-width: 95%;
   }
@@ -883,6 +1051,10 @@ onMounted(() => {
   .camp-cta-buttons .btn {
     width: 100%;
     margin-bottom: 10px;
+  }
+  
+  .theme-orientations li {
+    font-size: 0.8rem;
   }
 }
 </style>

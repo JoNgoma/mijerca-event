@@ -53,9 +53,9 @@ const showModal = ref(false)
             Le MIJERCA est né le 2 septembre 1993 avec un objectif clair : évangéliser les jeunes par les jeunes. C'est un creuset de grâce, un lieu idéal pour grandir dans la foi, partager la Parole de Dieu et avancer ensemble vers la sainteté.
           </p>
           <ul class="mi-list">
-            <li><i class="mdi mdi-star"></i>Conversion mature en la personne de Jésus-Christ.</li>
+            <li><i class="mdi mdi-face"></i>Conversion mature en la personne de Jésus-Christ.</li>
             <li><i class="mdi mdi-fire"></i> Accueil de la personne et de la manifestation de l’Esprit-Saint.</li>
-            <li><i class="mdi mdi-book"></i> Formation à la prière, à la Parole et à l'évangélisation.</li>
+            <li><i class="mdi mdi-layers"></i> Formation à la prière, à la Parole et à l'évangélisation.</li>
           </ul>
           <a href="#" class="btn mi-btn-secondary mt-3">En savoir plus sur notre histoire</a>
         </div>

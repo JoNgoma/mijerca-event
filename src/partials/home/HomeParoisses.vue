@@ -318,13 +318,13 @@ const tauxCroissance = computed(() => {
     return createdAt >= previousMonthStart && createdAt <= previousMonthEnd
   }).length
   
-  console.log('📈 Calcul croissance:', {
-    currentMonthStart,
-    previousMonthStart,
-    previousMonthEnd,
-    currentMonthCount,
-    previousMonthCount
-  })
+  // console.log('📈 Calcul croissance:', {
+  //   currentMonthStart,
+  //   previousMonthStart,
+  //   previousMonthEnd,
+  //   currentMonthCount,
+  //   previousMonthCount
+  // })
   
   // Si pas de données le mois précédent
   if (previousMonthCount === 0) {
@@ -338,11 +338,11 @@ const tauxCroissance = computed(() => {
   // Arrondir à 1 décimale
   const roundedGrowth = Math.round(growth * 10) / 10
   
-  console.log('📈 Taux croissance:', {
-    growth,
-    roundedGrowth,
-    formula: `(${currentMonthCount} - ${previousMonthCount}) / ${previousMonthCount} * 100`
-  })
+  // console.log('📈 Taux croissance:', {
+  //   growth,
+  //   roundedGrowth,
+  //   formula: `(${currentMonthCount} - ${previousMonthCount}) / ${previousMonthCount} * 100`
+  // })
   
   return roundedGrowth
 })
@@ -365,12 +365,12 @@ async function loadData() {
     paroisses.value = paroissesData
     people.value = peopleData
 
-    console.log('📊 Données chargées:', {
-      sectors: sectors.value,
-      doyennes: doyennes.value,
-      paroisses: paroisses.value,
-      people: people.value
-    })
+    // console.log('📊 Données chargées:', {
+    //   sectors: sectors.value,
+    //   doyennes: doyennes.value,
+    //   paroisses: paroisses.value,
+    //   people: people.value
+    // })
 
     // Créer une map des secteurs par ID
     sectorsData.forEach(sector => {
@@ -390,7 +390,7 @@ async function loadData() {
     const centreId = centreSector ? (extractIdFromUrl(centreSector['@id']) || centreSector.id) : null
     const ouestId = ouestSector ? (extractIdFromUrl(ouestSector['@id']) || ouestSector.id) : null
 
-    console.log('🔍 IDs des secteurs:', { estId, centreId, ouestId })
+    // console.log('🔍 IDs des secteurs:', { estId, centreId, ouestId })
 
     // Calculer les statistiques par secteur
     // Secteur Est
@@ -414,11 +414,11 @@ async function loadData() {
       paroisses: countParoissesBySector(paroissesData, ouestId)
     }
 
-    console.log('📈 Statistiques:', {
-      est: secteurEst.value,
-      centre: secteurCentre.value,
-      ouest: secteurOuest.value
-    })
+    // console.log('📈 Statistiques:', {
+    //   est: secteurEst.value,
+    //   centre: secteurCentre.value,
+    //   ouest: secteurOuest.value
+    // })
 
   } catch (error) {
     console.error('❌ Erreur lors du chargement des données:', error)

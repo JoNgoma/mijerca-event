@@ -50,7 +50,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -87,7 +87,7 @@ const days = computed(() => {
 async function fetchData() {
   try {
     loading.value = true
-    console.log(`🔄 Chargement des données de dortoir pour ${props.type}...`)
+    // console.log(`🔄 Chargement des données de dortoir pour ${props.type}...`)
 
     const [logRes, partRes, peopleRes, paroisRes] = await Promise.all([
       fetchAllPages(`${API}/logistics`),
@@ -103,7 +103,7 @@ async function fetchData() {
     paroisses.value = paroisRes
     people.value = peopleRes
 
-    console.log(`🏨 Données dortoir chargées: ${logRes.length} logistiques, ${partRes.length} participants, ${peopleRes.length} personnes, ${paroisRes.length} paroisses`)
+    // console.log(`🏨 Données dortoir chargées: ${logRes.length} logistiques, ${partRes.length} participants, ${peopleRes.length} personnes, ${paroisRes.length} paroisses`)
 
   } catch (err) {
     console.error('❌ Erreur lors du chargement :', err)
@@ -136,7 +136,7 @@ const selectedDortoir = ref(null)
 const dortoirMembers = ref([])
 
 watch([participators, people], ([newParts, newPeople]) => {
-  console.log(`👥 Traitement de ${newParts.length} participants et ${newPeople.length} personnes`)
+  // console.log(`👥 Traitement de ${newParts.length} participants et ${newPeople.length} personnes`)
   
   participatorsDetails.value = newParts.map(p => {
     const personId = extractId(p.person)
@@ -180,14 +180,14 @@ watch([participators, people], ([newParts, newPeople]) => {
       : g.includes('sr') || g.includes('soeur') || g.includes('sœur')
   })
 
-  console.log(`👨‍👩‍👧‍👦 ${filtered.length} ${isFrere ? 'frères' : 'soeurs'} filtrés`)
+  // console.log(`👨‍👩‍👧‍👦 ${filtered.length} ${isFrere ? 'frères' : 'soeurs'} filtrés`)
 
   // 🏠 Dortoirs
   const log = logistics.value[0]
   const nbDortoirs = isFrere ? log?.dortoirFrere || 0 : log?.dortoirSoeur || 0
   const dortoirList = Array.from({ length: nbDortoirs }, (_, i) => `${i + 1}`)
 
-  console.log(`🏠 ${dortoirList.length} dortoirs disponibles`)
+  // console.log(`🏠 ${dortoirList.length} dortoirs disponibles`)
 
   // 📊 Effectifs
   const map = {}
@@ -219,7 +219,7 @@ watch([participators, people], ([newParts, newPeople]) => {
   totalPerDay.value = totals
   totalEffectif.value = lastDayTotal
 
-  console.log(`📊 Calcul des effectifs terminé: ${lastDayTotal} ${isFrere ? 'frères' : 'soeurs'} au total (dernier jour)`)
+  // console.log(`📊 Calcul des effectifs terminé: ${lastDayTotal} ${isFrere ? 'frères' : 'soeurs'} au total (dernier jour)`)
 }, { immediate: true })
 
 // ===================================================
@@ -228,7 +228,7 @@ watch([participators, people], ([newParts, newPeople]) => {
 function openModal(dortoir) {
   selectedDortoir.value = dortoir
   dortoirMembers.value = filteredParticipators.value.filter(p => p.dortoir === dortoir)
-  console.log(`🪟 Ouverture modal dortoir ${dortoir}: ${dortoirMembers.value.length} membres`)
+  // console.log(`🪟 Ouverture modal dortoir ${dortoir}: ${dortoirMembers.value.length} membres`)
   showModal.value = true
 }
 

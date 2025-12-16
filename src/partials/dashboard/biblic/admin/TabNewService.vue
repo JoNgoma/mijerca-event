@@ -55,7 +55,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -168,7 +168,7 @@ async function buildPeopleOptions() {
         if (!person) return null
 
         const paroisse = allParoisses.value.find((pa) => pa['@id'] === person.paroisse)
-        const niveau = person.isDiocesan ? 'Diocésain' : person.isDecanal ? 'Décanal' : 'Paroissial'
+        const niveau = person.isDicoces ? 'Diocésain' : person.isDecanal ? 'Décanal' : 'Paroissial'
 
         return {
           id: extractIdFromUrl(u['@id'] || u.id),
@@ -184,7 +184,7 @@ async function buildPeopleOptions() {
       .filter(Boolean)
       .sort((a, b) => a.fullName.localeCompare(b.fullName))
 
-    console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour affectation`)
+    // console.log(`👥 ${peopleOptions.value.length} personnes disponibles pour affectation`)
   } catch (err) {
     toast.error('Erreur de chargement,\nRevenez-y plus tard')
     console.error('Erreur lors de la construction des options:', err)

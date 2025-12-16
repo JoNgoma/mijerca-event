@@ -81,7 +81,7 @@ async function fetchDoyennes() {
     })
     const data = await res.json()
     doyennes.value = data.member?.filter((s) => s.sector === `/api/sectors/${sectorId.value}`) || []
-    console.log(`🔄 ${doyennes.value.length} doyennés chargés`)
+    // console.log(`🔄 ${doyennes.value.length} doyennés chargés`)
   } catch (err) {
     console.error('Erreur récupération doyennés', err)
     toast.error('❌ Erreur lors du chargement des doyennés')

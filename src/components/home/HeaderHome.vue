@@ -29,7 +29,7 @@ const route = useRoute()
               Accueil
             </a>
           </li>
-          <li class="nav-item">
+          <!-- <li class="nav-item">
             <a
               href="/events"
               class="nav-link fs-5"
@@ -37,7 +37,7 @@ const route = useRoute()
             >
               Evénements
             </a>
-          </li>
+          </li> -->
           <li class="nav-item">
             <a
               href="/news"
@@ -87,7 +87,7 @@ const route = useRoute()
             Accueil
           </a>
         </li>
-        <li class="nav-item">
+        <!-- <li class="nav-item">
           <a
             href="/events"
             class="nav-link"
@@ -96,7 +96,7 @@ const route = useRoute()
           >
             Evénements
           </a>
-        </li>
+        </li> -->
         <li class="nav-item">
           <a
             href="/news"

@@ -1,88 +1,287 @@
 <script setup>
-import { useRouter } from "vue-router";
-import { ref } from "vue";
-import badgeImage from "/assets/img/badge-template.jpg"
-import Vue3DraggableResizable from "vue3-draggable-resizable";
-import "vue3-draggable-resizable/dist/Vue3DraggableResizable.css";
+import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import badgeJeunesImage from '/assets/img/badge-jeunes.jpg'
+import badgeRespImage from '/assets/img/badge-resp.png'
+import Vue3DraggableResizable from 'vue3-draggable-resizable'
+import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css'
 
-const router = useRouter();
+const router = useRouter()
 
-// Textes à placer avec couleurs
-const fields = ref([
-  { label: "Josue Ngoma", key: "name", x: 50, y: 450, color: "#3B5998", fontSize: 18 },
-  { label: "Paroisse Saint Noé Mawaggali", key: "church", x: 50, y: 480, color: "#E74C3C", fontSize: 16 },
-  { label: "Carrefour 1", key: "site", x: 50, y: 510, color: "#000000", fontSize: 14 },
-  { label: "Dortoir 1", key: "sleep", x: 50, y: 540, color: "#000000", fontSize: 14 }
-]);
+// Types de badges
+const badgeTypes = {
+  JEUNES: 'jeunes',
+  RESPONSABLE: 'responsable',
+}
 
-const selectedFieldIndex = ref(0);
+// Configuration par défaut pour chaque type de badge
+const defaultConfigs = {
+  [badgeTypes.JEUNES]: {
+    image: badgeJeunesImage,
+    fields: [
+      {
+        label: 'Frère Josue Ngoma',
+        key: 'name',
+        x: 50,
+        y: 450,
+        color: '#3B5998',
+        fontSize: 18,
+        width: 150,
+        height: 40,
+      },
+      {
+        label: 'Paroisse Saint Noé Mawaggali',
+        key: 'church',
+        x: 50,
+        y: 480,
+        color: '#E74C3C',
+        fontSize: 16,
+        width: 250,
+        height: 40,
+      },
+      {
+        label: 'Carrefour 1',
+        key: 'site',
+        x: 50,
+        y: 510,
+        color: '#000000',
+        fontSize: 14,
+        width: 100,
+        height: 40,
+      },
+      {
+        label: 'Dortoir 1',
+        key: 'sleep',
+        x: 50,
+        y: 540,
+        color: '#000000',
+        fontSize: 14,
+        width: 100,
+        height: 40,
+      },
+    ],
+  },
+  [badgeTypes.RESPONSABLE]: {
+    image: badgeRespImage,
+    fields: [
+      {
+        label: 'Paroisse Saint Noé Mawaggali',
+        key: 'church',
+        x: 50,
+        y: 450,
+        color: '#000000',
+        fontSize: 18,
+        width: 250,
+        height: 40,
+      },
+      {
+        label: 'Frère Josue Ngoma',
+        key: 'name',
+        x: 50,
+        y: 480,
+        color: '#3B5998',
+        fontSize: 16,
+        width: 150,
+        height: 40,
+      },
+      {
+        label: 'Service Administration',
+        key: 'service',
+        x: 50,
+        y: 510,
+        color: '#E74C3C',
+        fontSize: 14,
+        width: 130,
+        height: 40,
+      },
+    ],
+  },
+}
+
+// État actuel
+const currentBadgeType = ref(badgeTypes.JEUNES)
+const fields = ref([...defaultConfigs[badgeTypes.JEUNES].fields])
+const selectedFieldIndex = ref(0)
+
+// Computed pour l'image actuelle
+const currentBadgeImage = computed(() => {
+  return defaultConfigs[currentBadgeType.value].image
+})
+
+// Fonction pour calculer la largeur du texte
+const calculateTextWidth = (text, fontSize) => {
+  const canvas = document.createElement('canvas')
+  const context = canvas.getContext('2d')
+  context.font = `${fontSize}pt Arial, sans-serif`
+  const textWidth = context.measureText(text).width
+  return textWidth + 20
+}
+
+// Calculer la largeur du texte pour tous les champs
+const updateAllFieldWidths = () => {
+  fields.value.forEach((field, index) => {
+    const width = calculateTextWidth(field.label, field.fontSize)
+    fields.value[index].width = width
+    const height = Math.max(30, field.fontSize * 2 + 10)
+    fields.value[index].height = height
+  })
+}
 
 // Mettre à jour la position
 const updatePosition = (pos, index) => {
-  fields.value[index].x = pos.x;
-  fields.value[index].y = pos.y;
-};
+  fields.value[index].x = pos.x
+  fields.value[index].y = pos.y
+}
 
 // Mettre à jour la couleur du champ sélectionné
 const updateColor = (color) => {
-  fields.value[selectedFieldIndex.value].color = color;
-};
+  fields.value[selectedFieldIndex.value].color = color
+}
 
 // Mettre à jour la taille de police
 const updateFontSize = (size) => {
-  fields.value[selectedFieldIndex.value].fontSize = parseInt(size);
-};
+  const newSize = parseInt(size)
+  fields.value[selectedFieldIndex.value].fontSize = newSize
+  const field = fields.value[selectedFieldIndex.value]
+  const width = calculateTextWidth(field.label, newSize)
+  const height = Math.max(30, newSize * 2 + 10)
+  fields.value[selectedFieldIndex.value].width = width
+  fields.value[selectedFieldIndex.value].height = height
+}
 
 // Sélectionner un champ
 const selectField = (index) => {
-  selectedFieldIndex.value = index;
-};
+  selectedFieldIndex.value = index
+}
+
+// Changer de type de badge
+const changeBadgeType = (type) => {
+  currentBadgeType.value = type
+  const saved = localStorage.getItem(`badgeLayout_${type}`)
+  if (saved) {
+    try {
+      const layoutData = JSON.parse(saved)
+      if (layoutData.fields) {
+        fields.value = layoutData.fields
+        nextTick(() => {
+          updateAllFieldWidths()
+        })
+      }
+    } catch (e) {
+      console.error('Erreur lors du chargement:', e)
+      fields.value = [...defaultConfigs[type].fields]
+      updateAllFieldWidths()
+    }
+  } else {
+    fields.value = [...defaultConfigs[type].fields]
+    updateAllFieldWidths()
+  }
+  selectedFieldIndex.value = 0
+}
 
 // Sauvegarder dans localStorage
 const saveLayout = () => {
   const layoutData = {
+    badgeType: currentBadgeType.value,
     fields: fields.value,
-    timestamp: new Date().toISOString()
-  };
-  localStorage.setItem("badgeLayout", JSON.stringify(layoutData));
-//   alert("Positions et couleurs sauvegardées !");
-  router.push({ name: "info-badge-preview", params: { serviceType: 'badge-preview' }});
-};
+    timestamp: new Date().toISOString(),
+  }
+  localStorage.setItem(`badgeLayout_${currentBadgeType.value}`, JSON.stringify(layoutData))
+  router.push({
+    name: 'info-badge-preview',
+    params: {
+      serviceType: 'badge-preview',
+      badgeType: currentBadgeType.value,
+    },
+  })
+}
 
-// Charger la configuration sauvegardée
+// Charger la configuration sauvegardée au démarrage
 const loadSavedLayout = () => {
-  const saved = localStorage.getItem("badgeLayout");
+  const saved = localStorage.getItem(`badgeLayout_${badgeTypes.JEUNES}`)
   if (saved) {
     try {
-      const layoutData = JSON.parse(saved);
+      const layoutData = JSON.parse(saved)
       if (layoutData.fields) {
-        fields.value = layoutData.fields;
+        fields.value = layoutData.fields
+        nextTick(() => {
+          updateAllFieldWidths()
+        })
       }
     } catch (e) {
-      console.error("Erreur lors du chargement de la configuration:", e);
+      console.error('Erreur lors du chargement:', e)
     }
+  } else {
+    updateAllFieldWidths()
   }
-};
+}
 
-// Charger au montage du composant
-loadSavedLayout();
+onMounted(() => {
+  loadSavedLayout()
+})
+
+watch(
+  fields,
+  () => {
+    nextTick(() => {
+      fields.value.forEach((field, index) => {
+        if (field.label && field.fontSize) {
+          const width = calculateTextWidth(field.label, field.fontSize)
+          const height = Math.max(30, field.fontSize * 2 + 10)
+          if (fields.value[index].width !== width) {
+            fields.value[index].width = width
+          }
+          if (fields.value[index].height !== height) {
+            fields.value[index].height = height
+          }
+        }
+      })
+    })
+  },
+  { deep: true },
+)
 </script>
 
 <template>
   <div class="be-content">
-    
     <div class="main-content container-fluid">
       <div class="row">
         <!-- Zone d'édition du badge -->
         <div class="col-lg-8">
           <div class="card card-border-color card-border-color-primary">
-            <!-- <div class="card-header">
-              <h5 class="card-title">Badge : Zone d'édition</h5>
-            </div> -->
+            <!-- Sélecteur de type de badge -->
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">Configuration des badges</h5>
+              <div class="btn-group">
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :class="
+                    currentBadgeType === badgeTypes.JEUNES ? 'btn-primary' : 'btn-outline-primary'
+                  "
+                  @click="changeBadgeType(badgeTypes.JEUNES)"
+                >
+                  Badge Jeunes
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :class="
+                    currentBadgeType === badgeTypes.RESPONSABLE
+                      ? 'btn-primary'
+                      : 'btn-outline-primary'
+                  "
+                  @click="changeBadgeType(badgeTypes.RESPONSABLE)"
+                >
+                  Badge Responsable
+                </button>
+              </div>
+            </div>
+
             <div class="card-body d-flex justify-content-center">
               <div class="badge-editor">
                 <!-- Image du badge -->
-                <img :src="badgeImage" alt="badge" class="badge-bg"/>
+                <img :src="currentBadgeImage" :alt="`badge-${currentBadgeType}`" class="badge-bg" />
 
                 <!-- Textes positionnables -->
                 <vue3-draggable-resizable
@@ -90,20 +289,32 @@ loadSavedLayout();
                   :key="index"
                   :x="field.x"
                   :y="field.y"
-                  :w="180"
-                  :h="40"
+                  :w="field.width"
+                  :h="field.height"
                   :draggable="true"
-                  :resizable="false"
+                  :resizable="true"
+                  :min-width="50"
+                  :min-height="30"
                   @dragging="updatePosition($event, index)"
+                  @resizing="
+                    (rect) => {
+                      field.width = rect.width
+                      field.height = rect.height
+                    }
+                  "
                   @click="selectField(index)"
                   :class="{ 'selected-field': selectedFieldIndex === index }"
                 >
-                  <div 
+                  <div
                     class="text-field"
-                    :style="{ 
-                      color: field.color, 
+                    :style="{
+                      color: field.color,
                       fontSize: field.fontSize + 'pt',
+                      lineHeight: field.height + 'px',
                       border: selectedFieldIndex === index ? '2px solid #007bff' : 'none',
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: 'transparent',
                     }"
                   >
                     {{ field.label }}
@@ -118,7 +329,10 @@ loadSavedLayout();
         <div class="col-lg-4">
           <div class="card card-border-color card-border-color-success">
             <div class="card-header">
-              <h5 class="card-title">Configuration des textes</h5>
+              <h5 class="card-title">
+                Configuration du badge
+                {{ currentBadgeType === badgeTypes.JEUNES ? 'Jeunes' : 'Responsable' }}
+              </h5>
             </div>
             <div class="card-body">
               <!-- Liste des champs -->
@@ -134,10 +348,7 @@ loadSavedLayout();
                     @click="selectField(index)"
                   >
                     <span>{{ field.label }}</span>
-                    <div 
-                      class="color-preview"
-                      :style="{ backgroundColor: field.color }"
-                    ></div>
+                    <div class="color-preview" :style="{ backgroundColor: field.color }"></div>
                   </button>
                 </div>
               </div>
@@ -145,7 +356,7 @@ loadSavedLayout();
               <!-- Configuration du champ sélectionné -->
               <div v-if="fields[selectedFieldIndex]">
                 <h6>Configuration : {{ fields[selectedFieldIndex].label }}</h6>
-                
+
                 <!-- Couleur -->
                 <div class="form-group mb-1">
                   <label>Couleur du texte :</label>
@@ -155,7 +366,7 @@ loadSavedLayout();
                       :value="fields[selectedFieldIndex].color"
                       @input="updateColor($event.target.value)"
                       class="form-control form-control-color me-2"
-                      style="width: 50px; height: 38px;"
+                      style="width: 50px; height: 38px"
                     />
                     <input
                       type="text"
@@ -183,15 +394,23 @@ loadSavedLayout();
                   </div>
                 </div>
 
-                <!-- Position -->
+                <!-- Dimensions -->
                 <div class="form-group mb-3">
-                  <label>Position :</label>
+                  <label>Dimensions :</label>
                   <div class="row">
                     <div class="col-6">
-                      <small>X: {{ fields[selectedFieldIndex].x }}px</small>
+                      <small>Largeur: {{ Math.round(fields[selectedFieldIndex].width) }}px</small>
                     </div>
                     <div class="col-6">
-                      <small>Y: {{ fields[selectedFieldIndex].y }}px</small>
+                      <small>Hauteur: {{ Math.round(fields[selectedFieldIndex].height) }}px</small>
+                    </div>
+                  </div>
+                  <div class="row mt-1">
+                    <div class="col-6">
+                      <small>Position X: {{ fields[selectedFieldIndex].x }}px</small>
+                    </div>
+                    <div class="col-6">
+                      <small>Position Y: {{ fields[selectedFieldIndex].y }}px</small>
                     </div>
                   </div>
                 </div>
@@ -202,7 +421,16 @@ loadSavedLayout();
                 <h6>Couleurs rapides :</h6>
                 <div class="d-flex flex-wrap gap-2">
                   <button
-                    v-for="color in ['#000000', '#FFFFFF', '#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF']"
+                    v-for="color in [
+                      '#000000',
+                      '#FFFFFF',
+                      '#FF0000',
+                      '#00FF00',
+                      '#0000FF',
+                      '#FFFF00',
+                      '#FF00FF',
+                      '#00FFFF',
+                    ]"
                     :key="color"
                     type="button"
                     class="btn btn-sm color-btn"
@@ -212,16 +440,17 @@ loadSavedLayout();
                   ></button>
                 </div>
               </div>
+
               <!-- Boutons d'action -->
-            <div class="row mt-3">
+              <div class="row mt-3">
                 <div class="col-12 d-flex justify-content-end">
-                <button class="btn btn-secondary mr-3" @click="router.go(-1)">Retour</button>
-                <button @click="saveLayout" class="btn btn-primary" type="button">
+                  <button class="btn btn-secondary mr-3" @click="router.go(-1)">Retour</button>
+                  <button @click="saveLayout" class="btn btn-primary" type="button">
                     <i class="mdi mdi-content-save me-1"></i>
-                    Enregistrer les positions
-                </button>
+                    Enregistrer la configuration
+                  </button>
                 </div>
-            </div>
+              </div>
             </div>
           </div>
         </div>
@@ -233,11 +462,12 @@ loadSavedLayout();
 <style scoped>
 .badge-editor {
   position: relative;
-  width: 400px;   /* à ajuster selon ton image */
-  height: 600px;  /* idem */
+  width: 400px;
+  height: 600px;
   border: 2px solid #ddd;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .badge-bg {
@@ -248,9 +478,7 @@ loadSavedLayout();
 }
 
 .text-field {
-  font-size: 14pt;
   font-weight: bold;
-  background: rgba(255,255,255,0.8);
   text-align: center;
   width: 100%;
   height: 100%;
@@ -260,15 +488,22 @@ loadSavedLayout();
   border-radius: 4px;
   cursor: move;
   transition: all 0.2s ease;
+  user-select: none;
+  white-space: nowrap;
+  overflow: visible;
+  background-color: transparent;
+  padding: 0 5px;
 }
 
 .text-field:hover {
-  background: rgba(255,255,255,0.9);
-  transform: scale(1.05);
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.02);
 }
 
 .selected-field .text-field {
-  box-shadow: 0 0 10px rgba(0,123,255,0.5);
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+  border: 2px solid #007bff !important;
+  background-color: rgba(255, 255, 255, 0.1);
 }
 
 .color-preview {
@@ -298,5 +533,25 @@ loadSavedLayout();
 .form-control-color {
   border: 1px solid #ced4da;
   border-radius: 0.375rem;
+}
+
+.mr-3 {
+  margin-right: 1rem;
+}
+
+/* Style pour les poignées de redimensionnement */
+.vdr {
+  border: none !important;
+  background-color: transparent !important;
+}
+
+.vdr-handle {
+  background-color: #007bff !important;
+  border: 1px solid white !important;
+}
+
+/* Ajustement pour voir les poignées sur fond transparent */
+.selected-field .vdr {
+  background-color: rgba(0, 123, 255, 0.1) !important;
 }
 </style>

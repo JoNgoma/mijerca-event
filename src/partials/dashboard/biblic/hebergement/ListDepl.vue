@@ -149,7 +149,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -168,7 +168,7 @@ async function fetchAll() {
   if (!campAvailable.value) return
   try {
     loading.value = true
-    console.log(`🔄 Chargement des déplacements pour le camp ${props.camp.id}...`)
+    // console.log(`🔄 Chargement des déplacements pour le camp ${props.camp.id}...`)
 
     const [remRes, partRes, peopleRes, parRes] = await Promise.all([
       fetchAllPages(`${API}/removals`),
@@ -183,7 +183,7 @@ async function fetchAll() {
     people.value = peopleRes
     paroisses.value = parRes
 
-    console.log(`🚶 Données déplacements chargées: ${remRes.length} déplacements, ${partRes.length} participants, ${peopleRes.length} personnes, ${parRes.length} paroisses`)
+    // console.log(`🚶 Données déplacements chargées: ${remRes.length} déplacements, ${partRes.length} participants, ${peopleRes.length} personnes, ${parRes.length} paroisses`)
 
   } catch (e) {
     console.error(e)
@@ -242,7 +242,7 @@ const allRemovals = computed(() => {
     })
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 
-  console.log(`📋 ${removalsList.length} déplacements traités`)
+  // console.log(`📋 ${removalsList.length} déplacements traités`)
   return removalsList
 })
 
@@ -260,7 +260,7 @@ const filteredRemovals = computed(() => {
     r.motif.toLowerCase().includes(term)
   )
   
-  console.log(`🔍 ${filtered.length} déplacements filtrés sur "${term}"`)
+  // console.log(`🔍 ${filtered.length} déplacements filtrés sur "${term}"`)
   return filtered
 })
 
@@ -269,7 +269,7 @@ async function confirmRetour(rem) {
   
   try {
     const now = new Date().toISOString()
-    console.log(`✅ Confirmation retour pour ${rem.personName}`)
+    // console.log(`✅ Confirmation retour pour ${rem.personName}`)
     
     await axios.patch(`${API}/removals/${rem.id}`, { end: now }, {
       headers: {

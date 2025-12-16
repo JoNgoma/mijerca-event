@@ -52,7 +52,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -72,7 +72,7 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 async function fetchData() {
   try {
     loading.value = true
-    console.log(`🔄 Chargement des données d'hébergement pour le secteur ${props.id}...`)
+    // console.log(`🔄 Chargement des données d'hébergement pour le secteur ${props.id}...`)
 
     const [
       doyennesRes,
@@ -97,7 +97,7 @@ async function fetchData() {
     allSectors.value = sectorsRes
     allMontants.value = montantsRes
 
-    console.log(`🏨 Données hébergement chargées: ${allParoisses.value.length} paroisses, ${allPeople.value.length} personnes, ${allParticipators.value.length} participants`)
+    // console.log(`🏨 Données hébergement chargées: ${allParoisses.value.length} paroisses, ${allPeople.value.length} personnes, ${allParticipators.value.length} participants`)
 
     aggregateParoisses()
   } catch (err) {
@@ -158,7 +158,7 @@ function aggregateParoisses() {
   })
 
   viewParoisses.value = Object.values(agg)
-  console.log(`🏛️ ${viewParoisses.value.length} paroisses agrégées pour l'hébergement (${totalParticipants} participants)`)
+  // console.log(`🏛️ ${viewParoisses.value.length} paroisses agrégées pour l'hébergement (${totalParticipants} participants)`)
 }
 
 const doyennesBySector = computed(() => {
@@ -169,7 +169,7 @@ const doyennesBySector = computed(() => {
       .filter(Boolean)
   )
   const doyennes = allDoyennes.value.filter(d => doyenneIds.has(extractIdFromUrl(d['@id'])))
-  console.log(`🎯 ${doyennes.length} doyennés trouvés pour l'hébergement secteur ${props.id}`)
+  // console.log(`🎯 ${doyennes.length} doyennés trouvés pour l'hébergement secteur ${props.id}`)
   return doyennes
 })
 
@@ -178,7 +178,7 @@ const filteredParoisses = computed(() => {
   const result = viewParoisses.value.filter(
     p => p.doyenne === selectedDoyenne.value
   )
-  console.log(`🔍 ${result.length} paroisses filtrées pour le doyenné sélectionné`)
+  // console.log(`🔍 ${result.length} paroisses filtrées pour le doyenné sélectionné`)
   return result
 })
 
@@ -194,7 +194,7 @@ import { nextTick } from 'vue'
 async function selectParoisse(paroId) {
   selectedParoisseId.value = paroId
   currentParoisse.value = viewParoisses.value.find(p => p.id === paroId)
-  console.log(`📍 Paroisse sélectionnée pour hébergement: ${currentParoisse.value?.nom}`)
+  // console.log(`📍 Paroisse sélectionnée pour hébergement: ${currentParoisse.value?.nom}`)
   
   if (window.innerWidth < 768) {
     await nextTick()
@@ -241,7 +241,7 @@ const jeunesParParoisse = computed(() => {
     result[selectedParoisseId.value].push(jeune)
   })
 
-  console.log(`👥 ${result[selectedParoisseId.value]?.length || 0} jeunes trouvés pour l'hébergement`)
+  // console.log(`👥 ${result[selectedParoisseId.value]?.length || 0} jeunes trouvés pour l'hébergement`)
   return result
 })
 
@@ -253,7 +253,7 @@ async function refreshData() {
 
 watch(selectedDoyenne, () => {
   selectedParoisseId.value = null
-  console.log(`🔄 Filtre doyenné changé: ${selectedDoyenne.value}`)
+  // console.log(`🔄 Filtre doyenné changé: ${selectedDoyenne.value}`)
 })
 
 onMounted(fetchData)

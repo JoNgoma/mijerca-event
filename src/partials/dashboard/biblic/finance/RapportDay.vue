@@ -77,7 +77,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -97,7 +97,7 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 async function fetchData() {
   try {
     loading.value = true
-    console.log(`🔄 Chargement des données pour le secteur ${props.id}...`)
+    // console.log(`🔄 Chargement des données pour le secteur ${props.id}...`)
     
     const [
       doyennesRes,
@@ -122,7 +122,7 @@ async function fetchData() {
     allSectors.value = sectorsRes
     allMontants.value = montantsRes
 
-    console.log(`📈 Données chargées: ${allParoisses.value.length} paroisses, ${allPeople.value.length} personnes, ${allParticipators.value.length} participants`)
+    // console.log(`📈 Données chargées: ${allParoisses.value.length} paroisses, ${allPeople.value.length} personnes, ${allParticipators.value.length} participants`)
 
     aggregateParoisses()
   } catch (err) {
@@ -135,7 +135,6 @@ async function fetchData() {
 
 function aggregateParoisses() {
   const agg = {}
-  let totalParticipants = 0
 
   allParticipators.value.forEach(part => {
     // filtrer par date sélectionnée
@@ -180,21 +179,20 @@ function aggregateParoisses() {
     const montant = Number(montantRecord?.frais || 0)
 
     agg[paroId].effectif += 1
-    totalParticipants++
     
     if (devise === 'USD' || devise === '$') agg[paroId].montantUSD += montant
     else agg[paroId].montantFC += montant
   })
 
   viewParoisses.value = Object.values(agg)
-  console.log(`🏛️ ${viewParoisses.value.length} paroisses agrégées pour le secteur ${props.id} (${totalParticipants} participants)`)
+  // console.log(`🏛️ ${viewParoisses.value.length} paroisses agrégées pour le secteur ${props.id} (${totalParticipants} participants)`)
 }
 
 // recalculer si la date change
 watch(
   () => props.date,
   () => {
-    console.log(`📅 Changement de date: ${props.date}`)
+    // console.log(`📅 Changement de date: ${props.date}`)
     aggregateParoisses()
     selectedParoisseId.value = null
   }
@@ -208,7 +206,7 @@ const doyennesBySector = computed(() => {
       .filter(Boolean)
   )
   const doyennes = allDoyennes.value.filter(d => doyenneIds.has(extractIdFromUrl(d['@id'])))
-  console.log(`🎯 ${doyennes.length} doyennés trouvés pour le secteur ${props.id}`)
+  // console.log(`🎯 ${doyennes.length} doyennés trouvés pour le secteur ${props.id}`)
   return doyennes
 })
 
@@ -216,7 +214,7 @@ const filteredParoisses = computed(() => {
   let result = viewParoisses.value.filter(p => 
     selectedDoyenne.value === 'Tous' || p.doyenne === selectedDoyenne.value
   )
-  console.log(`🔍 ${result.length} paroisses filtrées (doyenne: ${selectedDoyenne.value})`)
+  // console.log(`🔍 ${result.length} paroisses filtrées (doyenne: ${selectedDoyenne.value})`)
   return result
 })
 
@@ -236,7 +234,7 @@ const currentParoisse = ref(null)
 async function selectParoisse(paroId) {
   selectedParoisseId.value = paroId
   currentParoisse.value = viewParoisses.value.find(p => p.id === paroId)
-  console.log(`📍 Paroisse sélectionnée: ${currentParoisse.value?.nom}`)
+  // console.log(`📍 Paroisse sélectionnée: ${currentParoisse.value?.nom}`)
   
   if (window.innerWidth < 768) {
     await nextTick()
@@ -288,7 +286,7 @@ const jeunesParParoisse = computed(() => {
     result[selectedParoisseId.value].push(jeune)
   })
 
-  console.log(`👥 ${result[selectedParoisseId.value]?.length || 0} jeunes trouvés pour la paroisse sélectionnée`)
+  // console.log(`👥 ${result[selectedParoisseId.value]?.length || 0} jeunes trouvés pour la paroisse sélectionnée`)
   return result
 })
 
@@ -453,15 +451,16 @@ async function refreshData() {
 }
 
 onMounted(() => {
-  console.log(`🚀 Composant RapportDay monté pour le secteur ${props.id}`)
+  // console.log(`🚀 Composant RapportDay monté pour le secteur ${props.id}`)
   fetchData()
 })
 
 // Watch le secteur pour recharger les données si nécessaire
 watch(
   () => props.id,
-  (newId) => {
-    console.log(`🔄 Changement de secteur: ${newId}`)
+  () => {
+  // (newId) => {
+    // console.log(`🔄 Changement de secteur: ${newId}`)
     fetchData()
   }
 )

@@ -59,7 +59,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -176,7 +176,7 @@ const servicePeople = computed(() => {
       (pr) => extractIdFromUrl(pr.person) === extractIdFromUrl(person['@id']),
     )
 
-    const responsable = person.isDiocesan
+    const responsable = person.isDicoces
       ? 'Noyau diocésain'
       : person.isDecanal
         ? 'Noyau décanal'

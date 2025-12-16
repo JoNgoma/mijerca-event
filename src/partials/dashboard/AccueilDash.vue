@@ -92,7 +92,7 @@ async function fetchAllPages(baseUrl, options = {}) {
       }
     }
 
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error('Erreur lors de la récupération paginée:', error);
@@ -187,7 +187,7 @@ async function fetchWidgetData() {
   try {
     loadingMessage.value = "Chargement des personnes...";
     const people = await fetchAllPages(`${API_URL}/people`);
-    console.log('📊 Personnes chargées pour les widgets:', people.length);
+    // console.log('📊 Personnes chargées pour les widgets:', people.length);
 
     updateWidgetData(people);
     updateTimeStats(people);
@@ -239,7 +239,7 @@ async function fetchDoyennes() {
   try {
     loadingMessage.value = "Chargement des doyennés...";
     const people = await fetchAllPages(`${API_URL}/people?sector=${encodeURIComponent(sectorRef.value)}`);
-    console.log('📊 Personnes du secteur chargées:', people.length);
+    // console.log('📊 Personnes du secteur chargées:', people.length);
 
     const doyMap = {}, paroMap = {};
     people.forEach(p => {
@@ -283,8 +283,8 @@ async function fetchDoyennes() {
     doyennes.value = Object.values(doyMap);
     topParoisses.value = Object.values(paroMap).sort((a,b) => b.effectif - a.effectif).slice(0,5);
 
-    console.log('📊 Doyennés trouvés:', doyennes.value.length);
-    console.log('📊 Top paroisses:', topParoisses.value.length);
+    // console.log('📊 Doyennés trouvés:', doyennes.value.length);
+    // console.log('📊 Top paroisses:', topParoisses.value.length);
 
   } catch(err) {
     console.error("Erreur fetchDoyennes:", err);

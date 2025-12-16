@@ -122,7 +122,7 @@ function connectSse() {
       msg?.sector === `/api/sectors/${sectorId.value}` &&
       ['doyenne', 'paroisse', 'personne'].includes(msg.type)
     ) {
-      console.log('🔄 Mise à jour reçue via SSE:', msg)
+      // console.log('🔄 Mise à jour reçue via SSE:', msg)
       fetchDoyennes()
     }
   }
@@ -165,11 +165,11 @@ async function fetchDoyennes() {
       fetchAllPages(`${API_URL}/people?sector=/sectors/${sectorId.value}`)
     ])
 
-    console.log('📊 Données récupérées (pagination):', {
-      doyennes: doyennesData.length || 0,
-      paroisses: paroissesData.length || 0,
-      personnes: peopleData.length || 0
-    })
+    // console.log('📊 Données récupérées (pagination):', {
+    //   doyennes: doyennesData.length || 0,
+    //   paroisses: paroissesData.length || 0,
+    //   personnes: peopleData.length || 0
+    // })
 
     const secDoyenne = doyennesData.filter((s) => s.sector === `/api/sectors/${sectorId.value}`) || []
     const secParoisses = paroissesData.filter((s) => s.sector === `/api/sectors/${sectorId.value}`) || []
@@ -199,11 +199,11 @@ async function fetchDoyennes() {
     totalParoisses.value = secParoisses.length
     totalSecteur.value = people.filter((pe) => pe.sector === `/api/sectors/${sectorId.value}`).length
 
-    console.log('🧮 Totaux calculés:', {
-      doyennes: totalDoyennes.value,
-      paroisses: totalParoisses.value,
-      secteur: totalSecteur.value
-    })
+    // console.log('🧮 Totaux calculés:', {
+    //   doyennes: totalDoyennes.value,
+    //   paroisses: totalParoisses.value,
+    //   secteur: totalSecteur.value
+    // })
 
   } catch (err) {
     console.error('Erreur récupération doyennés, paroisses et personnes', err)

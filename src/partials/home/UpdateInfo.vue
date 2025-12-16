@@ -67,7 +67,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -166,7 +166,7 @@ onMounted(async () => {
         roles.value.forEach(r => r.value = !!p[r.key])
         isResponsable.value = roles.value.some(r => r.value)
         
-        console.log('👤 Personne chargée pour modification:', p.fullName)
+        // console.log('👤 Personne chargée pour modification:', p.fullName)
       }
     } else {
         // Si c'est un NOUVEL ajout, initialiser les listes

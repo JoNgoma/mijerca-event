@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from "vue"
+import { ref, onMounted, watch } from "vue"
 import axios from "axios"
 import { useRouter } from "vue-router"
 import { useToast } from 'vue-toastification'
@@ -47,10 +47,6 @@ const showPassword = ref(false)
 // 🔹 Toast amélioré
 const toasts = ref([])
 
-// 🔹 SSE
-let eventSource = null
-const newPeople = ref([])
-
 // ==========================
 // PAGINATION OPTIMISÉE
 // ==========================
@@ -82,7 +78,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
 
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -155,11 +151,11 @@ onMounted(async () => {
     doyennes.value = doyenneData || []
     paroisses.value = paroisseData || []
 
-    console.log('📊 Données chargées:', {
-      sectors: sectors.value.length,
-      doyennes: doyennes.value.length,
-      paroisses: paroisses.value.length
-    })
+    // console.log('📊 Données chargées:', {
+    //   sectors: sectors.value.length,
+    //   doyennes: doyennes.value.length,
+    //   paroisses: paroisses.value.length
+    // })
 
     if (sectors.value.length) sector.value = sectors.value[0].name
     filterDoyennes()
@@ -167,21 +163,6 @@ onMounted(async () => {
     console.error("Erreur chargement données :", err)
     toast.error("Erreur chargement données.")
   }
-
-  // 🔹 SSE
-  eventSource = new EventSource(`${API_URL.replace("/api","")}/sse/people`)
-  eventSource.onmessage = (event) => {
-    const data = JSON.parse(event.data)
-    newPeople.value.push(data)
-  }
-  eventSource.onerror = (err) => {
-    console.error("❌ SSE error", err)
-    eventSource.close()
-  }
-})
-
-onUnmounted(() => {
-  if (eventSource) eventSource.close()
 })
 
 // 🔹 Watchers

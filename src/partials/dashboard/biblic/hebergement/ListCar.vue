@@ -196,7 +196,7 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
+    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -223,7 +223,7 @@ const days = computed(() => {
 async function fetchAll() {
   try {
     loading.value = true
-    console.log(`🔄 Chargement des données carrefours pour ${props.type}...`)
+    // console.log(`🔄 Chargement des données carrefours pour ${props.type}...`)
 
     const [logRes, partRes, peopleRes, parRes] = await Promise.all([
       fetchAllPages(`${API}/logistics`),
@@ -237,7 +237,7 @@ async function fetchAll() {
     people.value = peopleRes
     paroisses.value = parRes
 
-    console.log(`📍 Données carrefours chargées: ${logRes.length} logistiques, ${partRes.length} participants, ${peopleRes.length} personnes, ${parRes.length} paroisses`)
+    // console.log(`📍 Données carrefours chargées: ${logRes.length} logistiques, ${partRes.length} participants, ${peopleRes.length} personnes, ${parRes.length} paroisses`)
 
   } catch (e) {
     console.error(e)
@@ -270,14 +270,14 @@ const totalGeneral = computed(() => {
 
 // recompute whenever data changes
 watch([logistics, participators, people], () => {
-  console.log(`👥 Traitement de ${participators.value.length} participants et ${people.value.length} personnes`)
+  // console.log(`👥 Traitement de ${participators.value.length} participants et ${people.value.length} personnes`)
   
   // determine number of carrefours from logistics first matching camp
   const log = logistics.value[0] || {}
   const nbCar = log?.carrefour || 0
   carrefours.value = Array.from({ length: nbCar }, (_, i) => `${i + 1}`)
 
-  console.log(`📍 ${carrefours.value.length} carrefours disponibles`)
+  // console.log(`📍 ${carrefours.value.length} carrefours disponibles`)
 
   // build participators details (join with people and paroisse)
   const partsDetails = participators.value.map(p => {
@@ -311,7 +311,7 @@ watch([logistics, participators, people], () => {
     return isFrere ? (g.includes('fr') || g.includes('m') || g.includes('homme')) : (g.includes('soeu') || g.includes('s') || g.includes('f'))
   })
 
-  console.log(`👨‍👩‍👧‍👦 ${filtered.length} ${isFrere ? 'frères' : 'soeurs'} filtrés`)
+  // console.log(`👨‍👩‍👧‍👦 ${filtered.length} ${isFrere ? 'frères' : 'soeurs'} filtrés`)
 
   // compute effectifs per carrefour per day
   const map = {}
@@ -337,7 +337,7 @@ watch([logistics, participators, people], () => {
 
   effectifs.value = map
 
-  console.log(`📊 Calcul des effectifs terminé: ${totalGeneral.value} ${isFrere ? 'frères' : 'soeurs'} au total (dernier jour)`)
+  // console.log(`📊 Calcul des effectifs terminé: ${totalGeneral.value} ${isFrere ? 'frères' : 'soeurs'} au total (dernier jour)`)
 }, { immediate: true })
 
 function openModal(car) {
@@ -374,7 +374,7 @@ function openModal(car) {
   })
   members.value = filtered
   showModal.value = true
-  console.log(`🪟 Ouverture modal carrefour ${car}: ${members.value.length} membres`)
+  // console.log(`🪟 Ouverture modal carrefour ${car}: ${members.value.length} membres`)
   
   // focus for keyboard esc
   setTimeout(() => {
