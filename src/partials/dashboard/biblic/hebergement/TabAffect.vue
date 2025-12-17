@@ -99,7 +99,7 @@ const pageTitle = computed(() => campName.value)
                 </a>
               </li>
             </ul>
-            <div class="tab-content" style="max-height: 65vh; padding: 1.5rem;">
+            <div class="tab-content" style="padding: 1.5rem;">
               <div v-if="selectedSecteur === ''">
                 <EffecTotal ></EffecTotal>
               </div>

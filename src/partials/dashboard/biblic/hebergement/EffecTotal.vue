@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import axios from 'axios'
 import { useToast } from 'vue-toastification'
 
@@ -45,7 +45,6 @@ async function fetchAllPages(baseUrl) {
       }
     }
     
-    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
     return allItems;
   } catch (error) {
     console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
@@ -67,7 +66,6 @@ const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 async function fetchData() {
   try {
     loading.value = true
-    // console.log('🔄 Chargement des données avec pagination...')
 
     const [sectorsRes, doyennesRes, paroissesRes, peopleRes, participatorsRes] = await Promise.all([
       fetchAllPages(`${API}/sectors`),
@@ -82,8 +80,6 @@ async function fetchData() {
     allParoisses.value = paroissesRes
     allPeople.value = peopleRes
     allParticipators.value = participatorsRes
-
-    // console.log(`📈 Données chargées: ${sectorsRes.length} secteurs, ${doyennesRes.length} doyennes, ${paroissesRes.length} paroisses, ${peopleRes.length} personnes, ${participatorsRes.length} participants`)
 
     aggregateSectors()
   } catch (err) {
@@ -148,9 +144,84 @@ function aggregateSectors() {
     paroisses: s.paroisses.size,
     total: s.freres + s.soeurs,
   }))
-
-  // console.log(`🏛️ ${viewSectors.value.length} secteurs agrégés (${totalParticipants} participants au total)`)
 }
+
+// Top 5 des paroisses avec le plus de participants
+const topParoisses = computed(() => {
+  const paroisseCounts = {}
+  
+  allParticipators.value.forEach(part => {
+    const person = allPeople.value.find(p => 
+      p['@id'] === part.person || extractIdFromUrl(p['@id']) === extractIdFromUrl(part.person)
+    )
+    if (!person) return
+
+    const paro = allParoisses.value.find(pa =>
+      pa['@id'] === person.paroisse || extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse)
+    )
+    if (!paro) return
+
+    const paroisseId = paro['@id'] || `/api/paroisses/${paro.id}`
+    
+    if (!paroisseCounts[paroisseId]) {
+      paroisseCounts[paroisseId] = {
+        id: paroisseId,
+        nom: paro.name || 'Paroisse inconnue',
+        secteur: allSectors.value.find(s => 
+          s['@id'] === paro.sector || extractIdFromUrl(s['@id']) === extractIdFromUrl(paro.sector)
+        )?.name || '—',
+        count: 0
+      }
+    }
+    
+    paroisseCounts[paroisseId].count++
+  })
+  
+  return Object.values(paroisseCounts)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+})
+
+// Top 5 des doyennés avec le plus de participants
+const topDoyennes = computed(() => {
+  const doyenneCounts = {}
+  
+  allParticipators.value.forEach(part => {
+    const person = allPeople.value.find(p => 
+      p['@id'] === part.person || extractIdFromUrl(p['@id']) === extractIdFromUrl(part.person)
+    )
+    if (!person) return
+
+    const paro = allParoisses.value.find(pa =>
+      pa['@id'] === person.paroisse || extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse)
+    )
+    if (!paro) return
+
+    const doyenneId = paro.doyenne
+    if (!doyenneId) return
+
+    const doy = allDoyennes.value.find(d =>
+      d['@id'] === doyenneId || extractIdFromUrl(d['@id']) === extractIdFromUrl(doyenneId)
+    )
+    
+    if (!doyenneCounts[doyenneId]) {
+      doyenneCounts[doyenneId] = {
+        id: doyenneId,
+        nom: doy?.name || 'Doyenné inconnu',
+        secteur: allSectors.value.find(s => 
+          s['@id'] === paro.sector || extractIdFromUrl(s['@id']) === extractIdFromUrl(paro.sector)
+        )?.name || '—',
+        count: 0
+      }
+    }
+    
+    doyenneCounts[doyenneId].count++
+  })
+  
+  return Object.values(doyenneCounts)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+})
 
 // Fonction de rafraîchissement manuel
 async function refreshData() {
@@ -178,8 +249,8 @@ onMounted(fetchData)
 
     <div v-else>
       <!-- Cartes de résumé -->
-      <div class="row mb-4">
-        <div class="col-md-2 col-6 mb-3">
+      <div class="row">
+        <div class="col-md-2 col-6">
           <div class="card bg-primary text-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.length }}</h4>
@@ -187,7 +258,7 @@ onMounted(fetchData)
             </div>
           </div>
         </div>
-        <div class="col-md-2 col-6 mb-3">
+        <div class="col-md-2 col-6">
           <div class="card bg-info text-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.reduce((a, s) => a + s.doyennes, 0) }}</h4>
@@ -195,7 +266,7 @@ onMounted(fetchData)
             </div>
           </div>
         </div>
-        <div class="col-md-2 col-6 mb-3">
+        <div class="col-md-2 col-6">
           <div class="card bg-success text-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.reduce((a, s) => a + s.paroisses, 0) }}</h4>
@@ -203,7 +274,7 @@ onMounted(fetchData)
             </div>
           </div>
         </div>
-        <div class="col-md-2 col-6 mb-3">
+        <div class="col-md-2 col-6">
           <div class="card bg-warning cl-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.reduce((a, s) => a + s.freres, 0) }}</h4>
@@ -211,7 +282,7 @@ onMounted(fetchData)
             </div>
           </div>
         </div>
-        <div class="col-md-2 col-6 mb-3">
+        <div class="col-md-2 col-6">
           <div class="card bg-pink text-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.reduce((a, s) => a + s.soeurs, 0) }}</h4>
@@ -219,7 +290,7 @@ onMounted(fetchData)
             </div>
           </div>
         </div>
-        <div class="col-md-2 col-6 mb-3">
+        <div class="col-md-2 col-6">
           <div class="card bg-dark text-white text-center">
             <div class="card-body py-3">
               <h4 class="card-title mb-0">{{ viewSectors.reduce((a, s) => a + s.total, 0) }}</h4>
@@ -229,7 +300,11 @@ onMounted(fetchData)
         </div>
       </div>
 
+      <!-- Tableau principal des secteurs -->
       <div class="card shadow-sm">
+        <div class="card-header bg-light ml-2">
+          <h6 class="mb-0">Statistiques par secteur</h6>
+        </div>
         <div class="table-container">
           <table class="table table-striped table-borderless align-middle">
             <thead class="table-light sticky-header">
@@ -301,6 +376,105 @@ onMounted(fetchData)
           </table>
         </div>
       </div>
+
+      <!-- Deux tableaux pour les tops 5 -->
+      <div class="row">
+        <!-- Top 5 des paroisses -->
+        <div class="col-lg-6 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-success text-white px-3">
+              <h6 class="mb-0">🏆 Top 5 des paroisses</h6>
+              <small class="opacity-75">Paroisses avec le plus de participants</small>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="50">#</th>
+                      <th>Paroisse</th>
+                      <th>Secteur</th>
+                      <th class="text-center">Participants</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(paroisse, index) in topParoisses" :key="paroisse.id">
+                      <td class="fw-bold">
+                        <span class="badge" :class="{
+                          'bg-gold': index === 0,
+                          'bg-bronze': index === 1,
+                          'bg-silver': index === 2,
+                          'bg-secondary': index > 2
+                        }">
+                          {{ index + 1 }}
+                        </span>
+                      </td>
+                      <td class="fw-semibold">{{ paroisse.nom }}</td>
+                      <td><small class="text-muted">{{ paroisse.secteur }}</small></td>
+                      <td class="text-center">
+                        <span class="badge bg-primary rounded-pill">{{ paroisse.count }}</span>
+                      </td>
+                    </tr>
+                    <tr v-if="topParoisses.length === 0">
+                      <td colspan="4" class="text-center text-muted py-3">
+                        Aucune donnée disponible
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top 5 des doyennés -->
+        <div class="col-lg-6 mb-4">
+          <div class="card shadow-sm h-100">
+            <div class="card-header bg-info text-white px-3">
+              <h6 class="mb-0">🎯 Top 5 des doyennés</h6>
+              <small class="opacity-75">Doyennés avec le plus de participants</small>
+            </div>
+            <div class="card-body p-0">
+              <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th width="50">#</th>
+                      <th>Doyenné</th>
+                      <th>Secteur</th>
+                      <th class="text-center">Participants</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(doyenne, index) in topDoyennes" :key="doyenne.id">
+                      <td class="fw-bold">
+                        <span class="badge" :class="{
+                          'bg-gold': index === 0,
+                          'bg-bronze': index === 1,
+                          'bg-silver': index === 2,
+                          'bg-secondary': index > 2
+                        }">
+                          {{ index + 1 }}
+                        </span>
+                      </td>
+                      <td class="fw-semibold">{{ doyenne.nom }}</td>
+                      <td><small class="text-muted">{{ doyenne.secteur }}</small></td>
+                      <td class="text-center">
+                        <span class="badge bg-primary rounded-pill">{{ doyenne.count }}</span>
+                      </td>
+                    </tr>
+                    <tr v-if="topDoyennes.length === 0">
+                      <td colspan="4" class="text-center text-muted py-3">
+                        Aucune donnée disponible
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -309,6 +483,7 @@ onMounted(fetchData)
 .cl-white{
   color : white;
 }
+
 .table-container {
   max-height: 34rem;
   overflow-y: auto;
@@ -332,12 +507,31 @@ onMounted(fetchData)
   background-color: #d63384 !important;
 }
 
+.bg-gold {
+  background-color: #ffd700 !important;
+  color: #000 !important;
+}
+
+.bg-silver {
+  background-color: #c0c0c0 !important;
+  color: #000 !important;
+}
+
+.bg-bronze {
+  background-color: #cd7f32 !important;
+  color: #fff !important;
+}
+
 .card .card-body {
   padding: 0.75rem;
 }
 
 .card .card-title {
   font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.card-header h6 {
   font-weight: 600;
 }
 
@@ -359,6 +553,10 @@ onMounted(fetchData)
   
   .card .card-title {
     font-size: 1.25rem;
+  }
+  
+  .row > .col-lg-6 {
+    margin-bottom: 1rem;
   }
 }
 </style>

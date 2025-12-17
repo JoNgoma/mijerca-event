@@ -1,11 +1,14 @@
 <script setup>
+import { ref, onMounted, computed } from "vue"
+import { useRouter, useRoute } from "vue-router"
+
 // Import images
 import logo from "/assets/img/mijerca.jpg"
 import avatar from "/assets/img/avatar.png"
-import { ref, onMounted } from "vue"
-import { useRouter, useRoute } from "vue-router"
+import avatarSoeur from "/assets/img/avatar2.png"
 
 const route = useRoute()
+const router = useRouter()
 
 const isActiveRoute = (routeName, params = {}) => {
   if (route.name === routeName) {
@@ -18,8 +21,6 @@ const isActiveRoute = (routeName, params = {}) => {
   }
   return false
 }
-
-const router = useRouter()
 
 const userData = ref({
   id: null,
@@ -38,6 +39,12 @@ const personData = ref({
 const showDropdown = ref(false)
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
+// Computed pour déterminer l'avatar à afficher
+const currentAvatar = computed(() => {
+  const gender = personData.value?.gender?.toLowerCase() || ""
+  return gender.includes("soeur") ? avatarSoeur : avatar
+})
+
 function toggleDropdown() {
   showDropdown.value = !showDropdown.value
 }
@@ -47,25 +54,25 @@ function closeDropdown() {
 }
 
 function logout() {
-  localStorage.removeItem("token");
-  localStorage.removeItem("username");
-  window.location.href = "/login"; // recharge la page
+  localStorage.removeItem("token")
+  localStorage.removeItem("username")
+  window.location.href = "/login"
 }
 
 // ==========================
 // PAGINATION OPTIMISÉE
 // ==========================
 async function fetchAllPages(baseUrl, options = {}) {
-  let allItems = [];
-  let currentPage = 1;
-  let hasMore = true;
+  let allItems = []
+  let currentPage = 1
+  let hasMore = true
   
   try {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token")
     
     while (hasMore) {
-      const url = new URL(baseUrl);
-      url.searchParams.set('page', currentPage);
+      const url = new URL(baseUrl)
+      url.searchParams.set('page', currentPage)
       
       const response = await fetch(url, {
         headers: { 
@@ -74,34 +81,32 @@ async function fetchAllPages(baseUrl, options = {}) {
           ...options.headers
         },
         ...options
-      });
+      })
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
       
-      const data = await response.json();
+      const data = await response.json()
       
       if (data.member && Array.isArray(data.member)) {
-        allItems = [...allItems, ...data.member];
+        allItems = [...allItems, ...data.member]
         
-        // Vérifie s'il y a plus de pages
         if (data.member.length === 0 || 
             data.member.length < 30 ||
             currentPage >= 50) {
-          hasMore = false;
+          hasMore = false
         } else {
-          currentPage++;
+          currentPage++
         }
       } else {
-        hasMore = false;
+        hasMore = false
       }
     }
     
-    return allItems;
+    return allItems
   } catch (error) {
-    console.error('Erreur lors de la récupération paginée:', error);
-    throw error;
+    throw error
   }
 }
 
@@ -131,20 +136,14 @@ async function fetchUserData() {
 
       if (matchedPerson) {
         personData.value = matchedPerson
-        console.log('👤 Utilisateur connecté:', matchedPerson.fullName)
       } else {
-        console.warn('⚠️ Aucune personne trouvée avec ce numéro de téléphone')
         personData.value = null
       }
-    } else {
-      console.warn('⚠️ Utilisateur non trouvé')
     }
   } catch (err) {
-    console.error("Erreur user connecté", err)
-    // En cas d'erreur 401, déconnecter l'utilisateur
     if (err.message.includes('401')) {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
+      localStorage.removeItem("token")
+      window.location.href = "/login"
     }
   }
 }
@@ -153,7 +152,6 @@ onMounted(() => {
   fetchUserData()
 })
 </script>
-
 
 <template>
   <nav class="navbar navbar-expand fixed-top be-top-header">
@@ -171,8 +169,7 @@ onMounted(() => {
 
       <!-- Menu gauche -->
       <div class="navbar-collapse collapse" id="be-navbar-collapse"> 
-        <!-- Slot dynamique pour le contenu de navigation --> 
-        <slot name="navigation"> <!-- Contenu par défaut si aucun slot n'est fourni --> 
+        <slot name="navigation"> 
           <ul class="navbar-nav"> 
             <li class="nav-item">
               <router-link :to="{ name: 'dashboard' }" class="nav-link">
@@ -188,7 +185,7 @@ onMounted(() => {
         <ul class="nav navbar-nav float-right be-user-nav">
           <li class="nav-item dropdown" @click.stop="toggleDropdown">
             <a class="nav-link d-flex align-items-center" href="javascript:void(0)">
-              <img :src="avatar" alt="Avatar" class="rounded-circle"
+              <img :src="currentAvatar" alt="Avatar" class="rounded-circle"
                    style="width: 32px; height: 32px" />
               <span class="user-name">{{ personData.fullName }}</span>
             </a>
@@ -233,11 +230,13 @@ onMounted(() => {
 .navbar-brand img {
   max-height: 40px;
 }
+
 .dropdown-menu {
   min-width: 200px;
   border-radius: 0.5rem;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
+
 .overlay {
   position: fixed;
   inset: 0;
@@ -245,7 +244,10 @@ onMounted(() => {
   z-index: 10;
 }
 
-/* pour petits écrans, full width */
+.user-name {
+  margin-left: 0.5rem;
+}
+
 @media (max-width: 576px) {
   .dropdown-menu {
     position: static !important;
@@ -254,9 +256,14 @@ onMounted(() => {
     margin-top: 0.2rem;
     border-radius: 0;
   }
+  
   .be-right-navbar {
-      display: flex;
-      justify-content: flex-end;
+    display: flex;
+    justify-content: flex-end;
+  }
+  
+  .user-name {
+    display: none;
   }
 }
 </style>

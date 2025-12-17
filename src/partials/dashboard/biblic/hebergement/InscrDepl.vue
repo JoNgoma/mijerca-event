@@ -113,14 +113,14 @@ const carrefoursDisponibles = computed(() => {
 const openParticipantsIds = computed(() =>
   new Set(removals.value.filter(r => !r.end).map(r => String(r.id)))
 )
-
 const participantsParCarrefour = computed(() => {
   if (!selectedCarrefour.value) return []
   return participators.value
-    .filter(p => p.carrefour === selectedCarrefour.value && !openParticipantsIds.value.has(String(p.id)))
+    .filter(p => p.carrefour === selectedCarrefour.value)
     .map(p => {
       const pid = extractId(p.person)
       const person = people.value.find(pe => extractId(pe['@id']) === pid) || {}
+
       return {
         id: p.id,
         fullName: person.fullName || `#${p.id}`,

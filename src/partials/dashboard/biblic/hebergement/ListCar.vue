@@ -32,8 +32,10 @@
               @click="openModal(car)"
               class="clickable-row"
             >
+            
               <td class="fw-semibold">{{ idx + 1 }}</td>
-              <td class="fw-semibold">Carrefour {{ car }}</td>
+              <td v-if="(car<1)" class="fw-semibold">Rafiki</td>
+              <td v-else class="fw-semibold">Dortoir {{ car }}</td>
               <td
                 v-for="day in days"
                 :key="day.date.toISOString()"
@@ -274,8 +276,8 @@ watch([logistics, participators, people], () => {
   
   // determine number of carrefours from logistics first matching camp
   const log = logistics.value[0] || {}
-  const nbCar = log?.carrefour || 0
-  carrefours.value = Array.from({ length: nbCar }, (_, i) => `${i + 1}`)
+  const nbCar = log?.carrefour+1 || 0
+  carrefours.value = Array.from({ length: nbCar }, (_, i) => `${i}`)
 
   // console.log(`📍 ${carrefours.value.length} carrefours disponibles`)
 
@@ -305,10 +307,9 @@ watch([logistics, participators, people], () => {
   })
 
   // filter by type (freres / soeurs) using gender label
-  const isFrere = props.type === 'freres'
   const filtered = partsDetails.filter(p => {
     const g = (p.genderLabel || '').toLowerCase()
-    return isFrere ? (g.includes('fr') || g.includes('m') || g.includes('homme')) : (g.includes('soeu') || g.includes('s') || g.includes('f'))
+    return (g.includes('fr') || g.includes('m') || g.includes('homme') || g.includes('soeu') || g.includes('s') || g.includes('f'))
   })
 
   // console.log(`👨‍👩‍👧‍👦 ${filtered.length} ${isFrere ? 'frères' : 'soeurs'} filtrés`)
@@ -316,16 +317,16 @@ watch([logistics, participators, people], () => {
   // compute effectifs per carrefour per day
   const map = {}
   for (const car of carrefours.value) {
-    map[car] = {}
+    map[car-1] = {}
     for (const day of days.value) {
       const dateStr = day.date.toISOString().split('T')[0]
       const count = filtered.filter(p => {
         const created = new Date(p.createdAt)
         const jour = new Date(day.date)
         // car stored as number string? compare stringified
-        return (String(p.carrefour) === String(car)) && jour >= created
+        return (String(p.carrefour) === String(car-1)) && jour >= created
       }).length
-      map[car][dateStr] = count
+      map[car-1][dateStr] = count
     }
   }
 
@@ -343,8 +344,7 @@ watch([logistics, participators, people], () => {
 function openModal(car) {
   selected.value = car
   // build members list
-  const isFrere = props.type === 'freres'
-  const partsDetails = participators.value.map(p => {
+    const partsDetails = participators.value.map(p => {
     const pid = extractId(p.person)
     const pe = people.value.find(x => extractId(x['@id']) === pid) || {}
     let paroName = '—'
@@ -369,7 +369,7 @@ function openModal(car) {
   // filter by type AND carrefour
   const filtered = partsDetails.filter(p => {
     const g = (p.genderLabel || '').toLowerCase()
-    const okGender = isFrere ? (g.includes('fr') || g.includes('m')) : (g.includes('soeu') || g.includes('f') || g.includes('s'))
+    const okGender = (g.includes('fr') || g.includes('m')) || (g.includes('soeu') || g.includes('f') || g.includes('s'))
     return okGender && String(p.carrefour) === String(car)
   })
   members.value = filtered

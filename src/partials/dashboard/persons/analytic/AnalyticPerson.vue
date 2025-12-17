@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import axios from 'axios'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useServiceContext } from '@/composables/useServiceContext'
 
 const { currentService } = useServiceContext()
@@ -24,31 +23,78 @@ const nameService = ref(currentService.value.name)
 let dataTable = null
 
 // ==========================
-// PAGINATION OPTIMISÉE
+// UTILITAIRES
 // ==========================
-async function fetchAllPagesAxios(baseUrl) {
+function extractIdFromUrl(url) {
+  if (!url) return null
+  const parts = String(url).split('/').filter(Boolean)
+  return parts.pop()
+}
+
+// ==========================
+// PAGINATION OPTIMISÉE AVEC FETCH (Version améliorée)
+// ==========================
+async function fetchAllPages(baseUrl, options = {}) {
   let allItems = []
   let currentPage = 1
   let hasMore = true
+  const maxPages = options.maxPages || 100
+  const pageSize = options.pageSize || 30
 
   try {
-    while (hasMore) {
-      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`
+    while (hasMore && currentPage <= maxPages) {
+      const url = new URL(baseUrl)
+      url.searchParams.set('page', currentPage)
 
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
+      if (options.params) {
+        Object.entries(options.params).forEach(([key, value]) => {
+          url.searchParams.set(key, value)
+        })
+      }
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/ld+json',
+        },
       })
 
-      const data = response.data
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
 
       if (data.member && Array.isArray(data.member)) {
         allItems = [...allItems, ...data.member]
 
-        if (data.member.length === 0 || data.member.length < 30 || currentPage >= 50) {
+        // Conditions d'arrêt
+        const currentItemsCount = data.member.length
+        if (currentItemsCount === 0 || currentItemsCount < pageSize) {
           hasMore = false
         } else {
           currentPage++
         }
+      } else if (data['hydra:member'] && Array.isArray(data['hydra:member'])) {
+        // Support pour format Hydra
+        allItems = [...allItems, ...data['hydra:member']]
+
+        const currentItemsCount = data['hydra:member'].length
+        const totalItems = data['hydra:totalItems'] || 0
+
+        if (
+          currentItemsCount === 0 ||
+          currentItemsCount < pageSize ||
+          allItems.length >= totalItems
+        ) {
+          hasMore = false
+        } else {
+          currentPage++
+        }
+      } else if (Array.isArray(data)) {
+        // Si l'API retourne directement un tableau
+        allItems = [...allItems, ...data]
+        hasMore = false
       } else {
         hasMore = false
       }
@@ -58,6 +104,92 @@ async function fetchAllPagesAxios(baseUrl) {
   } catch (error) {
     console.error('Erreur lors de la récupération paginée:', error)
     throw error
+  }
+}
+
+// ==========================
+// PAGINATION POUR LES UTILISATEURS
+// ==========================
+async function fetchAllUsersWithPagination() {
+  let allUsers = []
+  let currentPage = 1
+  const maxPages = 50
+  const pageSize = 30
+
+  try {
+    while (currentPage <= maxPages) {
+      const url = new URL(`${API_URL}/users`)
+      url.searchParams.set('page', currentPage)
+
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/ld+json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      // Gestion des différents formats de réponse
+      let users = []
+      if (data.member && Array.isArray(data.member)) {
+        users = data.member
+      } else if (data['hydra:member'] && Array.isArray(data['hydra:member'])) {
+        users = data['hydra:member']
+      } else if (Array.isArray(data)) {
+        users = data
+      }
+
+      if (users.length === 0) {
+        break
+      }
+
+      allUsers = [...allUsers, ...users]
+
+      // Si on a moins d'éléments que la taille de page, c'est la dernière page
+      if (users.length < pageSize) {
+        break
+      }
+
+      currentPage++
+    }
+
+    return allUsers
+  } catch (error) {
+    console.error('Erreur lors de la récupération des utilisateurs:', error)
+    throw error
+  }
+}
+
+// ==========================
+// Recherche d'utilisateur par critères multiples
+// ==========================
+async function searchUserByMultipleCriteria(username) {
+  try {
+    // Essai 1: Récupération de tous les utilisateurs avec pagination
+    const allUsers = await fetchAllUsersWithPagination()
+
+    if (allUsers.length === 0) {
+      return null
+    }
+
+    // Recherche par plusieurs critères
+    const user = allUsers.find(
+      (u) =>
+        u.username === username ||
+        u.phoneNumber === username ||
+        u.email === username ||
+        (u.person && (u.person.phoneNumber === username || u.person.phone === username)),
+    )
+
+    return user || null
+  } catch (error) {
+    console.error('Erreur recherche utilisateur:', error)
+    return null
   }
 }
 
@@ -107,54 +239,55 @@ function initDataTable() {
       const screenHeight = window.innerHeight
       const isMobile = screenHeight < 768
       const isSmallScreen = screenHeight < 576
-      
+
       let tableHeight
       if (isSmallScreen) {
-        tableHeight = Math.max(300, screenHeight * 0.5) + 'px' // 50% de la hauteur de l'écran
+        tableHeight = Math.max(300, screenHeight * 0.5) + 'px'
       } else if (isMobile) {
-        tableHeight = Math.max(400, screenHeight * 0.65) + 'px' // 65% de la hauteur de l'écran
+        tableHeight = Math.max(400, screenHeight * 0.65) + 'px'
       } else {
-        tableHeight = '60vh' // 60% de la hauteur de la fenêtre sur desktop
+        tableHeight = '60vh'
       }
 
       dataTable = $(tableElement).DataTable({
         responsive: true,
-        pageLength: 25, // Plus d'éléments par page pour réduire la pagination
-        lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "Tous"]],
+        pageLength: 25,
+        lengthMenu: [
+          [10, 25, 50, 100, -1],
+          [10, 25, 50, 100, 'Tous'],
+        ],
         language: {
-          url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/fr-FR.json',
-          lengthMenu: "Afficher _MENU_ éléments",
-          search: "Rechercher:",
-          info: "Affichage de _START_ à _END_ sur _TOTAL_ personnes",
+          lengthMenu: 'Afficher _MENU_ éléments',
+          search: 'Rechercher:',
+          info: 'Affichage de _START_ à _END_ sur _TOTAL_ personnes',
+          infoEmpty: 'Aucune donnée disponible',
+          infoFiltered: '(filtré à partir de _MAX_ entrées)',
+          zeroRecords: 'Aucun résultat trouvé',
           paginate: {
-            first: "Premier",
-            last: "Dernier",
-            next: "Suivant",
-            previous: "Précédent"
-          }
+            first: 'Premier',
+            last: 'Dernier',
+            next: 'Suivant',
+            previous: 'Précédent',
+          },
         },
         order: [[0, 'asc']],
-        scrollY: tableHeight, // Hauteur dynamique
+        scrollY: tableHeight,
         scrollCollapse: true,
         paging: true,
-        scrollX: true, // Activer le défilement horizontal sur mobile
-        fixedHeader: true, // En-tête fixe
-        
-        // OPTIMISATIONS DE PERFORMANCE CRITIQUES
-        deferRender: true, // Rendu différé: ne rend que les lignes visibles
         scrollX: true,
         fixedHeader: true,
-        processing: true, // Affiche "Traitement en cours..."
+        deferRender: true,
+        processing: true,
         columnDefs: [
-          { responsivePriority: 1, targets: 0 }, // Nom complet prioritaire
-          { responsivePriority: 2, targets: 3 }, // Téléphone
-          { responsivePriority: 3, targets: 2 }, // Paroisse
-          { responsivePriority: 4, targets: 1 }, // Doyenné
+          { responsivePriority: 1, targets: 0 },
+          { responsivePriority: 2, targets: 3 },
+          { responsivePriority: 3, targets: 2 },
+          { responsivePriority: 4, targets: 1 },
           {
-            targets: [1], // Colonne doyenné
-            visible: !isMobile // Masquer sur mobile
-          }
-        ]
+            targets: [1],
+            visible: !isMobile,
+          },
+        ],
       })
     }
   })
@@ -168,76 +301,116 @@ function destroyDataTable() {
 }
 
 // ==========================
-// Charger l'utilisateur connecté
+// Charger l'utilisateur connecté - AVEC PAGINATION COMPLÈTE
 // ==========================
 async function fetchCurrentUser() {
   try {
-    const username = localStorage.getItem('userPhone')
-    if (!token || !username) return
+    // Essayer différentes clés possibles pour le numéro de téléphone
+    const username =
+      localStorage.getItem('userPhone') ||
+      localStorage.getItem('phoneNumber') ||
+      localStorage.getItem('username') ||
+      localStorage.getItem('user')
 
-    const res = await axios.get(`${API_URL}/users?username=${encodeURIComponent(username)}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-    currentUser.value = res.data.member?.find((u) => u.username === username)
+    if (!token || !username) {
+      console.error('Token ou username manquant')
+      return
+    }
+
+    // Rechercher l'utilisateur avec pagination complète
+    currentUser.value = await searchUserByMultipleCriteria(username)
 
     if (currentUser.value) {
       // Récupérer toutes les personnes pour trouver celle correspondante
-      const people = await fetchAllPagesAxios(`${API_URL}/people`)
-      currentPerson.value = people.find((p) => p.phoneNumber === username)
+      const people = await fetchAllPages(`${API_URL}/people`)
+
+      // Chercher la personne par plusieurs critères
+      currentPerson.value = people.find(
+        (p) =>
+          p.phoneNumber === username ||
+          p.phoneNumber === currentUser.value?.phoneNumber ||
+          p.phoneNumber === currentUser.value?.username ||
+          (currentUser.value.person &&
+            extractIdFromUrl(currentUser.value.person) === extractIdFromUrl(p['@id'] || p.id)),
+      )
+
+      if (!currentPerson.value) {
+        // Essayer de trouver par nom
+        const nameParts = currentUser.value.username?.split(' ') || []
+        if (nameParts.length >= 2) {
+          currentPerson.value = people.find(
+            (p) => p.fullName?.includes(nameParts[0]) && p.fullName?.includes(nameParts[1]),
+          )
+        }
+      }
     }
   } catch (err) {
-    console.error('❌ Erreur récupération user', err)
+    console.error('Erreur récupération user', err.message || err)
   }
 }
 
 // ==========================
-// Récupérer toutes les paroisses et doyennes
+// Récupérer toutes les paroisses et doyennes avec pagination
 // ==========================
 async function fetchAllParoisses() {
   try {
-    allParoisses.value = await fetchAllPagesAxios(`${API_URL}/paroisses`)
+    allParoisses.value = await fetchAllPages(`${API_URL}/paroisses`)
   } catch (err) {
-    console.error('❌ Erreur récupération toutes paroisses', err)
+    console.error('Erreur récupération toutes paroisses', err)
   }
 }
 
 async function fetchAllDoyennes() {
   try {
-    allDoyennes.value = await fetchAllPagesAxios(`${API_URL}/doyennes`)
+    allDoyennes.value = await fetchAllPages(`${API_URL}/doyennes`)
   } catch (err) {
-    console.error('❌ Erreur récupération toutes doyennes', err)
+    console.error('Erreur récupération toutes doyennes', err)
   }
 }
 
 // ==========================
-// Fetch doyennes, paroisses, diocèses - OPTIMISÉ
+// Fetch doyennes, paroisses, diocèses
 // ==========================
 async function fetchSectorId() {
   try {
     isLoading.value = true
 
-    // D'abord récupérer le secteur
-    const res = await axios.get(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
-      headers: { Authorization: `Bearer ${token}` },
+    // Récupérer le secteur
+    const res = await fetch(`${API_URL}/sectors?name=${encodeURIComponent(sectorName.value)}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
     })
-    const sec = res.data.member?.find((s) => s.name === sectorName.value)
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`)
+    }
+
+    const data = await res.json()
+    const sec = data.member?.find((s) => s.name === sectorName.value)
 
     if (sec) {
       sectorId.value = sec.id
-      // Charger les données en parallèle pour optimiser le temps
-      await Promise.all([
-        fetchAllParoisses(),
-        fetchAllDoyennes(),
-        fetchPeople(), // Cette fonction va filtrer selon le service
-      ])
 
-      // Après chargement des données, initialiser DataTables
+      // Charger les données en parallèle
+      await Promise.all([fetchAllParoisses(), fetchAllDoyennes()])
+
+      // Attendre que fetchCurrentUser ait fini
+      await fetchCurrentUser()
+
+      // Maintenant charger les personnes avec les informations utilisateur
+      await fetchPeople()
+
+      // Initialiser DataTables
       setTimeout(() => {
         initDataTable()
       }, 100)
+    } else {
+      console.error('Secteur non trouvé:', sectorName.value)
     }
   } catch (err) {
-    console.error('❌ Erreur récupération secteur', err)
+    console.error('Erreur récupération secteur', err)
   } finally {
     isLoading.value = false
   }
@@ -248,84 +421,107 @@ async function fetchSectorId() {
 // ==========================
 async function fetchPeople() {
   try {
-    console.time('fetchPeople') // Mesure du temps d'exécution
-    const people = await fetchAllPagesAxios(`${API_URL}/people`)
-
-    console.log('📊 Toutes les personnes chargées:', people.length)
-    console.log('📍 Service actuel:', LocalisationService.value)
-    console.log('👤 Personne connectée:', currentPerson.value)
+    const people = await fetchAllPages(`${API_URL}/people`)
 
     // Réinitialiser la liste
     allPeople.value = []
 
-    // Filtrage selon le service
+    // Vérifier si currentPerson existe
+    if (!currentPerson.value) {
+      // Pour le débogage, afficher toutes les personnes
+      if (LocalisationService.value === 'diocesain') {
+        allPeople.value = people.filter((p) => p.isDicoces === true)
+      } else {
+        allPeople.value = []
+      }
+      return
+    }
+
+    // Filtrage selon le service avec comparaison des IDs extraits
     switch (LocalisationService.value) {
       case 'jeune':
         // Tous les jeunes de la même paroisse
         if (currentPerson.value?.paroisse) {
-          allPeople.value = people.filter((p) => p.paroisse === currentPerson.value.paroisse)
-          console.log('🎯 Jeunes filtrés par paroisse:', allPeople.value.length)
+          const currentParoisseId = extractIdFromUrl(currentPerson.value.paroisse)
+
+          allPeople.value = people.filter((p) => {
+            const pParoisseId = extractIdFromUrl(p.paroisse)
+            return pParoisseId === currentParoisseId
+          })
         }
         break
 
       case 'paroissial':
         // Noyau paroissial avec même paroisse
         if (currentPerson.value?.paroisse) {
-          allPeople.value = people.filter(
-            (p) => p.paroisse === currentPerson.value.paroisse && p.isNoyau
-          )
-          console.log('🎯 Noyau paroissial filtré:', allPeople.value.length)
+          const currentParoisseId = extractIdFromUrl(currentPerson.value.paroisse)
+
+          allPeople.value = people.filter((p) => {
+            const pParoisseId = extractIdFromUrl(p.paroisse)
+            return pParoisseId === currentParoisseId && p.isNoyau === true
+          })
         }
         break
 
       case 'decanal':
         // Noyau décanal avec même doyenné
         if (currentPerson.value?.doyenne) {
-          allPeople.value = people.filter(
-            (p) => p.doyenne === currentPerson.value.doyenne && p.isDecanal
-          )
-          console.log('🎯 Noyau décanal filtré:', allPeople.value.length)
+          const currentDoyenneId = extractIdFromUrl(currentPerson.value.doyenne)
+
+          allPeople.value = people.filter((p) => {
+            const pDoyenneId = extractIdFromUrl(p.doyenne)
+            return pDoyenneId === currentDoyenneId && p.isDecanal === true
+          })
         }
         break
 
       case 'diocesain':
         // Tous les diocésains
-        allPeople.value = people.filter((p) => p.isDicoces)
-        console.log('🎯 Diocésains filtrés:', allPeople.value.length)
+        allPeople.value = people.filter((p) => p.isDicoces === true)
         break
-
-      default:
-        allPeople.value = []
     }
-    console.timeEnd('fetchPeople') // Fin de la mesure
   } catch (err) {
-    console.error('❌ Erreur récupération personnes', err)
+    console.error('Erreur récupération personnes', err)
   }
 }
 
 // ==========================
-// Computed pour l'affichage
+// Computed pour l'affichage avec mapping des IDs
 // ==========================
 const jeunes = computed(() => {
-  return (allPeople.value || []).map((p) => ({
-    ...p,
-    doyenne: allDoyennes.value.find((d) => d['@id'] === p.doyenne)?.name || p.doyenne || '',
-    paroisse: allParoisses.value.find((pa) => pa['@id'] === p.paroisse)?.name || p.paroisse || '',
-    nom: p.fullName,
-    tel: p.phoneNumber,
-  }))
+  return (allPeople.value || []).map((p) => {
+    // Extraire les IDs pour la comparaison
+    const doyenneId = extractIdFromUrl(p.doyenne)
+    const paroisseId = extractIdFromUrl(p.paroisse)
+
+    // Trouver les noms correspondants
+    const doyenneObj = allDoyennes.value.find((d) => extractIdFromUrl(d['@id']) === doyenneId)
+    const paroisseObj = allParoisses.value.find((pa) => extractIdFromUrl(pa['@id']) === paroisseId)
+
+    return {
+      ...p,
+      doyenne: doyenneObj?.name || p.doyenne || 'Non défini',
+      paroisse: paroisseObj?.name || p.paroisse || 'Non défini',
+      nom: p.fullName,
+      tel: p.phoneNumber,
+    }
+  })
 })
 
 // ==========================
 // Watcher pour recréer DataTables quand les données changent
 // ==========================
-watch(jeunes, () => {
-  if (!isLoading.value) {
-    setTimeout(() => {
-      initDataTable()
-    }, 100)
-  }
-}, { deep: true })
+watch(
+  jeunes,
+  () => {
+    if (!isLoading.value) {
+      setTimeout(() => {
+        initDataTable()
+      }, 100)
+    }
+  },
+  { deep: true },
+)
 
 // ==========================
 // Actualisation manuelle
@@ -334,6 +530,7 @@ async function handleRefresh() {
   destroyDataTable()
   isLoading.value = true
   try {
+    await fetchCurrentUser()
     await fetchPeople()
   } finally {
     isLoading.value = false
@@ -344,20 +541,18 @@ async function handleRefresh() {
 }
 
 // ==========================
-// Montage - SANS SSE
+// Montage
 // ==========================
 onMounted(async () => {
   await fetchCurrentUser()
   await fetchSectorId()
-  
-  // Écouter le redimensionnement de la fenêtre
+
   window.addEventListener('resize', handleResize)
 })
 
 onUnmounted(() => {
   destroyDataTable()
   window.removeEventListener('resize', handleResize)
-  // Pas de SSE à fermer
 })
 </script>
 
@@ -369,17 +564,9 @@ onUnmounted(() => {
           <div class="card card-table">
             <div class="card-header d-flex justify-content-between align-items-center">
               <span>Statistique - {{ nameService }}</span>
-              <!-- <div class="d-flex align-items-center gap-2">
-                <small class="text-muted me-2">{{ jeunes.length }} personnes listées</small>
-                <button
-                  @click="handleRefresh"
-                  class="btn btn-outline-primary btn-sm"
-                  :disabled="isLoading"
-                  title="Actualiser les données"
-                >
-                  <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
-                </button>
-              </div> -->
+              <div class="d-flex align-items-center gap-2">
+                <small class="text-muted me-2">{{ jeunes.length }} personne(s) listée(s)</small>
+              </div>
             </div>
             <div class="card-body p-2">
               <div class="table-responsive-wrapper">
@@ -389,43 +576,63 @@ onUnmounted(() => {
                   </div>
                   <p>Chargement des données...</p>
                 </div>
-                <div v-else class="table-responsive">
-                  <table class="table table-striped table-hover" id="table1">
-                    <thead>
-                      <tr>
-                        <th>Nom complet</th>
-                        <th class="doyenne-column">Doyenné</th>
-                        <th>Paroisse</th>
-                        <th>Téléphone</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr
-                        v-for="j in jeunes"
-                        :key="j.id || j.phoneNumber"
-                        :class="{
-                          'bg-noyau text-dark': j.isNoyau,
-                        }"
-                      >
-                        <td>{{ j.gender }} {{ j.fullName }}</td>
-                        <td class="doyenne-column">{{ j.doyenne }}</td>
-                        <td>{{ j.paroisse }}</td>
-                        <td>
-                          <a :href="`tel:${j.phoneNumber}`" class="text-decoration-none">
-                            {{ j.phoneNumber }}
-                          </a>
-                        </td>
-                      </tr>
-                      <tr v-if="jeunes.length === 0 && !isLoading">
-                        <td colspan="4" class="text-center text-muted py-4">
-                          <i class="fas fa-inbox fa-2x mb-2"></i><br>
-                          Aucune donnée disponible
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                <div v-else>
+                  <div v-if="jeunes.length === 0" class="alert alert-info m-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <span v-if="LocalisationService === 'jeune'">
+                      Aucune personne trouvée dans votre paroisse.
+                    </span>
+                    <span v-else-if="LocalisationService === 'paroissial'">
+                      Aucun membre du noyau paroissial trouvé dans votre paroisse.
+                    </span>
+                    <span v-else-if="LocalisationService === 'decanal'">
+                      Aucun membre du noyau décanal trouvé dans votre doyenné.
+                    </span>
+                    <span v-else-if="LocalisationService === 'diocesain'">
+                      Aucun membre diocésain trouvé.
+                    </span>
+                    <span v-else> Aucune donnée disponible pour ce service. </span>
+                  </div>
+
+                  <div v-else class="table-responsive">
+                    <table class="table table-striped table-hover" id="table1">
+                      <thead>
+                        <tr>
+                          <th>Nom complet</th>
+                          <th class="doyenne-column">Doyenné</th>
+                          <th>Paroisse</th>
+                          <th>Téléphone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr
+                          v-for="j in jeunes"
+                          :key="j.id || j.phoneNumber"
+                          :class="{
+                            'bg-noyau text-dark': j.isNoyau,
+                          }"
+                        >
+                          <td>{{ j.gender }} {{ j.fullName }}</td>
+                          <td class="doyenne-column">{{ j.doyenne }}</td>
+                          <td>{{ j.paroisse }}</td>
+                          <td>
+                            <a :href="`tel:${j.phoneNumber}`" class="text-decoration-none">
+                              {{ j.phoneNumber }}
+                            </a>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
+            </div>
+            <div class="card-footer text-muted">
+              <small>
+                <i class="fas fa-info-circle me-1"></i>
+                Membre : {{ jeunes.length }} | Dernière actualisation :
+                {{ new Date().toLocaleTimeString() }}
+              </small>
             </div>
           </div>
         </div>
@@ -435,14 +642,12 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Conteneur principal de la carte */
 .card {
   display: flex;
   flex-direction: column;
-  min-height: 400px; /* Hauteur minimale */
+  min-height: 400px;
 }
 
-/* Corps de la carte avec hauteur flexible */
 .card-body {
   flex: 1;
   overflow: hidden;
@@ -451,7 +656,6 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-/* Conteneur pour le tableau responsive */
 .table-responsive-wrapper {
   flex: 1;
   display: flex;
@@ -459,7 +663,6 @@ onUnmounted(() => {
   min-height: 300px;
 }
 
-/* Tableau responsive */
 .table-responsive {
   flex: 1;
   overflow: auto;
@@ -467,7 +670,6 @@ onUnmounted(() => {
   min-height: 200px;
 }
 
-/* En-tête fixe du tableau */
 .table-responsive table thead th {
   position: sticky;
   top: 0;
@@ -479,28 +681,24 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
-/* Style pour les noyaux */
 .bg-noyau {
   background-color: #e8f5e9 !important;
 }
 
-/* Style pour les liens téléphone */
-a[href^="tel:"] {
+a[href^='tel:'] {
   color: #0d6efd;
   transition: color 0.2s;
 }
 
-a[href^="tel:"]:hover {
+a[href^='tel:']:hover {
   color: #0a58ca;
   text-decoration: underline !important;
 }
 
-/* Style pour les colonnes */
 .doyenne-column {
   min-width: 150px;
 }
 
-/* Styles pour DataTables */
 .dataTables_wrapper {
   width: 100%;
   height: 100%;
@@ -513,43 +711,41 @@ a[href^="tel:"]:hover {
   min-height: 0;
 }
 
-/* Ajustements pour mobile */
 @media (max-width: 768px) {
   .card-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.75rem;
   }
-  
+
   .table-responsive {
     max-height: 70vh;
   }
-  
+
   .card-header .btn {
     align-self: flex-end;
     margin-top: -2.5rem;
   }
-  
+
   .doyenne-column {
     display: none;
   }
-  
-  /* Ajuster la taille de police sur mobile */
-  .table td, .table th {
+
+  .table td,
+  .table th {
     font-size: 0.875rem;
     padding: 0.5rem;
   }
-  
-  /* Réduire l'espacement sur très petits écrans */
+
   @media (max-width: 360px) {
-    .table td, .table th {
+    .table td,
+    .table th {
       font-size: 0.8125rem;
       padding: 0.375rem;
     }
   }
 }
 
-/* Animation de l'icône d'actualisation */
 .fa-spin {
   animation: fa-spin 1s infinite linear;
 }
@@ -563,28 +759,31 @@ a[href^="tel:"]:hover {
   }
 }
 
-/* Style pour le message vide */
-.text-center.text-muted {
-  font-size: 1.1rem;
-  color: #6c757d;
-}
-
-/* Améliorer la visibilité des lignes au survol */
 .table-hover tbody tr:hover {
   background-color: rgba(0, 0, 0, 0.03);
 }
 
-/* Ajustements pour les écrans très hauts */
 @media (min-height: 900px) {
   .table-responsive {
     max-height: 70vh;
   }
 }
 
-/* Ajustements pour les écrans larges */
 @media (min-width: 1200px) {
   .table-responsive {
     max-height: 80vh;
   }
+}
+
+.card-footer {
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 0.5rem 1rem;
+}
+
+.alert-info {
+  background-color: #e7f3ff;
+  border-color: #b3d7ff;
+  color: #004085;
 }
 </style>

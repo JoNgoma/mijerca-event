@@ -184,8 +184,8 @@ watch([participators, people], ([newParts, newPeople]) => {
 
   // 🏠 Dortoirs
   const log = logistics.value[0]
-  const nbDortoirs = isFrere ? log?.dortoirFrere || 0 : log?.dortoirSoeur || 0
-  const dortoirList = Array.from({ length: nbDortoirs }, (_, i) => `${i + 1}`)
+  const nbDortoirs = isFrere ? log?.dortoirFrere+1 || 0 : log?.dortoirSoeur+1 || 0
+  const dortoirList = Array.from({ length: nbDortoirs }, (_, i) => `${i}`)
 
   // console.log(`🏠 ${dortoirList.length} dortoirs disponibles`)
 
@@ -270,7 +270,8 @@ function closeModal() {
               @click="openModal(dortoir)"
               class="selectable-row"
             >
-              <td class="fw-semibold">Dortoir {{ dortoir }}</td>
+              <td v-if="(dortoir<1)" class="fw-semibold">Visiteur</td>
+              <td v-else class="fw-semibold">Dortoir {{ dortoir }}</td>
               <td
                 v-for="day in days"
                 :key="day.date.toISOString()"

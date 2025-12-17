@@ -52,6 +52,12 @@ const personData = ref({
 const userActivities = ref([])
 const API_URL = import.meta.env.VITE_API_BASE_URL
 
+// Computed property pour déterminer l'avatar
+const userAvatar = computed(() => {
+  const gender = personData.value?.gender?.toLowerCase() || ''
+  return gender.includes('soeur') ? '/assets/img/avatar2-150.png' : '/assets/img/avatar-150.png'
+})
+
 // ==========================
 // PAGINATION CORRIGÉE
 // ==========================
@@ -78,10 +84,8 @@ async function fetchAllPages(baseUrl) {
         hasMore = false
       }
     }
-    // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`)
     return allItems
   } catch (error) {
-    console.error(`Erreur récupération ${baseUrl}:`, error)
     throw error
   }
 }
@@ -175,17 +179,14 @@ async function fetchUserActivities(userId) {
                 recordId: record.id
               })
             } catch (campError) {
-              console.error(`Erreur camp ${service.name}:`, campError)
             }
           }
         }
       } catch (serviceError) {
-        console.error(`Erreur service ${service.name}:`, serviceError)
       }
     }
     userActivities.value = allActivities.sort((a, b) => new Date(b.startDate) - new Date(a.startDate))
   } catch (err) {
-    console.error('Erreur chargement activités:', err)
   }
 }
 
@@ -202,15 +203,7 @@ async function fetchLocationData() {
     doys.value = doyRes
     paros.value = parRes
     users.value = usersRes
-    
-    // console.log('📍 Données localisation chargées:', {
-    //   sectors: secRes.length,
-    //   doyennes: doyRes.length,
-    //   paroisses: parRes.length,
-    //   users: usersRes.length
-    // })
   } catch (error) {
-    console.error('Erreur chargement localisation:', error)
     toast.error('Erreur chargement localisations')
   }
 }
@@ -222,14 +215,12 @@ async function fetchPersonLocationDetails(person) {
     const doyenneId = extractIdFromUrl(person.doyenne)
     const paroisseId = extractIdFromUrl(person.paroisse)
 
-    // Récupérer les détails depuis les listes déjà chargées
     const sectorDetail = secs.value.find(s => s.id == sectorId) || { name: "Non défini" }
     const doyenneDetail = doys.value.find(d => d.id == doyenneId) || { name: "Non défini" }
     const paroisseDetail = paros.value.find(p => p.id == paroisseId) || { name: "Non défini" }
 
     return { sector: sectorDetail, doyenne: doyenneDetail, paroisse: paroisseDetail }
   } catch (error) {
-    console.error('Erreur récupération détails localisation:', error)
     return {
       sector: { name: "Erreur" },
       doyenne: { name: "Erreur" },
@@ -250,20 +241,18 @@ async function findPersonByPhone(phoneNumber) {
     }
     return null
   } catch (error) {
-    console.error('Erreur recherche personne:', error)
     toast.error('Erreur recherche profil')
     return null
   }
 }
 
-// 🔹 Filtrage doyennés et paroisses (comme dans votre exemple)
+// 🔹 Filtrage doyennés et paroisses
 function filterDoyennes() {
   const selectedSector = secs.value.find(s => s.id == modalData.value.sector)
   filteredDoys.value = selectedSector
     ? doys.value.filter(d => d.sector === selectedSector["@id"])
     : []
   
-  // Réinitialiser les sélections si nécessaire
   if (!filteredDoys.value.some(d => d.id == modalData.value.doyenne)) {
     modalData.value.doyenne = ""
     modalData.value.paroisse = ""
@@ -299,7 +288,6 @@ async function fetchUserData() {
       return
     }
 
-    // Récupérer TOUS les utilisateurs avec pagination
     const allUsers = await fetchAllPages(`${API_URL}/users`)
     const user = allUsers.find(u => u.username === username)
     
@@ -312,7 +300,6 @@ async function fetchUserData() {
     await fetchUserActivities(user.id)
     await fetchLocationData()
 
-    // Charger données personne avec localisation complète
     const person = await findPersonByPhone(username)
     if (person) {
       personData.value = person
@@ -321,7 +308,6 @@ async function fetchUserData() {
       personData.value = { ...personData.value, phoneNumber: username, fullName: "Non trouvé" }
     }
   } catch (err) {
-    console.error("Erreur chargement:", err)
     toast.error('Erreur chargement profil')
   } finally {
     isLoading.value = false
@@ -349,15 +335,11 @@ async function loadModalData() {
         paroisse: extractIdFromUrl(person.paroisse) || "",
       }
       
-      // console.log('📝 Données modal chargées:', modalData.value)
-      
-      // Appliquer les filtres basés sur les données actuelles
       filterDoyennes()
     } else {
       toast.error('Profil non trouvé')
     }
   } catch (error) {
-    console.error('Erreur chargement modal:', error)
     toast.error('Erreur chargement données')
   }
 }
@@ -381,10 +363,7 @@ async function handleSubmit() {
       updatedAt: new Date().toISOString()
     }
 
-    // console.log('📤 Payload de mise à jour:', payload)
-
     if (modalData.value.id) {
-      // Mettre à jour la personne
       await axios.patch(`${API_URL}/people/${modalData.value.id}`, payload, {
         headers: { 
           "Content-Type": "application/merge-patch+json",
@@ -393,29 +372,23 @@ async function handleSubmit() {
         }
       })
 
-      // 🔹 Mise à jour des rôles en fonction du secteur (comme dans votre exemple)
       if (sectorObj) {
         let roleToAdd = ""
         
-        // Déterminer le rôle en fonction du secteur
         if (sectorObj["@id"] === '/api/sectors/1') roleToAdd = 'ROLE_EST' 
         else if (sectorObj["@id"] === '/api/sectors/2') roleToAdd = 'ROLE_CENTRE'
         else if (sectorObj["@id"] === '/api/sectors/3') roleToAdd = 'ROLE_OUEST'
         
-        // Trouver l'utilisateur correspondant
         const phoneNumber = localStorage.getItem("userPhone")
         const roleUsers = users.value.find((u) => u.username === phoneNumber)
 
         if (roleUsers && roleToAdd) {
-          // Filtrer les rôles existants pour enlever les rôles de secteur
           let rolesInit = (roleUsers.roles || []).filter(r => 
             r !== 'ROLE_EST' && r !== 'ROLE_CENTRE' && r !== 'ROLE_OUEST'
           )
           
-          // Ajouter le nouveau rôle de secteur
           rolesInit.push(roleToAdd)
           
-          // Mettre à jour les rôles de l'utilisateur
           await axios.patch(`${API_URL}/users/${roleUsers.id}`, 
             { roles: rolesInit }, 
             {
@@ -426,23 +399,15 @@ async function handleSubmit() {
               }
             }
           )
-          
-          // console.log('🔐 Rôles utilisateur mis à jour:', rolesInit)
         }
       }
 
       toast.success("Mise à jour réussie !")
       showModal.value = false
       
-      // 🔹 ACTUALISATION AUTOMATIQUE DE LA PAGE
-      await fetchUserData() // Recharge les données
-      
-      // Optionnel : Forcer un re-rendu complet si nécessaire
-      // window.location.reload()
-      
+      await fetchUserData()
     }
   } catch (err) {
-    console.error("Erreur mise à jour:", err)
     error.value = err.response?.data?.violations?.map(v => `${v.propertyPath}: ${v.message}`).join(", ") || "Erreur mise à jour"
     toast.error("Erreur lors de la mise à jour")
   } finally {
@@ -457,7 +422,6 @@ async function refreshData() {
     await fetchUserData()
     toast.success("Données actualisées avec succès !")
   } catch (error) {
-    console.error("Erreur lors de l'actualisation:", error)
     toast.error("Erreur lors de l'actualisation des données")
   } finally {
     isLoading.value = false
@@ -507,7 +471,7 @@ onMounted(fetchUserData)
               </div>
               <div class="user-display-bottom">
                 <div class="user-display-avatar">
-                  <img src="/assets/img/avatar-150.png" alt="Avatar" />
+                  <img :src="userAvatar" alt="Avatar" />
                 </div>
                 <div class="user-display-info">
                   <div class="name">{{ personData.gender }} {{ personData.fullName }}</div>
@@ -713,7 +677,6 @@ onMounted(fetchUserData)
   border: 1px solid #dee2e6;
 }
 
-/* Animation de l'icône d'actualisation */
 .fa-spin {
   animation: fa-spin 1s infinite linear;
 }
