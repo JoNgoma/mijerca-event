@@ -181,42 +181,63 @@ router.beforeEach((to, from, next) => {
 
   // Vérif rôle pour /admin/*
   if (to.path.startsWith('/admin')) {
-
     if (roles.includes('ROLE_ADMIN')) {
       // Accès total
       return next()
     }
 
-    if (roles.includes('ROLE_NOYAU') || roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')) {
-      // Routes autorisées pour ROLE_NOYAU
-      if (roles.includes('ROLE_DECANAL') || roles.includes('ROLE_DIOCESE')){
-        const allowedRoutes = [
-          'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
-          'services', 'manager', 'media',
-          'rap-day', 'dep-new', 'dep-suivis', 'paie',
-          'log-dortoir', 'log-carrefour', 'log-affect',
-          'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
-        ]
-      if (allowedRoutes.includes(to.name)) {
-        return next()
-      } else {
-        return 
-      }
-      }
+    // Vérifier d'abord le rôle diocèse
+    if (roles.includes('ROLE_DIOCESE')) {
       const allowedRoutes = [
-        'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
+        'manager-camp', 'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
         'services', 'manager', 'media',
         'rap-day', 'dep-new', 'dep-suivis', 'paie',
         'log-dortoir', 'log-carrefour', 'log-affect',
         'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
-        ]
+      ]
+      if (allowedRoutes.includes(to.name)) {
+        return next()
+      } else {
+        // Rediriger vers le tableau de bord si non autorisé
+        return 
+      }
+    }
+
+    // Ensuite le rôle décanal
+    if (roles.includes('ROLE_DECANAL')) {
+      const allowedRoutes = [
+        'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse', 'sec-new', 
+        'services', 'manager', 
+        'rap-day', 'dep-new', 'dep-suivis', 'paie',
+        'log-dortoir', 'log-carrefour', 'log-affect',
+        'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
+        // Note: 'manager-camp' n'est pas inclus
+      ]
       if (allowedRoutes.includes(to.name)) {
         return next()
       } else {
         return 
       }
     }
-    // Aucun rôle valide → rediriger
+
+    // Ensuite le rôle noyau
+    if (roles.includes('ROLE_NOYAU')) {
+      const allowedRoutes = [
+        'admin', 'dashboard', 'profil', 'setting', 'new-unit', 'analytic', 'sec-kin', 'sec-paroisse',
+        'services', 'manager', 
+        'rap-day', 'dep-new', 'dep-suivis', 'paie',
+        'log-dortoir', 'log-carrefour', 'log-affect',
+        'info-badge-editor', 'info-badge-preview', 'info-person-selector', 'info-a4-generator'
+        // Note: 'manager-camp' n'est pas inclus
+      ]
+      if (allowedRoutes.includes(to.name)) {
+        return next()
+      } else {
+        return 
+      }
+    }
+
+    // Si aucun rôle valide, rediriger vers le tableau de bord (ou une page d'erreur)
     return 
   }
 

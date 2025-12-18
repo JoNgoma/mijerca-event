@@ -255,12 +255,12 @@ watch(idCamp, async (newVal, oldVal) => {
               <!-- Activité -->
               <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE') || hasRole('ROLE_DECANAL') || hasRole('ROLE_NOYAU')" class="divider">Activités</li>
               <li v-if="hasRole('ROLE_ADMIN') || hasRole('ROLE_DIOCESE')">
-                <router-link :to="{ name: 'new-camp', params: { serviceType: 'new-camp' } }" 
+                <router-link :to="{ name: 'manager-camp', params: { serviceType: 'manager-camp' } }" 
                 :class="{
                           'text-primary': [
                             'new-camp', 'manager-camp'
                           ].includes(route.name)}">
-                  <i class="icon mdi mdi-border-color"></i><span>Créer une activité</span>
+                  <i class="icon mdi mdi-border-color"></i><span>Manager activité</span>
                 </router-link>
               </li>
 

@@ -21,21 +21,20 @@ const isActive = (routeName, params = {}) => {
   <ul class="navbar-nav">
     <li class="nav-item">
       <router-link 
-        :to="{ name: 'new-camp', params: { serviceType: 'new-camp' } }" 
-        class="nav-link"
-        :class="{ 'text-primary': ['new-camp'].includes(route.name)}"
-      >
-        Nouvelle activité
-      </router-link>
-    </li>
-
-    <li class="nav-item">
-      <router-link 
         :to="{ name: 'manager-camp', params: { serviceType: 'manager-camp' } }" 
         class="nav-link"
         :class="{ 'text-primary': ['manager-camp'].includes(route.name)}"
       >
         Manager
+      </router-link>
+    </li>
+    <li class="nav-item">
+      <router-link 
+        :to="{ name: 'new-camp', params: { serviceType: 'new-camp' } }" 
+        class="nav-link"
+        :class="{ 'text-primary': ['new-camp'].includes(route.name)}"
+      >
+        Nouvelle activité
       </router-link>
     </li>
   </ul>

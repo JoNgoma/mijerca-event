@@ -365,9 +365,9 @@ onMounted(() => {
                         <button @click.stop="openEditModal(camp)" class="btn btn-sm btn-outline-primary mr-2" title="Modifier">
                           <i class="mdi mdi-edit"></i>
                         </button>
-                        <button @click.stop="deleteCamp(camp)" class="btn btn-sm btn-outline-danger" title="Supprimer">
+                        <!-- <button @click.stop="deleteCamp(camp)" class="btn btn-sm btn-outline-danger" title="Supprimer">
                           <i class="mdi mdi-delete"></i>
-                        </button>
+                        </button> -->
                       </td>
                     </tr>
                   </tbody>
