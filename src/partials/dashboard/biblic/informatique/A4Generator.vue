@@ -7,6 +7,7 @@ import jsPDF from 'jspdf'
 import axios from 'axios'
 import badgeJeunesImage from '/assets/img/badge-jeunes.jpg'
 import badgeRespImage from '/assets/img/badge-resp.png'
+import badgeVisitImage from '/assets/img/badge-visit.jpeg'
 
 const router = useRouter()
 const toast = useToast()
@@ -14,6 +15,7 @@ const toast = useToast()
 const selectedPersons = ref([])
 const layoutJeunes = ref([])
 const layoutResponsable = ref([])
+const layoutVisiteur = ref([])
 const currentPage = ref(1)
 const isGeneratingPDF = ref(false)
 let paroisse = ''
@@ -21,15 +23,15 @@ let paroisse = ''
 const API = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000/api'
 
 // Dimensions de référence pour les calculs de positionnement
-const EDITOR_WIDTH = 400 // Largeur du badge dans l'éditeur (px)
-const EDITOR_HEIGHT = 600 // Hauteur du badge dans l'éditeur (px)
+const EDITOR_WIDTH = 400
+const EDITOR_HEIGHT = 600
 
 // Cache pour les services
 const servicesCache = ref({
   informatiques: [],
   administrations: [],
   finances: [],
-  hebergement: []
+  hebergement: [],
 })
 
 // Charger les services depuis les APIs
@@ -39,34 +41,31 @@ const loadServices = async () => {
     { key: 'informatiques', url: `${API}/informatiques` },
     { key: 'administrations', url: `${API}/administrations` },
     { key: 'finances', url: `${API}/finances` },
-    { key: 'hebergement', url: `${API}/hebergements` }
+    { key: 'hebergement', url: `${API}/hebergements` },
   ]
 
   try {
     const promises = endpoints.map(async ({ key, url }) => {
       try {
         const response = await axios.get(url, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         })
         servicesCache.value[key] = response.data['hydra:member'] || []
       } catch (error) {
-        console.error(`Erreur lors du chargement des ${key}:`, error)
         servicesCache.value[key] = []
       }
     })
 
     await Promise.all(promises)
-  } catch (error) {
-    console.error('Erreur lors du chargement des services:', error)
-  }
+  } catch (error) {}
 }
 
 // Vérifier si une personne est dans un service spécifique
 const isPersonInService = (personId, serviceType) => {
   const serviceList = servicesCache.value[serviceType] || []
-  return serviceList.some(item => {
+  return serviceList.some((item) => {
     if (item.user && Array.isArray(item.user)) {
-      return item.user.some(user => {
+      return item.user.some((user) => {
         const userId = typeof user === 'string' ? user.split('/').pop() : user?.id || user
         return userId == personId
       })
@@ -79,20 +78,18 @@ const isPersonInService = (personId, serviceType) => {
 const updateParticipatorBadge = async (id) => {
   const token = localStorage.getItem('token')
   try {
-    // Utiliser application/merge-patch+json comme spécifié
     await axios.patch(
       `${API}/participators/${id}`,
       { badge: true },
       {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/merge-patch+json'
-        }
-      }
+          'Content-Type': 'application/merge-patch+json',
+        },
+      },
     )
     return true
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour du participator ${id}:`, error)
     throw error
   }
 }
@@ -103,18 +100,15 @@ const getServiceLabel = (person) => {
     return person.service || 'Service'
   }
 
-  // Si la personne est diocésaine (isDicoces)
   if (person.isDicoces || person.isDecoces) {
     return 'Service Diocésain'
   }
 
-  // Vérifier dans quel(s) service(s) la personne se trouve
   const isInInformatiques = isPersonInService(person.id, 'informatiques')
   const isInAdministrations = isPersonInService(person.id, 'administrations')
   const isInFinances = isPersonInService(person.id, 'finances')
   const isInHebergement = isPersonInService(person.id, 'hebergement')
 
-  // Déterminer le libellé en fonction des services
   if (isInAdministrations) {
     return 'Commission Administration'
   } else if (isInFinances) {
@@ -125,74 +119,73 @@ const getServiceLabel = (person) => {
     return 'Commission Hébergement'
   }
 
-  // Si aucun service spécifique n'est trouvé
   return person.service
 }
 
-// Dimensions réelles du badge dans l'aperçu A4 (calculées en fonction de l'espace disponible)
+// Dimensions réelles du badge dans l'aperçu A4
 const getPreviewBadgeDimensions = () => {
-  // Dimensions d'une page A4 en mm
   const pageWidthMM = 210
   const pageHeightMM = 297
   const paddingMM = 10
   const gapMM = 5
 
-  // Espace disponible pour les badges
   const availableWidthMM = pageWidthMM - 2 * paddingMM - gapMM
   const availableHeightMM = pageHeightMM - 2 * paddingMM - gapMM
 
-  // Dimensions d'un badge (2x2 sur la page)
   const badgeWidthMM = availableWidthMM / 2
   const badgeHeightMM = availableHeightMM / 2
 
   return { badgeWidthMM, badgeHeightMM }
 }
 
-// Fonction pour convertir mm en pixels (pour html2canvas)
-const mmToPx = (mm) => mm * 3.78 // 1mm = 3.78px à 96 DPI
+// Fonction pour convertir mm en pixels
+const mmToPx = (mm) => mm * 3.78
 
 // Fonction pour ajuster les positions selon le ratio de redimensionnement
 const getAdjustedField = (field) => {
+  if (!field) {
+    return { x: 0, y: 0, fontSize: 12, width: 100, height: 40, color: '#000000' }
+  }
+
   const { badgeWidthMM, badgeHeightMM } = getPreviewBadgeDimensions()
   const badgeWidthPx = mmToPx(badgeWidthMM)
   const badgeHeightPx = mmToPx(badgeHeightMM)
 
-  // Calculer les ratios de redimensionnement
   const scaleX = badgeWidthPx / EDITOR_WIDTH
   const scaleY = badgeHeightPx / EDITOR_HEIGHT
-
-  // Pour conserver les proportions, utiliser le même ratio
   const scale = Math.min(scaleX, scaleY)
 
   return {
-    x: field.x * scale,
-    y: field.y * scale,
-    fontSize: field.fontSize * scale,
-    width: field.width * scale,
-    height: field.height * scale,
-    color: field.color,
+    x: (field.x || 0) * scale,
+    y: (field.y || 0) * scale,
+    fontSize: (field.fontSize || 14) * scale,
+    width: (field.width || 100) * scale,
+    height: (field.height || 40) * scale,
+    color: field.color || '#000000',
   }
 }
 
 // Charger les données
 const loadData = async () => {
-  // Charger les services d'abord
   await loadServices()
-  
-  // Charger les personnes sélectionnées depuis la page précédente
+
   const savedPersons = sessionStorage.getItem('selectedPersonsForBadges')
   if (savedPersons) {
-    selectedPersons.value = JSON.parse(savedPersons)
-    
-    // Ajouter le libellé de service correct pour chaque personne
-    selectedPersons.value.forEach(person => {
-      if (person.isResponsable) {
-        person.serviceLabel = getServiceLabel(person)
-      }
-    })
+    try {
+      selectedPersons.value = JSON.parse(savedPersons)
+
+      selectedPersons.value.forEach((person) => {
+        if (person.isResponsable) {
+          person.serviceLabel = getServiceLabel(person)
+        }
+      })
+    } catch (error) {
+      selectedPersons.value = []
+    }
+  } else {
+    selectedPersons.value = []
   }
 
-  // Charger la configuration du badge jeunes
   const savedLayoutJeunes = localStorage.getItem('badgeLayout_jeunes')
   if (savedLayoutJeunes) {
     try {
@@ -201,13 +194,12 @@ const loadData = async () => {
         layoutJeunes.value = layoutData.fields
       }
     } catch (e) {
-      console.error('Erreur lors du chargement de la configuration jeunes:', e)
+      layoutJeunes.value = []
     }
   } else {
-    console.warn('Aucune configuration trouvée pour les badges jeunes')
+    layoutJeunes.value = []
   }
 
-  // Charger la configuration du badge responsable
   const savedLayoutResp = localStorage.getItem('badgeLayout_responsable')
   if (savedLayoutResp) {
     try {
@@ -216,16 +208,38 @@ const loadData = async () => {
         layoutResponsable.value = layoutData.fields
       }
     } catch (e) {
-      console.error('Erreur lors du chargement de la configuration responsable:', e)
+      layoutResponsable.value = []
     }
   } else {
-    console.warn('Aucune configuration trouvée pour les badges responsables')
+    layoutResponsable.value = []
+  }
+
+  const savedLayoutVisit = localStorage.getItem('badgeLayout_visiteur')
+  if (savedLayoutVisit) {
+    try {
+      const layoutData = JSON.parse(savedLayoutVisit)
+      if (layoutData.fields) {
+        layoutVisiteur.value = layoutData.fields
+      }
+    } catch (e) {
+      layoutVisiteur.value = []
+    }
+  } else {
+    layoutVisiteur.value = []
   }
 }
 
 // Obtenir le layout approprié selon le type de personne
 const getLayoutForPerson = (person) => {
-  return person.isResponsable ? layoutResponsable.value : layoutJeunes.value
+  if (!person) return []
+
+  if (person.isResponsable) {
+    return layoutResponsable.value.length > 0 ? layoutResponsable.value : []
+  } else if (person.dortoir === 0 || person.dortoir === '0') {
+    return layoutVisiteur.value.length > 0 ? layoutVisiteur.value : layoutJeunes.value
+  } else {
+    return layoutJeunes.value.length > 0 ? layoutJeunes.value : []
+  }
 }
 
 // Diviser les personnes en pages (4 badges par page)
@@ -254,22 +268,210 @@ const goToPage = (page) => {
 
 // Obtenir la valeur d'un champ pour une personne
 const getPersonValue = (person, key) => {
+  if (!person) return ''
+
+  const siteValue =
+    person.carrefour === 0 || person.carrefour === '0'
+      ? 'Rafiki'
+      : person.carrefour
+        ? `Carrefour ${person.carrefour}`
+        : 'Carrefour'
+
+  const sleepValue =
+    person.dortoir === 0 || person.dortoir === '0'
+      ? 'Visiteur'
+      : person.dortoir
+        ? `Dortoir ${person.dortoir}`
+        : 'Dortoir'
+
   const mapping = {
     name: person.nom || person.prenom || '',
     church: person.paroisse || 'Paroisse',
-    site: person.carrefour ? `Carrefour ${person.carrefour}` : 'Carrefour',
-    sleep: person.dortoir ? `Dortoir ${person.dortoir}` : 'Dortoir',
+    site: siteValue,
+    sleep: sleepValue,
     service: person.serviceLabel || person.service || 'Service',
   }
+
   paroisse = person.paroisse || ''
   return mapping[key] || person[key] || ''
+}
+
+// Mise à jour par lot des badges
+const updateBadgesBatch = async (personIds) => {
+  const token = localStorage.getItem('token')
+  const results = []
+
+  for (const id of personIds) {
+    try {
+      await axios.patch(
+        `${API}/participators/${id}`,
+        { badge: true },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/merge-patch+json',
+          },
+        },
+      )
+      results.push({ id, success: true })
+    } catch (error) {
+      results.push({ id, success: false, error })
+    }
+  }
+
+  return results
+}
+
+// Imprimer toutes les pages
+const printAllPages = async () => {
+  if (selectedPersons.value.length === 0) {
+    toast.warning('Aucun badge à imprimer')
+    return
+  }
+
+  isGeneratingPDF.value = true
+  toast.info('Téléchargement du PDF en cours...')
+
+  try {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    })
+
+    for (let i = 0; i < pages.value.length; i++) {
+      const pagePersons = pages.value[i]
+      const pageData = await generateA4Page(pagePersons, i + 1)
+
+      if (i > 0) {
+        pdf.addPage()
+      }
+
+      const pageWidth = 210
+      const pageHeight = 297
+      const margin = 5
+
+      const imgWidth = pageWidth - 2 * margin
+      const imgHeight = pageHeight - 2 * margin
+
+      pdf.addImage(pageData.imgData, 'JPEG', margin, margin, imgWidth, imgHeight)
+
+      pdf.setFontSize(10)
+      pdf.setTextColor(128, 128, 128)
+      pdf.text(`Page ${i + 1} / ${pages.value.length}`, pageWidth / 2, pageHeight - 5, {
+        align: 'center',
+      })
+    }
+
+    const fileName = `badges_${paroisse} ${new Date().toISOString().split('T')[0]}.pdf`
+    pdf.save(fileName)
+
+    toast.info('Mise à jour des badges en cours...')
+
+    const personIds = selectedPersons.value.map((person) => person.id)
+    const updateResults = await updateBadgesBatch(personIds)
+
+    const successfulUpdates = updateResults.filter((r) => r.success).length
+    const failedUpdates = updateResults.filter((r) => !r.success).length
+
+    if (failedUpdates === 0) {
+      toast.success(`${successfulUpdates} badges mis à jour avec succès!`)
+    } else {
+      toast.warning(`${successfulUpdates} badges mis à jour, ${failedUpdates} échecs`)
+    }
+
+    sessionStorage.removeItem('selectedPersonsForBadges')
+
+    setTimeout(() => {
+      router.push({
+        name: 'info-person-selector',
+        params: {
+          serviceType: 'person-selector',
+          id: 'badge',
+        },
+      })
+    }, 2000)
+  } catch (error) {
+    toast.error('Erreur lors de la génération du PDF')
+  } finally {
+    isGeneratingPDF.value = false
+  }
+}
+
+// Imprimer la page actuelle
+const printCurrentPage = async () => {
+  if (currentPagePersons.value.length === 0) {
+    toast.warning('Aucun badge sur cette page')
+    return
+  }
+
+  isGeneratingPDF.value = true
+  toast.info('Génération du PDF en cours...')
+
+  try {
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    })
+
+    const pageData = await generateA4Page(currentPagePersons.value, currentPage.value)
+
+    const pageWidth = 210
+    const pageHeight = 297
+    const margin = 5
+
+    const imgWidth = pageWidth - 2 * margin
+    const imgHeight = pageHeight - 2 * margin
+
+    pdf.addImage(pageData.imgData, 'JPEG', margin, margin, imgWidth, imgHeight)
+
+    pdf.setFontSize(10)
+    pdf.setTextColor(128, 128, 128)
+    pdf.text(`Page ${currentPage.value} / ${totalPages.value}`, pageWidth / 2, pageHeight - 5, {
+      align: 'center',
+    })
+
+    const fileName = `badges_page_${currentPage.value}.pdf`
+    pdf.save(fileName)
+
+    toast.info('Mise à jour des badges en cours...')
+
+    const personIds = currentPagePersons.value.map((person) => person.id)
+    const updateResults = await updateBadgesBatch(personIds)
+
+    const successfulUpdates = updateResults.filter((r) => r.success).length
+    const failedUpdates = updateResults.filter((r) => !r.success).length
+
+    if (failedUpdates === 0) {
+      toast.success(`Page ${currentPage.value} imprimée et ${successfulUpdates} badges mis à jour!`)
+    } else {
+      toast.warning(
+        `Page ${currentPage.value} imprimée, ${successfulUpdates} mis à jour, ${failedUpdates} échecs`,
+      )
+    }
+  } catch (error) {
+    toast.error('Erreur lors de la génération du PDF')
+  } finally {
+    isGeneratingPDF.value = false
+  }
+}
+
+// Retourner à la sélection
+const goBackToSelection = () => {
+  router.push({
+    name: 'info-person-selector',
+    params: {
+      serviceType: 'person-selector',
+      id: 'badge',
+    },
+  })
 }
 
 // Générer une page A4 avec 4 badges
 const generateA4Page = (personsOnPage, pageNumber) => {
   return new Promise((resolve, reject) => {
     try {
-      // Créer un élément temporaire pour la page A4
       const pageElement = document.createElement('div')
       pageElement.style.cssText = `
         width: 210mm;
@@ -277,8 +479,8 @@ const generateA4Page = (personsOnPage, pageNumber) => {
         display: grid;
         grid-template-columns: 1fr 1fr;
         grid-template-rows: 1fr 1fr;
-        gap: 5mm;
-        padding: 10mm;
+        gap: 10mm;
+        padding: 5mm;
         box-sizing: border-box;
         background: white;
         position: absolute;
@@ -286,12 +488,10 @@ const generateA4Page = (personsOnPage, pageNumber) => {
         top: -10000px;
       `
 
-      // Calculer les dimensions d'un badge dans la page A4
       const { badgeWidthMM, badgeHeightMM } = getPreviewBadgeDimensions()
       const badgeWidthPx = mmToPx(badgeWidthMM)
       const badgeHeightPx = mmToPx(badgeHeightMM)
 
-      // Ajouter les badges à la page
       personsOnPage.forEach((person, index) => {
         const badgeElement = document.createElement('div')
         badgeElement.style.cssText = `
@@ -304,9 +504,17 @@ const generateA4Page = (personsOnPage, pageNumber) => {
           box-sizing: border-box;
         `
 
-        // Créer l'image de fond
+        let badgeImage
+        if (person.isResponsable) {
+          badgeImage = badgeRespImage
+        } else if (person.dortoir === 0 || person.dortoir === '0') {
+          badgeImage = badgeVisitImage
+        } else {
+          badgeImage = badgeJeunesImage
+        }
+
         const img = document.createElement('img')
-        img.src = person.isResponsable ? badgeRespImage : badgeJeunesImage
+        img.src = badgeImage
         img.style.cssText = `
           width: 100%;
           height: 100%;
@@ -317,13 +525,12 @@ const generateA4Page = (personsOnPage, pageNumber) => {
         `
         badgeElement.appendChild(img)
 
-        // Ajouter les champs de texte avec les positions ajustées
         const layout = getLayoutForPerson(person)
         layout.forEach((field) => {
+          if (!field) return
+
           const textElement = document.createElement('div')
           const textValue = getPersonValue(person, field.key)
-
-          // Ajuster les positions selon le ratio
           const adjusted = getAdjustedField(field)
 
           textElement.style.cssText = `
@@ -334,18 +541,19 @@ const generateA4Page = (personsOnPage, pageNumber) => {
             font-size: ${adjusted.fontSize}pt;
             font-family: 'Arial, sans-serif';
             font-weight: bold;
-            width: ${adjusted.width}px;
             height: ${adjusted.height}px;
             display: flex;
             align-items: center;
             justify-content: center;
             text-align: center;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            white-space: normal;
+            overflow: visible;
+            text-overflow: clip;
             z-index: 10;
             pointer-events: none;
             line-height: 1.2;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
           `
 
           textElement.textContent = textValue
@@ -355,7 +563,6 @@ const generateA4Page = (personsOnPage, pageNumber) => {
         pageElement.appendChild(badgeElement)
       })
 
-      // Ajouter des badges vides si nécessaire
       for (let i = personsOnPage.length; i < 4; i++) {
         const emptyBadge = document.createElement('div')
         emptyBadge.style.cssText = `
@@ -375,7 +582,6 @@ const generateA4Page = (personsOnPage, pageNumber) => {
 
       document.body.appendChild(pageElement)
 
-      // Convertir l'élément en canvas
       html2canvas(pageElement, {
         scale: 2,
         useCORS: true,
@@ -383,10 +589,7 @@ const generateA4Page = (personsOnPage, pageNumber) => {
         backgroundColor: '#ffffff',
       })
         .then((canvas) => {
-          // Nettoyer
           document.body.removeChild(pageElement)
-
-          // Convertir le canvas en image data URL
           const imgData = canvas.toDataURL('image/jpeg', 0.95)
           resolve({
             imgData,
@@ -401,194 +604,6 @@ const generateA4Page = (personsOnPage, pageNumber) => {
     } catch (error) {
       reject(error)
     }
-  })
-}
-
-// Mise à jour par lot des badges
-const updateBadgesBatch = async (personIds) => {
-  const token = localStorage.getItem('token')
-  const results = []
-  
-  for (const id of personIds) {
-    try {
-      await axios.patch(
-        `${API}/participators/${id}`,
-        { badge: true },
-        {
-          headers: { 
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/merge-patch+json'
-          }
-        }
-      )
-      results.push({ id, success: true })
-    } catch (error) {
-      console.error(`Erreur lors de la mise à jour du participator ${id}:`, error)
-      results.push({ id, success: false, error })
-    }
-  }
-  
-  return results
-}
-
-// Imprimer toutes les pages
-const printAllPages = async () => {
-  if (selectedPersons.value.length === 0) {
-    toast.warning('Aucun badge à imprimer')
-    return
-  }
-
-  isGeneratingPDF.value = true
-  toast.info('Téléchargement du PDF en cours...')
-
-  try {
-    // Créer un nouveau PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    })
-
-    // Générer chaque page
-    for (let i = 0; i < pages.value.length; i++) {
-      const pagePersons = pages.value[i]
-
-      const pageData = await generateA4Page(pagePersons, i + 1)
-
-      // Ajouter la page au PDF
-      if (i > 0) {
-        pdf.addPage()
-      }
-
-      // Calculer les dimensions pour s'adapter à la page A4
-      const pageWidth = 210 // mm
-      const pageHeight = 297 // mm
-      const margin = 5 // mm
-
-      const imgWidth = pageWidth - 2 * margin
-      const imgHeight = pageHeight - 2 * margin
-
-      pdf.addImage(pageData.imgData, 'JPEG', margin, margin, imgWidth, imgHeight)
-
-      // Ajouter un pied de page avec le numéro de page
-      pdf.setFontSize(10)
-      pdf.setTextColor(128, 128, 128)
-      pdf.text(`Page ${i + 1} / ${pages.value.length}`, pageWidth / 2, pageHeight - 5, {
-        align: 'center',
-      })
-    }
-
-    // Sauvegarder le PDF
-    const fileName = `badges_${paroisse} ${new Date().toISOString().split('T')[0]}.pdf`
-    pdf.save(fileName)
-
-    // Mettre à jour les badges dans l'API
-    toast.info('Mise à jour des badges en cours...')
-    
-    const personIds = selectedPersons.value.map(person => person.id)
-    const updateResults = await updateBadgesBatch(personIds)
-    
-    const successfulUpdates = updateResults.filter(r => r.success).length
-    const failedUpdates = updateResults.filter(r => !r.success).length
-    
-    if (failedUpdates === 0) {
-      toast.success(`${successfulUpdates} badges mis à jour avec succès!`)
-    } else {
-      toast.warning(`${successfulUpdates} badges mis à jour, ${failedUpdates} échecs`)
-    }
-
-    // Nettoyer et retourner
-    sessionStorage.removeItem('selectedPersonsForBadges')
-
-    // Retourner à la page ListPeople après 2 secondes
-    setTimeout(() => {
-      router.push({
-        name: 'info-person-selector',
-        params: {
-          serviceType: 'person-selector',
-          id: 'badge',
-        },
-      })
-    }, 2000)
-  } catch (error) {
-    console.error('Erreur lors de la génération du PDF:', error)
-    toast.error('Erreur lors de la génération du PDF')
-  } finally {
-    isGeneratingPDF.value = false
-  }
-}
-
-// Imprimer la page actuelle
-const printCurrentPage = async () => {
-  if (currentPagePersons.value.length === 0) {
-    toast.warning('Aucun badge sur cette page')
-    return
-  }
-
-  isGeneratingPDF.value = true
-  toast.info('Génération du PDF en cours...')
-
-  try {
-    // Créer un nouveau PDF
-    const pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: 'a4',
-    })
-
-    const pageData = await generateA4Page(currentPagePersons.value, currentPage.value)
-
-    // Calculer les dimensions pour s'adapter à la page A4
-    const pageWidth = 210 // mm
-    const pageHeight = 297 // mm
-    const margin = 5 // mm
-
-    const imgWidth = pageWidth - 2 * margin
-    const imgHeight = pageHeight - 2 * margin
-
-    pdf.addImage(pageData.imgData, 'JPEG', margin, margin, imgWidth, imgHeight)
-
-    // Ajouter un pied de page
-    pdf.setFontSize(10)
-    pdf.setTextColor(128, 128, 128)
-    pdf.text(`Page ${currentPage.value} / ${totalPages.value}`, pageWidth / 2, pageHeight - 5, {
-      align: 'center',
-    })
-
-    // Sauvegarder le PDF
-    const fileName = `badges_page_${currentPage.value}.pdf`
-    pdf.save(fileName)
-
-    // Mettre à jour les badges des personnes de cette page
-    toast.info('Mise à jour des badges en cours...')
-
-    const personIds = currentPagePersons.value.map(person => person.id)
-    const updateResults = await updateBadgesBatch(personIds)
-    
-    const successfulUpdates = updateResults.filter(r => r.success).length
-    const failedUpdates = updateResults.filter(r => !r.success).length
-    
-    if (failedUpdates === 0) {
-      toast.success(`Page ${currentPage.value} imprimée et ${successfulUpdates} badges mis à jour!`)
-    } else {
-      toast.warning(`Page ${currentPage.value} imprimée, ${successfulUpdates} mis à jour, ${failedUpdates} échecs`)
-    }
-  } catch (error) {
-    console.error('Erreur lors de la génération du PDF:', error)
-    toast.error('Erreur lors de la génération du PDF: ' + error.message)
-  } finally {
-    isGeneratingPDF.value = false
-  }
-}
-
-// Retourner à la sélection
-const goBackToSelection = () => {
-  router.push({
-    name: 'info-person-selector',
-    params: {
-      serviceType: 'person-selector',
-      id: 'badge',
-    },
   })
 }
 
@@ -661,7 +676,13 @@ onMounted(() => {
                   >
                     <div class="badge">
                       <img
-                        :src="person.isResponsable ? badgeRespImage : badgeJeunesImage"
+                        :src="
+                          person.isResponsable
+                            ? badgeRespImage
+                            : person.dortoir === 0 || person.dortoir === '0'
+                              ? badgeVisitImage
+                              : badgeJeunesImage
+                        "
                         alt="badge"
                         class="badge-bg"
                       />
@@ -672,24 +693,25 @@ onMounted(() => {
                         class="text"
                         :style="{
                           position: 'absolute',
-                          top: getAdjustedField(field).y + 'px',
-                          left: getAdjustedField(field).x + 'px',
+                          top: field.y + 'px',
+                          left: field.x + 'px',
                           color: field.color || '#000000',
-                          fontSize: getAdjustedField(field).fontSize + 'pt',
+                          fontSize: field.fontSize + 'pt',
                           fontFamily: 'Arial, sans-serif',
                           fontWeight: 'bold',
-                          width: getAdjustedField(field).width + 'px',
-                          height: getAdjustedField(field).height + 'px',
+                          height: field.height + 'px',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           textAlign: 'center',
-                          whiteSpace: 'nowrap',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
+                          whiteSpace: 'normal',
+                          overflow: 'visible',
+                          textOverflow: 'clip',
                           pointerEvents: 'none',
                           zIndex: 10,
                           lineHeight: '1.2',
+                          wordWrap: 'break-word',
+                          overflowWrap: 'break-word',
                         }"
                       >
                         {{ getPersonValue(person, field.key) }}
@@ -715,68 +737,8 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- Navigation entre les pages -->
-      <div class="row mt-3" v-if="totalPages > 1">
-        <div class="col-12">
-          <div class="card card-border-color card-border-color-secondary">
-            <div class="card-body">
-              <div class="d-flex justify-content-center">
-                <nav>
-                  <ul class="pagination">
-                    <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                      <button class="page-link" @click="goToPage(1)" :disabled="currentPage === 1">
-                        <i class="mdi mdi-chevron-double-left"></i>
-                      </button>
-                    </li>
-                    <li class="page-item" :class="{ disabled: currentPage === 1 }">
-                      <button
-                        class="page-link"
-                        @click="goToPage(currentPage - 1)"
-                        :disabled="currentPage === 1"
-                      >
-                        <i class="mdi mdi-chevron-left"></i>
-                      </button>
-                    </li>
-
-                    <li
-                      v-for="page in totalPages"
-                      :key="page"
-                      class="page-item"
-                      :class="{ active: currentPage === page }"
-                    >
-                      <button class="page-link" @click="goToPage(page)">
-                        {{ page }}
-                      </button>
-                    </li>
-
-                    <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                      <button
-                        class="page-link"
-                        @click="goToPage(currentPage + 1)"
-                        :disabled="currentPage === totalPages"
-                      >
-                        <i class="mdi mdi-chevron-right"></i>
-                      </button>
-                    </li>
-                    <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-                      <button
-                        class="page-link"
-                        @click="goToPage(totalPages)"
-                        :disabled="currentPage === totalPages"
-                      >
-                        <i class="mdi mdi-chevron-double-right"></i>
-                      </button>
-                    </li>
-                  </ul>
-                </nav>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- Boutons d'action -->
-      <div class="row">
+      <div class="row mt-4">
         <div class="col-12 d-flex justify-content-center gap-3">
           <button
             @click="goBackToSelection"
@@ -810,8 +772,8 @@ onMounted(() => {
 }
 
 .a4-page {
-  width: 210mm;
-  height: 297mm;
+  width: 240mm;
+  height: 347mm;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: 1fr 1fr;
@@ -833,8 +795,8 @@ onMounted(() => {
 
 .badge {
   position: relative;
-  width: 100%;
-  height: 100%;
+  width: 400px;
+  height: 600px;
   border-radius: 4px;
   overflow: hidden;
   background: white;
@@ -855,6 +817,11 @@ onMounted(() => {
   position: absolute;
   pointer-events: none;
   line-height: 1.2;
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .empty-badge {

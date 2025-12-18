@@ -28,6 +28,7 @@ import NewInfo from '@/partials/dashboard/persons/info/NewInfo.vue'
 
 // Biblic
 import NewBiblic from '@/partials/dashboard/biblic/NewBiblic.vue'
+import ManagerBiblic from '@/partials/dashboard/biblic/ManagerBiblic.vue'
 import TabListService from '@/partials/dashboard/biblic/admin/TabListService.vue'
 import TabNewService from '@/partials/dashboard/biblic/admin/TabNewService.vue'
 import BadgeUploader from '@/partials/dashboard/biblic/admin/BadgeUploader.vue'
@@ -118,6 +119,7 @@ const router = createRouter({
 
         // ---- Biblic ----
         { path: 'biblic/new', name: 'new-camp', component: NewBiblic },
+        { path: 'biblic/manager', name: 'manager-camp', component: ManagerBiblic },
         { path: ':id_campBiblique/:serviceType', name: 'services', component: TabListService },
         { path: ':id_campBiblique/services/:serviceType', name: 'manager', component: TabNewService },
         { path: ':id_campBiblique/services/:serviceType', name: 'media', component: BadgeUploader },

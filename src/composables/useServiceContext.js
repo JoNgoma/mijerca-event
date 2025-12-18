@@ -170,6 +170,16 @@ const serviceTypes = {
     icon: 'mdi mdi-currency-usd',
     description: 'Info KIN OUEST'
   },
+  'new-camp': {
+    name: 'Créer activité',
+    icon: 'mdi mdi-balance',
+    description: 'Création d\'une nouvelle activité'
+  },
+  'manager-camp': {
+    name: 'Manager les activités',
+    icon: 'mdi mdi-balance',
+    description: 'Gestion des activités'
+  },
 
 }
 

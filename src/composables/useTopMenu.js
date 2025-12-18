@@ -28,6 +28,8 @@ export function useTopMenu() {
     { name: 'kin-est', route: 'sec-kin', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'new-noy&par', route: 'sec-new', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
     { name: 'kin-paroisse', route: 'sec-paroisse', roles: ['ROLE_ADMIN', 'ROLE_NOYAU'] },
+    { name: 'new-camp', route: 'new-camp', roles: ['ROLE_ADMIN', 'ROLE_DIOCESE'] },
+    { name: 'manager-camp', route: 'manager-camp', roles: ['ROLE_ADMIN', 'ROLE_DIOCESE'] },
   ]
 
   // 🔹 Menu courant filtré par route

@@ -503,7 +503,7 @@ onMounted(fetchData)
 </script>
 
 <template>
-  <div class="tab-pane" :id="id" role="tabpanel">
+  <div class="tab-pane" :id="`sec${id}`" role="tabpanel">
     <div v-if="loading" class="text-center my-5">
       <span class="spinner-border"></span> 
       <p class="mt-2">Chargement des données...</p>

@@ -3,6 +3,7 @@ import { ref, onMounted, computed, nextTick, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import badgeJeunesImage from "/assets/img/badge-jeunes.jpg";
 import badgeRespImage from "/assets/img/badge-resp.png";
+import badgeVisitImage from "/assets/img/badge-visit.jpeg";
 
 const router = useRouter();
 const route = useRoute();
@@ -10,7 +11,8 @@ const route = useRoute();
 // Types de badges
 const badgeTypes = {
   JEUNES: 'jeunes',
-  RESPONSABLE: 'responsable'
+  RESPONSABLE: 'responsable',
+  VISITEUR: 'visiteur' // Nouveau type pour les visiteurs
 };
 
 // Récupérer le type de badge depuis les paramètres
@@ -39,6 +41,13 @@ const personnes = {
     service: "Service Administration",
     site: "",
     sleep: ""
+  },
+  [badgeTypes.VISITEUR]: {
+    name: "Visiteur",
+    church: "Paroisse Saint Noé Mawaggali", 
+    site: "Rafiki",
+    sleep: "visiteur",
+    service: ""
   }
 };
 
@@ -52,7 +61,16 @@ const layout = ref([]);
 
 // Image de fond selon le type de badge
 const currentBadgeImage = computed(() => {
-  return currentBadgeType.value === badgeTypes.JEUNES ? badgeJeunesImage : badgeRespImage;
+  switch(currentBadgeType.value) {
+    case badgeTypes.JEUNES:
+      return badgeJeunesImage;
+    case badgeTypes.RESPONSABLE:
+      return badgeRespImage;
+    case badgeTypes.VISITEUR:
+      return badgeVisitImage;
+    default:
+      return badgeJeunesImage;
+  }
 });
 
 // Fonction pour calculer la largeur du texte
@@ -111,82 +129,128 @@ const loadLayout = () => {
 
 // Configuration par défaut
 const getDefaultLayout = () => {
-  if (currentBadgeType.value === badgeTypes.JEUNES) {
-    return [
-      { 
-        label: "Frère Josue Ngoma", 
-        key: "name", 
-        x: 50, 
-        y: 450, 
-        color: "#3B5998", 
-        fontSize: 18,
-        width: 150,
-        height: 40
-      },
-      { 
-        label: "Paroisse Saint Noé Mawaggali", 
-        key: "church", 
-        x: 50, 
-        y: 480, 
-        color: "#E74C3C", 
-        fontSize: 16,
-        width: 250,
-        height: 40
-      },
-      { 
-        label: "Carrefour 1", 
-        key: "site", 
-        x: 50, 
-        y: 510, 
-        color: "#000000", 
-        fontSize: 14,
-        width: 100,
-        height: 40
-      },
-      { 
-        label: "Dortoir 1", 
-        key: "sleep", 
-        x: 50, 
-        y: 540, 
-        color: "#000000", 
-        fontSize: 14,
-        width: 100,
-        height: 40
-      }
-    ];
-  } else {
-    return [
-      { 
-        label: "Paroisse Saint Noé Mawaggali", 
-        key: "church", 
-        x: 50, 
-        y: 450, 
-        color: "#000000", 
-        fontSize: 18,
-        width: 250,
-        height: 40
-      },
-      { 
-        label: "Frère Josue Ngoma", 
-        key: "name", 
-        x: 50, 
-        y: 480, 
-        color: "#3B5998", 
-        fontSize: 16,
-        width: 150,
-        height: 40
-      },
-      { 
-        label: "Service Administration", 
-        key: "service", 
-        x: 50, 
-        y: 510, 
-        color: "#E74C3C", 
-        fontSize: 14,
-        width: 130,
-        height: 40
-      }
-    ];
+  switch(currentBadgeType.value) {
+    case badgeTypes.JEUNES:
+      return [
+        { 
+          label: "Frère Josue Ngoma", 
+          key: "name", 
+          x: 50, 
+          y: 450, 
+          color: "#3B5998", 
+          fontSize: 18,
+          width: 150,
+          height: 40
+        },
+        { 
+          label: "Paroisse Saint Noé Mawaggali", 
+          key: "church", 
+          x: 50, 
+          y: 480, 
+          color: "#E74C3C", 
+          fontSize: 16,
+          width: 250,
+          height: 40
+        },
+        { 
+          label: "Carrefour 1", 
+          key: "site", 
+          x: 50, 
+          y: 510, 
+          color: "#000000", 
+          fontSize: 14,
+          width: 100,
+          height: 40
+        },
+        { 
+          label: "Dortoir 1", 
+          key: "sleep", 
+          x: 50, 
+          y: 540, 
+          color: "#000000", 
+          fontSize: 14,
+          width: 100,
+          height: 40
+        }
+      ];
+    case badgeTypes.RESPONSABLE:
+      return [
+        { 
+          label: "Paroisse Saint Noé Mawaggali", 
+          key: "church", 
+          x: 50, 
+          y: 450, 
+          color: "#000000", 
+          fontSize: 18,
+          width: 250,
+          height: 40
+        },
+        { 
+          label: "Frère Josue Ngoma", 
+          key: "name", 
+          x: 50, 
+          y: 480, 
+          color: "#3B5998", 
+          fontSize: 16,
+          width: 150,
+          height: 40
+        },
+        { 
+          label: "Service Administration", 
+          key: "service", 
+          x: 50, 
+          y: 510, 
+          color: "#E74C3C", 
+          fontSize: 14,
+          width: 130,
+          height: 40
+        }
+      ];
+    case badgeTypes.VISITEUR:
+      return [
+        { 
+          label: "Frère Josué Ngoma", 
+          key: "name", 
+          x: 50, 
+          y: 450, 
+          color: "#3B5998", 
+          fontSize: 18,
+          width: 150,
+          height: 40
+        },
+        { 
+          label: "Paroisse Saint Noé Mawaggali", 
+          key: "church", 
+          x: 50, 
+          y: 480, 
+          color: "#E74C3C", 
+          fontSize: 16,
+          width: 250,
+          height: 40
+        },
+        { 
+          label: "Carrefour 1", 
+          key: "site", 
+          x: 50, 
+          y: 510, 
+          color: "#000000", 
+          fontSize: 14,
+          width: 100,
+          height: 40
+        },
+        { 
+          label: "visiteur", 
+          key: "sleep", 
+          x: 50, 
+          y: 540, 
+          color: "#000000", 
+          fontSize: 14,
+          width: 100,
+          height: 40
+        }
+      ];
+    default:
+      return [];
   }
 };
 
@@ -275,6 +339,14 @@ onMounted(() => {
                   >
                     Badge Responsable
                   </button>
+                  <button 
+                    type="button" 
+                    class="btn btn-sm"
+                    :class="currentBadgeType === badgeTypes.VISITEUR ? 'btn-primary' : 'btn-outline-primary'"
+                    @click="switchBadgeType(badgeTypes.VISITEUR)"
+                  >
+                    Badge Visiteur
+                  </button>
                 </div>
               </div>
             </div>
@@ -287,11 +359,26 @@ onMounted(() => {
           <div class="card card-border-color card-border-color-primary">
             <div class="card-header text-center">
               <h5 class="card-title">
-                Aperçu du badge {{ currentBadgeType === badgeTypes.JEUNES ? 'Jeunes' : 'Responsable' }}
+                Aperçu du badge 
+                {{
+                  currentBadgeType === badgeTypes.JEUNES 
+                    ? 'Jeunes' 
+                    : currentBadgeType === badgeTypes.RESPONSABLE
+                    ? 'Responsable'
+                    : 'Visiteur'
+                }}
               </h5>
               <small class="text-muted">
                 Exemple avec : 
-                <strong>{{ currentBadgeType === badgeTypes.JEUNES ? person.name : person.name + ' - ' + person.service }}</strong>
+                <strong>
+                  {{ 
+                    currentBadgeType === badgeTypes.JEUNES 
+                      ? person.name 
+                      : currentBadgeType === badgeTypes.RESPONSABLE
+                      ? person.name + ' - ' + person.service
+                      : person.name
+                  }}
+                </strong>
               </small>
             </div>
             <div class="card-body d-flex justify-content-center">
@@ -325,8 +412,8 @@ onMounted(() => {
                       borderRadius: '4px',
                       textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
                       whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      overflow: 'visible', /* Changé pour ne pas couper le texte */
+                      textOverflow: 'clip', /* Pas de points de suspension */
                       padding: '0 5px',
                       boxSizing: 'border-box',
                       zIndex: 10
@@ -353,16 +440,6 @@ onMounted(() => {
                     </div>
                   </div>
                 </div>
-                
-                <!-- Informations sur le badge 
-                  <div class="mt-3 text-center">
-                  <div class="alert alert-info py-2 mb-0">
-                    <small>
-                      <i class="mdi mdi-information me-1"></i>
-                      Affichage de {{ layout.length }} champs configurés
-                    </small>
-                  </div>
-                </div> -->
               </div>
             </div>
           </div>
@@ -439,6 +516,12 @@ onMounted(() => {
   position: absolute;
   z-index: 2;
   pointer-events: none;
+  white-space: normal; /* Permet le retour à la ligne */
+  overflow: visible; /* Ne pas couper le texte */
+  text-overflow: clip; /* Pas de points de suspension */
+  word-wrap: break-word; /* Permet de couper les mots longs */
+  overflow-wrap: break-word; /* Alternative pour certains navigateurs */
+  line-height: 1.2; /* Meilleur espacement des lignes */
 }
 
 .btn:disabled {
@@ -448,12 +531,6 @@ onMounted(() => {
 
 .gap-3 {
   gap: 1rem;
-}
-
-.alert-info {
-  background-color: #e7f3ff;
-  border-color: #b3d7ff;
-  color: #0066cc;
 }
 
 .card-header .card-title {
@@ -601,6 +678,10 @@ onMounted(() => {
   .text-preview {
     transform-origin: 0 0;
     transform: scale(0.75);
+  }
+  
+  .btn-group {
+    flex-wrap: wrap;
   }
 }
 </style>

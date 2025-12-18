@@ -3,6 +3,7 @@ import { useRouter } from 'vue-router'
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import badgeJeunesImage from '/assets/img/badge-jeunes.jpg'
 import badgeRespImage from '/assets/img/badge-resp.png'
+import badgeVisitImage from '/assets/img/badge-visit.jpeg'
 import Vue3DraggableResizable from 'vue3-draggable-resizable'
 import 'vue3-draggable-resizable/dist/Vue3DraggableResizable.css'
 
@@ -12,6 +13,7 @@ const router = useRouter()
 const badgeTypes = {
   JEUNES: 'jeunes',
   RESPONSABLE: 'responsable',
+  VISIT: 'visiteur',
 }
 
 // Configuration par défaut pour chaque type de badge
@@ -96,12 +98,64 @@ const defaultConfigs = {
       },
     ],
   },
+  [badgeTypes.VISIT]: {
+    image: badgeVisitImage,
+    fields: [
+      {
+        label: 'Frère Josué Ngoma',
+        key: 'name',
+        x: 50,
+        y: 450,
+        color: '#3B5998',
+        fontSize: 18,
+        width: 150,
+        height: 40,
+      },
+      {
+        label: 'Paroisse Saint Noé Mawaggali',
+        key: 'church',
+        x: 50,
+        y: 480,
+        color: '#E74C3C',
+        fontSize: 16,
+        width: 250,
+        height: 40,
+      },
+      {
+        label: 'Carrefour 1',
+        key: 'site',
+        x: 50,
+        y: 510,
+        color: '#000000',
+        fontSize: 14,
+        width: 100,
+        height: 40,
+      },
+      {
+        label: 'Visiteur',
+        key: 'sleep',
+        x: 50,
+        y: 540,
+        color: '#000000',
+        fontSize: 14,
+        width: 100,
+        height: 40,
+      },
+    ],
+  },
 }
 
 // État actuel
 const currentBadgeType = ref(badgeTypes.JEUNES)
 const fields = ref([...defaultConfigs[badgeTypes.JEUNES].fields])
 const selectedFieldIndex = ref(0)
+
+// Stockage des configurations de tous les badges
+const allBadgeConfigs = ref({
+  [badgeTypes.JEUNES]: [...defaultConfigs[badgeTypes.JEUNES].fields],
+  [badgeTypes.RESPONSABLE]: [...defaultConfigs[badgeTypes.RESPONSABLE].fields],
+  [badgeTypes.VISIT]: [...defaultConfigs[badgeTypes.VISIT].fields],
+})
 
 // Computed pour l'image actuelle
 const currentBadgeImage = computed(() => {
@@ -156,13 +210,20 @@ const selectField = (index) => {
 
 // Changer de type de badge
 const changeBadgeType = (type) => {
+  // Sauvegarder les modifications actuelles dans allBadgeConfigs
+  allBadgeConfigs.value[currentBadgeType.value] = [...fields.value]
+  
+  // Changer le type de badge
   currentBadgeType.value = type
+  
+  // Charger la configuration sauvegardée
   const saved = localStorage.getItem(`badgeLayout_${type}`)
   if (saved) {
     try {
       const layoutData = JSON.parse(saved)
       if (layoutData.fields) {
         fields.value = layoutData.fields
+        allBadgeConfigs.value[type] = layoutData.fields
         nextTick(() => {
           updateAllFieldWidths()
         })
@@ -170,10 +231,11 @@ const changeBadgeType = (type) => {
     } catch (e) {
       console.error('Erreur lors du chargement:', e)
       fields.value = [...defaultConfigs[type].fields]
+      allBadgeConfigs.value[type] = [...defaultConfigs[type].fields]
       updateAllFieldWidths()
     }
   } else {
-    fields.value = [...defaultConfigs[type].fields]
+    fields.value = [...allBadgeConfigs.value[type]]
     updateAllFieldWidths()
   }
   selectedFieldIndex.value = 0
@@ -181,12 +243,19 @@ const changeBadgeType = (type) => {
 
 // Sauvegarder dans localStorage
 const saveLayout = () => {
-  const layoutData = {
-    badgeType: currentBadgeType.value,
-    fields: fields.value,
-    timestamp: new Date().toISOString(),
-  }
-  localStorage.setItem(`badgeLayout_${currentBadgeType.value}`, JSON.stringify(layoutData))
+  // Sauvegarder les modifications du badge actuel
+  allBadgeConfigs.value[currentBadgeType.value] = [...fields.value]
+  
+  // Sauvegarder toutes les configurations
+  Object.keys(allBadgeConfigs.value).forEach((badgeType) => {
+    const layoutData = {
+      badgeType: badgeType,
+      fields: allBadgeConfigs.value[badgeType],
+      timestamp: new Date().toISOString(),
+    }
+    localStorage.setItem(`badgeLayout_${badgeType}`, JSON.stringify(layoutData))
+  })
+  
   router.push({
     name: 'info-badge-preview',
     params: {
@@ -198,10 +267,26 @@ const saveLayout = () => {
 
 // Charger la configuration sauvegardée au démarrage
 const loadSavedLayout = () => {
-  const saved = localStorage.getItem(`badgeLayout_${badgeTypes.JEUNES}`)
-  if (saved) {
+  // Charger les configurations pour tous les types de badges
+  Object.keys(allBadgeConfigs.value).forEach((badgeType) => {
+    const saved = localStorage.getItem(`badgeLayout_${badgeType}`)
+    if (saved) {
+      try {
+        const layoutData = JSON.parse(saved)
+        if (layoutData.fields) {
+          allBadgeConfigs.value[badgeType] = layoutData.fields
+        }
+      } catch (e) {
+        console.error(`Erreur lors du chargement du badge ${badgeType}:`, e)
+      }
+    }
+  })
+  
+  // Charger le badge jeunes par défaut
+  const savedJeunes = localStorage.getItem(`badgeLayout_${badgeTypes.JEUNES}`)
+  if (savedJeunes) {
     try {
-      const layoutData = JSON.parse(saved)
+      const layoutData = JSON.parse(savedJeunes)
       if (layoutData.fields) {
         fields.value = layoutData.fields
         nextTick(() => {
@@ -209,7 +294,8 @@ const loadSavedLayout = () => {
         })
       }
     } catch (e) {
-      console.error('Erreur lors du chargement:', e)
+      console.error('Erreur lors du chargement de la configuration jeunes:', e)
+      updateAllFieldWidths()
     }
   } else {
     updateAllFieldWidths()
@@ -275,6 +361,16 @@ watch(
                 >
                   Badge Responsable
                 </button>
+                <button
+                  type="button"
+                  class="btn btn-sm"
+                  :class="
+                    currentBadgeType === badgeTypes.VISIT ? 'btn-primary' : 'btn-outline-primary'
+                  "
+                  @click="changeBadgeType(badgeTypes.VISIT)"
+                >
+                  Badge Visiteur
+                </button>
               </div>
             </div>
 
@@ -331,7 +427,13 @@ watch(
             <div class="card-header">
               <h5 class="card-title">
                 Configuration du badge
-                {{ currentBadgeType === badgeTypes.JEUNES ? 'Jeunes' : 'Responsable' }}
+                {{
+                  currentBadgeType === badgeTypes.JEUNES
+                    ? 'Jeunes'
+                    : currentBadgeType === badgeTypes.RESPONSABLE
+                    ? 'Responsable'
+                    : 'Visiteur'
+                }}
               </h5>
             </div>
             <div class="card-body">
@@ -447,7 +549,7 @@ watch(
                   <button class="btn btn-secondary mr-3" @click="router.go(-1)">Retour</button>
                   <button @click="saveLayout" class="btn btn-primary" type="button">
                     <i class="mdi mdi-content-save me-1"></i>
-                    Enregistrer la configuration
+                    Enregistrer toutes les configurations
                   </button>
                 </div>
               </div>

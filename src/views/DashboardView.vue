@@ -11,6 +11,7 @@ import ParoisseMenu from '@/components/menus/ParoisseMenu.vue';
 import { useTopMenu } from '@/composables/useTopMenu'
 import { useRoute } from 'vue-router';
 import SecMenu from '../components/menus/SecMenu.vue';
+import BiblicMenu from '../components/menus/BiblicMenu.vue';
 
 const route = useRoute()
 
@@ -46,6 +47,7 @@ $(document).ready(function(){
           <LogMenu v-else-if="currentMenu === 'dortoir' || currentMenu === 'carrefour' || currentMenu === 'affect'" />
           <ParoisseMenu v-else-if="currentMenu === 'kin-est' || currentMenu === 'kin-centre' || currentMenu === 'kin-oest' || currentMenu === 'new-noy&par' || currentMenu === 'kin-paroisse'" />
           <SecMenu v-else-if="currentMenu === 'person-selector' ||currentMenu === 'badge-editor' || currentMenu === 'a4-generator' || currentMenu==='badge-preview'" />
+          <BiblicMenu v-else-if="currentMenu === 'new-camp' ||currentMenu === 'manager-camp'" />
           <ul v-else class="navbar-nav">
             <li
             :class="{ 'text-primary': isActiveRoute('dashboard', { serviceType: 'dashboard' }) }"

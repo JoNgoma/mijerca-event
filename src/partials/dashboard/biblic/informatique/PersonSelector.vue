@@ -92,7 +92,7 @@ const pageTitle = computed(() => campName.value)
                 <a
                   class="nav-link"
                   :class="{ active: selectedSecteur === secteur.id }"
-                  href="#"
+                  :href="`#sec${secteur.id}`"
                   @click.prevent="selectSecteur(secteur.id)"
                 >
                   {{ secteur.name }}
