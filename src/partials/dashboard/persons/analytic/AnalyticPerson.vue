@@ -8,7 +8,9 @@ const LocalisationService = ref(currentService.value.position)
 // Config API
 const API_URL = import.meta.env.VITE_API_BASE_URL
 const token = localStorage.getItem('token')
-const isLoading = ref(false)
+
+// MODIFICATION : Initialiser isLoading à true pour montrer le loading immédiatement
+const isLoading = ref(true)
 
 // Données
 const currentUser = ref(null)
@@ -29,6 +31,35 @@ function extractIdFromUrl(url) {
   if (!url) return null
   const parts = String(url).split('/').filter(Boolean)
   return parts.pop()
+}
+
+// ==========================
+// Fonction pour formater les noms en format Kubuku Ngoma Josué
+// ==========================
+function formatName(name) {
+  if (!name) return ''
+  
+  // Convertir en minuscules d'abord, puis capitaliser chaque mot
+  return name
+    .toLowerCase()
+    .split(' ')
+    .map(word => {
+      // Gérer les noms avec apostrophe (ex: d')
+      if (word.includes("'")) {
+        return word.split("'")
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join("'")
+      }
+      // Gérer les noms avec tiret (ex: Jean-Pierre)
+      if (word.includes('-')) {
+        return word.split('-')
+          .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+          .join('-')
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1)
+    })
+    .join(' ')
+    .trim()
 }
 
 // ==========================
@@ -222,7 +253,7 @@ const handleResize = () => {
 }
 
 // ==========================
-// Initialiser/détruire DataTables OPTIMISÉ
+// Initialiser/détruire DataTables OPTIMISÉ - Version améliorée pour mobile
 // ==========================
 function initDataTable() {
   // Détruire l'instance existante
@@ -237,47 +268,64 @@ function initDataTable() {
     if (tableElement) {
       // Calculer la hauteur dynamique basée sur la taille de l'écran
       const screenHeight = window.innerHeight
-      const isMobile = screenHeight < 768
-      const isSmallScreen = screenHeight < 576
+      const screenWidth = window.innerWidth
+      const isMobile = screenWidth < 768
+      const isSmallScreen = screenWidth < 576
+      const isVerySmallScreen = screenWidth < 400
 
       let tableHeight
-      if (isSmallScreen) {
+      if (isVerySmallScreen) {
+        tableHeight = Math.max(250, screenHeight * 0.45) + 'px'
+      } else if (isSmallScreen) {
         tableHeight = Math.max(300, screenHeight * 0.5) + 'px'
       } else if (isMobile) {
-        tableHeight = Math.max(400, screenHeight * 0.65) + 'px'
+        tableHeight = Math.max(350, screenHeight * 0.6) + 'px'
       } else {
         tableHeight = '60vh'
       }
 
+      // Configuration pour les très petits écrans
+      let domConfig
+      if (isVerySmallScreen) {
+        domConfig = "<'row'<'col-12'l>><'row'<'col-12'f>><'row'<'col-12'tr>><'row'<'col-12'i>><'row'<'col-12'p>>"
+      } else if (isSmallScreen) {
+        domConfig = "<'row'<'col-12'l>><'row'<'col-12'f>><'row'<'col-12'tr>><'row'<'col-6'i><'col-6'p>>"
+      } else {
+        domConfig = "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+                   "<'row'<'col-sm-12'tr>>" +
+                   "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>"
+      }
+
       dataTable = $(tableElement).DataTable({
         responsive: true,
-        pageLength: 25,
+        pageLength: isSmallScreen ? 10 : 25,
         lengthMenu: [
           [10, 25, 50, 100, -1],
           [10, 25, 50, 100, 'Tous'],
         ],
         language: {
-          lengthMenu: 'Afficher _MENU_ éléments',
-          search: 'Rechercher:',
-          info: 'Affichage de _START_ à _END_ sur _TOTAL_ personnes',
+          lengthMenu: isSmallScreen ? '_MENU_' : 'Afficher _MENU_ éléments',
+          search: isSmallScreen ? '_INPUT_' : 'Rechercher:',
+          searchPlaceholder: isSmallScreen ? 'Recherche...' : '',
+          info: 'Affichage de _START_ à _END_ sur _TOTAL_',
           infoEmpty: 'Aucune donnée disponible',
           infoFiltered: '(filtré à partir de _MAX_ entrées)',
           zeroRecords: 'Aucun résultat trouvé',
           paginate: {
-            first: 'Premier',
-            last: 'Dernier',
-            next: 'Suivant',
-            previous: 'Précédent',
+            first: isSmallScreen ? '«' : 'Premier',
+            last: isSmallScreen ? '»' : 'Dernier',
+            next: isSmallScreen ? '›' : 'Suivant',
+            previous: isSmallScreen ? '‹' : 'Précédent',
           },
         },
         order: [[0, 'asc']],
         scrollY: tableHeight,
         scrollCollapse: true,
         paging: true,
-        scrollX: true,
-        fixedHeader: true,
+        scrollX: isMobile,
         deferRender: true,
         processing: true,
+        dom: domConfig,
         columnDefs: [
           { responsivePriority: 1, targets: 0 },
           { responsivePriority: 2, targets: 3 },
@@ -287,7 +335,26 @@ function initDataTable() {
             targets: [1],
             visible: !isMobile,
           },
+          {
+            // Pour les très petits écrans, réduire la largeur de certaines colonnes
+            targets: [0, 2, 3],
+            width: isVerySmallScreen ? '30%' : null,
+          },
         ],
+        // Amélioration pour mobile
+        responsive: {
+          details: {
+            display: $.fn.dataTable.Responsive.display.modal({
+              header: function (row) {
+                var data = row.data();
+                return 'Détails de ' + data[0];
+              }
+            }),
+            renderer: isSmallScreen ? 
+              $.fn.dataTable.Responsive.renderer.listHidden() :
+              $.fn.dataTable.Responsive.renderer.tableAll()
+          }
+        }
       })
     }
   })
@@ -486,10 +553,10 @@ async function fetchPeople() {
 }
 
 // ==========================
-// Computed pour l'affichage avec mapping des IDs
+// Computed pour l'affichage avec mapping des IDs et formatage des noms
 // ==========================
 const jeunes = computed(() => {
-  return (allPeople.value || []).map((p) => {
+  const formattedPeople = (allPeople.value || []).map((p) => {
     // Extraire les IDs pour la comparaison
     const doyenneId = extractIdFromUrl(p.doyenne)
     const paroisseId = extractIdFromUrl(p.paroisse)
@@ -498,13 +565,25 @@ const jeunes = computed(() => {
     const doyenneObj = allDoyennes.value.find((d) => extractIdFromUrl(d['@id']) === doyenneId)
     const paroisseObj = allParoisses.value.find((pa) => extractIdFromUrl(pa['@id']) === paroisseId)
 
+    // Formater le nom complet
+    const formattedName = formatName(p.fullName || '')
+    
     return {
       ...p,
       doyenne: doyenneObj?.name || p.doyenne || 'Non défini',
       paroisse: paroisseObj?.name || p.paroisse || 'Non défini',
-      nom: p.fullName,
-      tel: p.phoneNumber,
+      formattedName: formattedName,
+      gender: p.gender,
+      phoneNumber: p.phoneNumber,
+      originalName: p.fullName || '' // Pour le tri
     }
+  })
+
+  // Trier par ordre alphabétique (en utilisant le nom original pour le tri)
+  return formattedPeople.sort((a, b) => {
+    const nameA = (a.originalName || '').toLowerCase()
+    const nameB = (b.originalName || '').toLowerCase()
+    return nameA.localeCompare(nameB, 'fr', { sensitivity: 'base' })
   })
 })
 
@@ -544,6 +623,9 @@ async function handleRefresh() {
 // Montage
 // ==========================
 onMounted(async () => {
+  // Le loading est déjà visible (isLoading.value = true)
+  
+  // Initialiser la page
   await fetchCurrentUser()
   await fetchSectorId()
 
@@ -562,76 +644,101 @@ onUnmounted(() => {
       <div class="row">
         <div class="col-sm-12">
           <div class="card card-table">
-            <div class="card-header d-flex justify-content-between align-items-center">
-              <span>Statistique - {{ nameService }}</span>
-              <div class="d-flex align-items-center gap-2">
-                <small class="text-muted me-2">{{ jeunes.length }} personne(s) listée(s)</small>
+            <div class="card-header">
+              <div class="header-content">
+                <span class="page-title">Statistique - {{ nameService }}</span>
+                <div class="header-actions">
+                  <button 
+                    @click="handleRefresh" 
+                    class="btn btn-sm btn-outline-primary refresh-btn"
+                    :disabled="isLoading"
+                  >
+                    <i class="fas fa-sync-alt" :class="{ 'fa-spin': isLoading }"></i>
+                    <span class="btn-text">Rafraîchir</span>
+                  </button>
+                </div>
               </div>
             </div>
-            <div class="card-body p-2">
-              <div class="table-responsive-wrapper">
-                <div v-if="isLoading" class="text-center my-5">
+            <div class="card-body">
+              <div class="table-container">
+                <!-- Le loading s'affiche maintenant dès le début -->
+                <div v-if="isLoading" class="loading-container">
                   <div class="spinner-border text-primary" role="status">
                     <span class="visually-hidden"></span>
                   </div>
-                  <p>Chargement des données...</p>
+                  <p class="loading-text">Chargement des données...</p>
                 </div>
                 <div v-else>
-                  <div v-if="jeunes.length === 0" class="alert alert-info m-3">
-                    <i class="fas fa-info-circle me-2"></i>
-                    <span v-if="LocalisationService === 'jeune'">
-                      Aucune personne trouvée dans votre paroisse.
-                    </span>
-                    <span v-else-if="LocalisationService === 'paroissial'">
-                      Aucun membre du noyau paroissial trouvé dans votre paroisse.
-                    </span>
-                    <span v-else-if="LocalisationService === 'decanal'">
-                      Aucun membre du noyau décanal trouvé dans votre doyenné.
-                    </span>
-                    <span v-else-if="LocalisationService === 'diocesain'">
-                      Aucun membre diocésain trouvé.
-                    </span>
-                    <span v-else> Aucune donnée disponible pour ce service. </span>
+                  <div v-if="jeunes.length === 0" class="empty-state">
+                    <div class="empty-icon">
+                      <i class="fas fa-info-circle"></i>
+                    </div>
+                    <div class="empty-text">
+                      <span v-if="LocalisationService === 'jeune'">
+                        Aucune personne trouvée dans votre paroisse.
+                      </span>
+                      <span v-else-if="LocalisationService === 'paroissial'">
+                        Aucun membre du noyau paroissial trouvé dans votre paroisse.
+                      </span>
+                      <span v-else-if="LocalisationService === 'decanal'">
+                        Aucun membre du noyau décanal trouvé dans votre doyenné.
+                      </span>
+                      <span v-else-if="LocalisationService === 'diocesain'">
+                        Aucun membre diocésain trouvé.
+                      </span>
+                      <span v-else>Aucune donnée disponible pour ce service.</span>
+                    </div>
                   </div>
 
-                  <div v-else class="table-responsive">
-                    <table class="table table-striped table-hover" id="table1">
-                      <thead>
-                        <tr>
-                          <th>Nom complet</th>
-                          <th class="doyenne-column">Doyenné</th>
-                          <th>Paroisse</th>
-                          <th>Téléphone</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr
-                          v-for="j in jeunes"
-                          :key="j.id || j.phoneNumber"
-                          :class="{
-                            'bg-noyau text-dark': j.isNoyau,
-                          }"
-                        >
-                          <td>{{ j.gender }} {{ j.fullName }}</td>
-                          <td class="doyenne-column">{{ j.doyenne }}</td>
-                          <td>{{ j.paroisse }}</td>
-                          <td>
-                            <a :href="`tel:${j.phoneNumber}`" class="text-decoration-none">
-                              {{ j.phoneNumber }}
-                            </a>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div v-else class="datatable-wrapper">
+                    <div class="datatable-container">
+                      <table class="table table-striped table-hover mobile-optimized" id="table1">
+                        <thead>
+                          <tr>
+                            <th class="name-column">Nom complet</th>
+                            <th class="doyenne-column">Doyenné</th>
+                            <th class="paroisse-column">Paroisse</th>
+                            <th class="phone-column">Téléphone</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr
+                            v-for="j in jeunes"
+                            :key="j.id || j.phoneNumber"
+                            :class="{
+                              'bg-noyau text-dark': j.isNoyau,
+                            }"
+                          >
+                            <td class="name-column">
+                              <span class="person-name">{{ j.gender }} {{ j.formattedName }}</span>
+                            </td>
+                            <td class="doyenne-column">
+                              <span class="doyenne-text">{{ j.doyenne }}</span>
+                            </td>
+                            <td class="paroisse-column">
+                              <span class="paroisse-text">{{ j.paroisse }}</span>
+                            </td>
+                            <td class="phone-column">
+                              <a :href="`tel:${j.phoneNumber}`" class="phone-link">
+                                <i class="fas fa-phone-alt phone-icon"></i>
+                                <span class="phone-text">{{ j.phoneNumber }}</span>
+                              </a>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-            <div class="card-footer text-muted">
-              <small>
+            <div class="card-footer">
+              <small class="footer-info">
                 <i class="fas fa-info-circle me-1"></i>
-                Membre : {{ jeunes.length }} | Dernière actualisation :
-                {{ new Date().toLocaleTimeString() }}
+                <span class="footer-text">
+                  <span class="member-count">{{ jeunes.length }}</span> membre(s) | 
+                  Dernière actualisation : <span class="update-time">{{ new Date().toLocaleTimeString() }}</span>
+                </span>
               </small>
             </div>
           </div>
@@ -646,6 +753,63 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   min-height: 400px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.card-header {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.page-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #343a40;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.refresh-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.refresh-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 110, 253, 0.2);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-text {
+  display: inline;
+}
+
+.header-info {
+  text-align: center;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e9ecef;
 }
 
 .card-body {
@@ -656,96 +820,514 @@ onUnmounted(() => {
   flex-direction: column;
 }
 
-.table-responsive-wrapper {
+.table-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-height: 300px;
 }
 
-.table-responsive {
+.loading-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 3rem 1rem;
+}
+
+.loading-container .spinner-border {
+  width: 3rem;
+  height: 3rem;
+  border-width: 0.25rem;
+}
+
+.loading-text {
+  margin-top: 1rem;
+  color: #6c757d;
+  font-size: 1rem;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  text-align: center;
+}
+
+.empty-icon {
+  font-size: 3rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+  opacity: 0.7;
+}
+
+.empty-text {
+  color: #6c757d;
+  font-size: 1rem;
+  max-width: 300px;
+}
+
+.datatable-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.datatable-container {
   flex: 1;
   overflow: auto;
   position: relative;
   min-height: 200px;
+  width: 100%;
 }
 
-.table-responsive table thead th {
+.table {
+  margin-bottom: 0;
+  font-size: 0.9rem;
+}
+
+.table th {
   position: sticky;
   top: 0;
-  background-color: #f8f9fa;
+  background: #f8f9fa;
   z-index: 10;
   box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
   padding: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
+  border-bottom: 2px solid #dee2e6;
 }
 
-.bg-noyau {
-  background-color: #e8f5e9 !important;
+.table td {
+  padding: 0.75rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #e9ecef;
 }
 
-a[href^='tel:'] {
-  color: #0d6efd;
-  transition: color 0.2s;
+.mobile-optimized {
+  width: 100% !important;
 }
 
-a[href^='tel:']:hover {
-  color: #0a58ca;
-  text-decoration: underline !important;
+.name-column {
+  min-width: 180px;
 }
 
 .doyenne-column {
+  min-width: 120px;
+}
+
+.paroisse-column {
   min-width: 150px;
 }
 
-.dataTables_wrapper {
-  width: 100%;
-  height: 100%;
+.phone-column {
+  min-width: 130px;
+}
+
+.bg-noyau {
+  background-color: rgba(232, 245, 233, 0.7) !important;
+}
+
+.person-name {
+  font-weight: 500;
+  color: #212529;
+}
+
+.doyenne-text, .paroisse-text {
+  color: #495057;
+}
+
+.phone-link {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  color: #0d6efd;
+  text-decoration: none;
+  transition: color 0.2s;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: rgba(13, 110, 253, 0.05);
 }
 
-.dataTables_scroll {
-  flex: 1;
-  min-height: 0;
+.phone-link:hover {
+  color: #0a58ca;
+  background: rgba(13, 110, 253, 0.1);
+  text-decoration: none;
 }
 
-@media (max-width: 768px) {
+.phone-icon {
+  font-size: 0.875rem;
+}
+
+.phone-text {
+  font-weight: 500;
+}
+
+.card-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  padding: 0.75rem 1rem;
+  text-align: center;
+}
+
+.footer-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.footer-text {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.member-count {
+  font-weight: 600;
+  color: #495057;
+}
+
+.update-time {
+  font-weight: 500;
+  color: #495057;
+}
+
+/* Styles pour les contrôles DataTables */
+:deep(.dataTables_wrapper) {
+  width: 100%;
+  font-size: 0.875rem;
+}
+
+:deep(.dataTables_length),
+:deep(.dataTables_filter),
+:deep(.dataTables_info),
+:deep(.dataTables_paginate) {
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+:deep(.dataTables_length label),
+:deep(.dataTables_filter label) {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0;
+  font-weight: 500;
+  color: #495057;
+}
+
+:deep(.dataTables_length select) {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+  margin: 0 0.5rem;
+  background: white;
+  font-size: 0.875rem;
+  min-width: 80px;
+}
+
+:deep(.dataTables_filter input) {
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  padding: 0.375rem 0.75rem;
+  margin-left: 0.5rem;
+  background: white;
+  font-size: 0.875rem;
+  min-width: 180px;
+}
+
+:deep(.dataTables_info) {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+:deep(.dataTables_paginate) {
+  display: flex;
+  justify-content: center;
+  gap: 0.25rem;
+}
+
+:deep(.paginate_button) {
+  padding: 0.375rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+  color: #0d6efd;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  min-width: 36px;
+  text-align: center;
+}
+
+:deep(.paginate_button:hover) {
+  background: #e9ecef;
+  color: #0a58ca;
+  transform: translateY(-1px);
+}
+
+:deep(.paginate_button.current) {
+  background: #0d6efd;
+  color: white !important;
+  border-color: #0d6efd;
+  font-weight: 600;
+}
+
+:deep(.paginate_button.disabled) {
+  color: #adb5bd;
+  cursor: not-allowed;
+  background: #f8f9fa;
+  border-color: #e9ecef;
+}
+
+/* Améliorations pour les très petits écrans */
+@media (max-width: 400px) {
   .card-header {
+    padding: 0.75rem;
+  }
+  
+  .header-content {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
     gap: 0.75rem;
   }
-
-  .table-responsive {
-    max-height: 70vh;
+  
+  .page-title {
+    font-size: 1rem;
+    text-align: center;
   }
-
-  .card-header .btn {
-    align-self: flex-end;
-    margin-top: -2.5rem;
+  
+  .header-actions {
+    justify-content: center;
   }
+  
+  .refresh-btn {
+    width: 100%;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+  
+  .btn-text {
+    display: inline;
+  }
+  
+  .header-info {
+    font-size: 0.875rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem 0.375rem;
+    font-size: 0.8125rem;
+  }
+  
+  .name-column {
+    min-width: 140px;
+  }
+  
+  .paroisse-column {
+    min-width: 120px;
+  }
+  
+  .phone-column {
+    min-width: 110px;
+  }
+  
+  .phone-link {
+    padding: 0.25rem;
+    gap: 0.25rem;
+  }
+  
+  .phone-icon {
+    font-size: 0.75rem;
+  }
+  
+  .phone-text {
+    font-size: 0.8125rem;
+  }
+  
+  :deep(.dataTables_length select),
+  :deep(.dataTables_filter input) {
+    width: 100%;
+    margin: 0.25rem 0;
+  }
+  
+  :deep(.dataTables_length),
+  :deep(.dataTables_filter) {
+    width: 100%;
+    text-align: center;
+  }
+  
+  :deep(.dataTables_length label),
+  :deep(.dataTables_filter label) {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .footer-info {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+  
+  .footer-text {
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+}
 
+/* Améliorations pour les petits écrans (576px - 768px) */
+@media (max-width: 768px) {
+  .card {
+    border-radius: 8px;
+    margin: 0.5rem;
+    min-height: 350px;
+  }
+  
+  .header-content {
+    flex-direction: row;
+  }
+  
+  .page-title {
+    font-size: 1rem;
+  }
+  
+  .refresh-btn {
+    padding: 0.375rem 0.5rem;
+  }
+  
+  .btn-text {
+    display: inline;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+  }
+  
   .doyenne-column {
     display: none;
   }
-
-  .table td,
-  .table th {
-    font-size: 0.875rem;
+  
+  .name-column {
+    min-width: 160px;
+  }
+  
+  .paroisse-column {
+    min-width: 130px;
+  }
+  
+  .phone-column {
+    min-width: 120px;
+  }
+  
+  .phone-link {
+    flex-direction: column;
+    gap: 0.25rem;
+    padding: 0.375rem;
+    text-align: center;
+  }
+  
+  .phone-icon {
+    font-size: 0.8125rem;
+  }
+  
+  :deep(.dataTables_length),
+  :deep(.dataTables_filter) {
+    width: 100%;
+    text-align: center;
     padding: 0.5rem;
   }
-
-  @media (max-width: 360px) {
-    .table td,
-    .table th {
-      font-size: 0.8125rem;
-      padding: 0.375rem;
-    }
+  
+  :deep(.dataTables_length label),
+  :deep(.dataTables_filter label) {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  
+  :deep(.dataTables_length select),
+  :deep(.dataTables_filter input) {
+    width: 100%;
+    max-width: 200px;
+    margin: 0.25rem 0;
+  }
+  
+  :deep(.dataTables_info) {
+    width: 100%;
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  :deep(.dataTables_paginate) {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 0.125rem;
+    padding: 0.5rem;
+  }
+  
+  :deep(.paginate_button) {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8125rem;
+    min-width: 32px;
+  }
+  
+  .footer-info {
+    font-size: 0.8125rem;
   }
 }
 
+/* Améliorations pour les écrans moyens (768px - 992px) */
+@media (min-width: 768px) and (max-width: 992px) {
+  .card {
+    margin: 0.75rem;
+  }
+  
+  .table th,
+  .table td {
+    padding: 0.625rem;
+    font-size: 0.875rem;
+  }
+  
+  :deep(.dataTables_length select),
+  :deep(.dataTables_filter input) {
+    width: 150px;
+  }
+}
+
+/* Améliorations pour les grands écrans */
+@media (min-width: 992px) {
+  .datatable-container {
+    /* max-height: 100vh; */
+  }
+  
+  .table th {
+    font-size: 0.875rem;
+  }
+  
+  .table td {
+    font-size: 0.9rem;
+  }
+}
+
+/* Styles pour les lignes au survol */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Animation pour le spinner */
 .fa-spin {
   animation: fa-spin 1s infinite linear;
 }
@@ -759,31 +1341,116 @@ a[href^='tel:']:hover {
   }
 }
 
-.table-hover tbody tr:hover {
-  background-color: rgba(0, 0, 0, 0.03);
+/* Amélioration de l'accessibilité */
+@media (prefers-reduced-motion: reduce) {
+  .refresh-btn:hover,
+  .phone-link:hover,
+  .table-hover tbody tr:hover,
+  :deep(.paginate_button:hover) {
+    transform: none;
+    transition: none;
+  }
+}
+</style>
+
+<style>
+/* Styles globaux pour DataTables - Mobile Optimized */
+.dataTables_wrapper {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-@media (min-height: 900px) {
-  .table-responsive {
-    max-height: 70vh;
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter,
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+  font-size: 0.875rem;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+  border: 1px solid #ced4da !important;
+  border-radius: 6px !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+}
+
+.dataTables_wrapper .dataTables_length select {
+  border: 1px solid #ced4da !important;
+  border-radius: 6px !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+  border: 1px solid #dee2e6 !important;
+  border-radius: 6px !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  background: white !important;
+  color: #0d6efd !important;
+  margin: 0 0.125rem !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current {
+  background: #0d6efd !important;
+  color: white !important;
+  border-color: #0d6efd !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+  background: #e9ecef !important;
+  color: #0a58ca !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:hover,
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled:active {
+  color: #adb5bd !important;
+  background: #f8f9fa !important;
+  border-color: #e9ecef !important;
+  cursor: not-allowed !important;
+}
+
+/* Améliorations pour les très petits écrans */
+@media (max-width: 400px) {
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    padding: 0.5rem !important;
+  }
+  
+  .dataTables_wrapper .dataTables_length select,
+  .dataTables_wrapper .dataTables_filter input {
+    width: 100% !important;
+    max-width: none !important;
+    font-size: 0.8125rem !important;
+    padding: 0.375rem !important;
+  }
+  
+  .dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.8125rem !important;
+    min-width: 32px !important;
+    margin: 0.0625rem !important;
   }
 }
 
-@media (min-width: 1200px) {
-  .table-responsive {
-    max-height: 80vh;
+/* Améliorations pour les petits écrans */
+@media (max-width: 768px) {
+  .dataTables_wrapper .dataTables_length,
+  .dataTables_wrapper .dataTables_filter,
+  .dataTables_wrapper .dataTables_info,
+  .dataTables_wrapper .dataTables_paginate {
+    padding: 0.75rem !important;
   }
-}
-
-.card-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
-  padding: 0.5rem 1rem;
-}
-
-.alert-info {
-  background-color: #e7f3ff;
-  border-color: #b3d7ff;
-  color: #004085;
+  
+  .dataTables_wrapper .dataTables_paginate {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+  }
 }
 </style>
