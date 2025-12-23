@@ -9,8 +9,8 @@ const toast = useToast()
 
 // Props venant du parent
 const props = defineProps({
-  id: { type: [String, Number], required: true },  // selectedSecteur
-  date: { type: String, required: true },          // selectedDate
+  id: { type: [String, Number], required: true }, // selectedSecteur
+  date: { type: String, required: true }, // selectedDate
 })
 
 const loading = ref(false)
@@ -28,60 +28,64 @@ const viewParoisses = ref([])
 
 // Informations du camp biblique (pour l'impression)
 const campBiblique = ref({
-  name: "CAMP BIBLIQUE 2025",
-  date: "",
+  name: 'CAMP BIBLIQUE 2025',
+  date: '',
   effectif: 0,
-  total: "264 000 F + 200$",
-  carrefour: "12",
-  dortoir: "3"
+  total: '264 000 F + 200$',
+  carrefour: '12',
+  dortoir: '3',
 })
 
 // Formater la date pour l'impression
-watch(() => props.date, (newDate) => {
-  if (newDate) {
-    const dateObj = new Date(newDate)
-    campBiblique.value.date = dateObj.toLocaleDateString('fr-FR', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric'
-    }).toUpperCase()
-  }
-}, { immediate: true })
+watch(
+  () => props.date,
+  (newDate) => {
+    if (newDate) {
+      const dateObj = new Date(newDate)
+      campBiblique.value.date = dateObj
+        .toLocaleDateString('fr-FR', {
+          day: 'numeric',
+          month: 'long',
+          year: 'numeric',
+        })
+        .toUpperCase()
+    }
+  },
+  { immediate: true },
+)
 
 // === FONCTION PAGINATION OPTIMISÉE ===
 async function fetchAllPages(baseUrl) {
-  let allItems = [];
-  let currentPage = 1;
-  let hasMore = true;
-  
+  let allItems = []
+  let currentPage = 1
+  let hasMore = true
+
   try {
     while (hasMore) {
-      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`;
-      
-      const response = await axios.get(url);
-      const data = response.data;
-      
+      const url = `${baseUrl}${baseUrl.includes('?') ? '&' : '?'}page=${currentPage}`
+
+      const response = await axios.get(url)
+      const data = response.data
+
       if (data.member && Array.isArray(data.member)) {
-        allItems = [...allItems, ...data.member];
-        
+        allItems = [...allItems, ...data.member]
+
         // Vérifie s'il y a plus de pages
-        if (data.member.length === 0 || 
-            data.member.length < 30 ||
-            currentPage >= 50) {
-          hasMore = false;
+        if (data.member.length === 0 || data.member.length < 30 || currentPage >= 50) {
+          hasMore = false
         } else {
-          currentPage++;
+          currentPage++
         }
       } else {
-        hasMore = false;
+        hasMore = false
       }
     }
-    
+
     // console.log(`📊 ${baseUrl} - ${allItems.length} enregistrements chargés`);
-    return allItems;
+    return allItems
   } catch (error) {
-    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error);
-    throw error;
+    console.error(`Erreur lors de la récupération paginée de ${baseUrl}:`, error)
+    throw error
   }
 }
 
@@ -98,22 +102,16 @@ async function fetchData() {
   try {
     loading.value = true
     // console.log(`🔄 Chargement des données pour le secteur ${props.id}...`)
-    
-    const [
-      doyennesRes,
-      paroissesRes,
-      peopleRes,
-      participatorsRes,
-      sectorsRes,
-      montantsRes,
-    ] = await Promise.all([
-      fetchAllPages(`${API}/doyennes`),
-      fetchAllPages(`${API}/paroisses`),
-      fetchAllPages(`${API}/people`),
-      fetchAllPages(`${API}/participators`),
-      fetchAllPages(`${API}/sectors`),
-      fetchAllPages(`${API}/montants`),
-    ])
+
+    const [doyennesRes, paroissesRes, peopleRes, participatorsRes, sectorsRes, montantsRes] =
+      await Promise.all([
+        fetchAllPages(`${API}/doyennes`),
+        fetchAllPages(`${API}/paroisses`),
+        fetchAllPages(`${API}/people`),
+        fetchAllPages(`${API}/participators`),
+        fetchAllPages(`${API}/sectors`),
+        fetchAllPages(`${API}/montants`),
+      ])
 
     allDoyennes.value = doyennesRes
     allParoisses.value = paroissesRes
@@ -136,18 +134,21 @@ async function fetchData() {
 function aggregateParoisses() {
   const agg = {}
 
-  allParticipators.value.forEach(part => {
+  allParticipators.value.forEach((part) => {
     // filtrer par date sélectionnée
     const partDate = part.createdAt?.split('T')[0]
     if (partDate !== props.date) return
 
     const person = allPeople.value.find(
-      pe => pe['@id'] === part.person || extractIdFromUrl(pe['@id']) === extractIdFromUrl(part.person)
+      (pe) =>
+        pe['@id'] === part.person || extractIdFromUrl(pe['@id']) === extractIdFromUrl(part.person),
     )
     if (!person) return
 
     const paro = allParoisses.value.find(
-      pa => pa['@id'] === person.paroisse || extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse)
+      (pa) =>
+        pa['@id'] === person.paroisse ||
+        extractIdFromUrl(pa['@id']) === extractIdFromUrl(person.paroisse),
     )
     if (!paro) return
 
@@ -155,7 +156,8 @@ function aggregateParoisses() {
     if (String(sectorId) !== String(props.id)) return
 
     const doy = allDoyennes.value.find(
-      d => d['@id'] === paro.doyenne || extractIdFromUrl(d['@id']) === extractIdFromUrl(paro.doyenne)
+      (d) =>
+        d['@id'] === paro.doyenne || extractIdFromUrl(d['@id']) === extractIdFromUrl(paro.doyenne),
     )
     const paroId = paro['@id'] || `/api/paroisses/${paro.id}`
     if (!agg[paroId]) {
@@ -170,16 +172,17 @@ function aggregateParoisses() {
       }
     }
 
-    const montantRecord = allMontants.value.find(m =>
-      m.participator === part['@id'] ||
-      extractIdFromUrl(m.participator) === extractIdFromUrl(part['@id'])
+    const montantRecord = allMontants.value.find(
+      (m) =>
+        m.participator === part['@id'] ||
+        extractIdFromUrl(m.participator) === extractIdFromUrl(part['@id']),
     )
 
     const devise = (montantRecord?.devise || 'FC').toUpperCase()
     const montant = Number(montantRecord?.frais || 0)
 
     agg[paroId].effectif += 1
-    
+
     if (devise === 'USD' || devise === '$') agg[paroId].montantUSD += montant
     else agg[paroId].montantFC += montant
   })
@@ -195,33 +198,35 @@ watch(
     // console.log(`📅 Changement de date: ${props.date}`)
     aggregateParoisses()
     selectedParoisseId.value = null
-  }
+  },
 )
 
 const doyennesBySector = computed(() => {
   const doyenneIds = new Set(
     allParoisses.value
-      .filter(p => p.sector && extractIdFromUrl(p.sector) === String(props.id))
-      .map(p => extractIdFromUrl(p.doyenne))
-      .filter(Boolean)
+      .filter((p) => p.sector && extractIdFromUrl(p.sector) === String(props.id))
+      .map((p) => extractIdFromUrl(p.doyenne))
+      .filter(Boolean),
   )
-  const doyennes = allDoyennes.value.filter(d => doyenneIds.has(extractIdFromUrl(d['@id'])))
+  const doyennes = allDoyennes.value.filter((d) => doyenneIds.has(extractIdFromUrl(d['@id'])))
   // console.log(`🎯 ${doyennes.length} doyennés trouvés pour le secteur ${props.id}`)
   return doyennes
 })
 
 const filteredParoisses = computed(() => {
-  let result = viewParoisses.value.filter(p => 
-    selectedDoyenne.value === 'Tous' || p.doyenne === selectedDoyenne.value
+  let result = viewParoisses.value.filter(
+    (p) => selectedDoyenne.value === 'Tous' || p.doyenne === selectedDoyenne.value,
   )
   // console.log(`🔍 ${result.length} paroisses filtrées (doyenne: ${selectedDoyenne.value})`)
   return result
 })
 
-const countDoyennes = computed(() => new Set(filteredParoisses.value.map(p => p.doyenne)).size)
+const countDoyennes = computed(() => new Set(filteredParoisses.value.map((p) => p.doyenne)).size)
 const countParoisses = computed(() => filteredParoisses.value.length)
 
-const totalEffectifFiltre = computed(() => filteredParoisses.value.reduce((a, p) => a + (p.effectif || 0), 0))
+const totalEffectifFiltre = computed(() =>
+  filteredParoisses.value.reduce((a, p) => a + (p.effectif || 0), 0),
+)
 const totalMontantFiltre = computed(() => {
   const usd = filteredParoisses.value.reduce((a, p) => a + (p.montantUSD || 0), 0)
   const fc = filteredParoisses.value.reduce((a, p) => a + (p.montantFC || 0), 0)
@@ -233,9 +238,9 @@ const currentParoisse = ref(null)
 
 async function selectParoisse(paroId) {
   selectedParoisseId.value = paroId
-  currentParoisse.value = viewParoisses.value.find(p => p.id === paroId)
+  currentParoisse.value = viewParoisses.value.find((p) => p.id === paroId)
   // console.log(`📍 Paroisse sélectionnée: ${currentParoisse.value?.nom}`)
-  
+
   if (window.innerWidth < 768) {
     await nextTick()
     showJeunesModal.value = true
@@ -246,9 +251,10 @@ const jeunesParParoisse = computed(() => {
   const result = {}
   if (!selectedParoisseId.value) return result
 
-  allParticipators.value.forEach(part => {
+  allParticipators.value.forEach((part) => {
     const person = allPeople.value.find(
-      pe => pe['@id'] === part.person || extractIdFromUrl(pe['@id']) === extractIdFromUrl(part.person)
+      (pe) =>
+        pe['@id'] === part.person || extractIdFromUrl(pe['@id']) === extractIdFromUrl(part.person),
     )
     if (!person) return
 
@@ -261,9 +267,10 @@ const jeunesParParoisse = computed(() => {
     const partDate = part.createdAt?.split('T')[0]
     if (partDate !== props.date) return
 
-    const montantRecord = allMontants.value.find(m =>
-      m.participator === part['@id'] ||
-      extractIdFromUrl(m.participator) === extractIdFromUrl(part['@id'])
+    const montantRecord = allMontants.value.find(
+      (m) =>
+        m.participator === part['@id'] ||
+        extractIdFromUrl(m.participator) === extractIdFromUrl(part['@id']),
     )
     const devise = (montantRecord?.devise || 'FC').toUpperCase()
     const frais = Number(montantRecord?.frais || 0)
@@ -276,10 +283,16 @@ const jeunesParParoisse = computed(() => {
       dortoir: part.dortoir || '',
       carrefour: part.carrefour || '',
       arrivee: new Date(part.createdAt).toLocaleDateString('fr-FR'),
-      status: person.isDicoces ? 'Noyau diocésain' : person.isDecanal ? 'Noyau décanal' : person.isNoyau ? 'Noyau paroissial' : 'Jeune',
+      status: person.isDicoces
+        ? 'Noyau diocésain'
+        : person.isDecanal
+          ? 'Noyau décanal'
+          : person.isNoyau
+            ? 'Noyau paroissial'
+            : 'Jeune',
       montantValue: frais,
       montantDevise: devise === '$' ? '$' : 'FC',
-      montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise === '$' ? '$' : 'FC'}`
+      montantFormatted: `${frais.toLocaleString('fr-FR')} ${devise === '$' ? '$' : 'FC'}`,
     }
 
     if (!result[selectedParoisseId.value]) result[selectedParoisseId.value] = []
@@ -306,7 +319,7 @@ async function goToPrint() {
       return
     }
 
-    const paroisse = viewParoisses.value.find(p => p.id === selectedParoisseId.value)
+    const paroisse = viewParoisses.value.find((p) => p.id === selectedParoisseId.value)
     if (!paroisse) {
       toast.error('Paroisse non trouvée')
       return
@@ -318,15 +331,15 @@ async function goToPrint() {
     // Calculer les totaux pour cette paroisse
     let totalUSD = 0
     let totalFC = 0
-    
-    jeunes.forEach(j => {
+
+    jeunes.forEach((j) => {
       if (j.montantDevise === '$') {
         totalUSD += j.montantValue
       } else {
         totalFC += j.montantValue
       }
     })
-    
+
     campBiblique.value.total = `${totalUSD.toLocaleString('fr-FR')} $ + ${totalFC.toLocaleString('fr-FR')} FC`
 
     // Fonction pour diviser en groupes de 3
@@ -337,10 +350,10 @@ async function goToPrint() {
       }
       return result
     }
-    
+
     // Diviser les jeunes en groupes de 3
     const groupedJeunes = chunkArray(jeunes, 3)
-    
+
     // Créer un élément HTML temporaire pour le PDF
     const pdfContent = document.createElement('div')
     pdfContent.style.cssText = `
@@ -353,36 +366,36 @@ async function goToPrint() {
       font-size: 12px;
       background-color: white;
     `
-    
+
     // Construire le contenu HTML du PDF avec tableau
     let tableHTML = '<table style="width: 100%; border-collapse: collapse; margin-top: 20px;">'
-    
+
     groupedJeunes.forEach((group) => {
       tableHTML += '<tr>'
-      
+
       // Ajouter les cellules pour chaque jeune du groupe
-      group.forEach(jeune => {
+      group.forEach((jeune) => {
         tableHTML += `
           <td style="border: 1px solid #000; padding: 10px; width: 33.33%; vertical-align: top; height: 120px;">
             <div style="font-weight: bold; margin-bottom: 5px; text-align: center;">Doyenné ${paroisse.doyenneName}</div>
             <div style="margin-bottom: 5px; text-align: center;">${paroisse.nom}</div>
             <div style="margin-bottom: 5px; text-align: center;">${jeune.gender} ${jeune.fullName}</div>
-            <div style="margin-bottom: 5px; text-align: center;">Carrefour : ${jeune.carrefour || campBiblique.value.carrefour}</div>
-            <div style="text-align: center;">Dortoir : ${jeune.dortoir || campBiblique.value.dortoir}</div>
+            <div style="margin-bottom: 5px; text-align: center;">Carrefour : ...... </div>
+            <div style="text-align: center;">Dortoir : ...... </div>
           </td>
         `
       })
-      
+
       // Ajouter des cellules vides pour compléter la ligne si nécessaire
       for (let i = group.length; i < 3; i++) {
         tableHTML += '<td style="border: 1px solid #000; width: 33.33%; height: 120px;"></td>'
       }
-      
+
       tableHTML += '</tr>'
     })
-    
+
     tableHTML += '</table>'
-    
+
     pdfContent.innerHTML = `
       <div style="text-align: center; margin-bottom: 20px;">
         <h1 style="font-size: 20px; margin-bottom: 10px; font-weight: bold;">
@@ -397,47 +410,46 @@ async function goToPrint() {
       ${tableHTML}
       
       <div style="margin-top: 30px; text-align: center; font-style: italic; font-size: 10px;">
-        MIJERCA Kinshasa, le ${new Date().toLocaleDateString('fr-FR', { 
-          day: '2-digit', 
-          month: '2-digit', 
+        MIJERCA Kinshasa, le ${new Date().toLocaleDateString('fr-FR', {
+          day: '2-digit',
+          month: '2-digit',
           year: 'numeric',
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
         })}
       </div>
     `
-    
+
     // Ajouter au DOM temporairement
     document.body.appendChild(pdfContent)
-    
+
     // Générer le PDF
     const canvas = await html2canvas(pdfContent, {
       scale: 2,
       useCORS: true,
       logging: false,
-      backgroundColor: '#ffffff'
+      backgroundColor: '#ffffff',
     })
-    
+
     const imgData = canvas.toDataURL('image/png')
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'mm',
-      format: 'a4'
+      format: 'a4',
     })
-    
+
     const imgWidth = 210
     const imgHeight = (canvas.height * imgWidth) / canvas.width
-    
+
     pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
-    
+
     // Télécharger le PDF
     pdf.save(`${paroisse.nom}_${campBiblique.value.date.replace(/ /g, '_')}.pdf`)
-    
+
     // Nettoyer
     document.body.removeChild(pdfContent)
-    
+
     toast.success('PDF généré avec succès')
-    
   } catch (error) {
     console.error('❌ Erreur lors de la génération du PDF:', error)
     toast.error('Erreur lors de la génération du PDF')
@@ -459,17 +471,19 @@ onMounted(() => {
 watch(
   () => props.id,
   () => {
-  // (newId) => {
+    // (newId) => {
     // console.log(`🔄 Changement de secteur: ${newId}`)
     fetchData()
-  }
+  },
 )
 </script>
 
 <template>
   <div class="tab-pane" :id="id" role="tabpanel">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h6 class="m-0">Secteur {{ allSectors.find(s => String(s.id) === String(props.id))?.name || '...' }}</h6>
+      <h6 class="m-0">
+        Secteur {{ allSectors.find((s) => String(s.id) === String(props.id))?.name || '...' }}
+      </h6>
       <button @click="refreshData" class="btn btn-sm btn-outline-primary" :disabled="loading">
         <span v-if="loading" class="spinner-border spinner-border-sm me-1"></span>
         {{ loading ? 'Actualisation...' : 'Actualiser' }}
@@ -477,7 +491,7 @@ watch(
     </div>
 
     <div v-if="loading" class="text-center my-5">
-      <span class="spinner-border"></span> 
+      <span class="spinner-border"></span>
       <div class="mt-2">Chargement des données...</div>
     </div>
 
@@ -485,7 +499,9 @@ watch(
       <!-- Paroisses agrégées -->
       <div class="col-12 col-lg-6">
         <div class="card card-table shadow-sm">
-          <div class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center mx-2">
+          <div
+            class="card-header bg-light fw-semibold d-flex justify-content-between align-items-center mx-2"
+          >
             <span>Rapport Journalier - {{ props.date }}</span>
             <div class="d-flex align-items-center gap-2">
               <small class="text-muted">{{ filteredParoisses.length }} paroisses</small>
@@ -562,21 +578,19 @@ watch(
       <!-- Jeunes -->
       <div class="col-12 col-lg-6 d-none d-lg-block">
         <div class="card card-table shadow-sm">
-          <div class="card-header bg-light fw-semibold mx-2 d-flex justify-content-between align-items-center">
-            <span v-if="selectedParoisseId" class="text-primary"> 
-              {{ viewParoisses.find(x => x.id === selectedParoisseId)?.nom }}
+          <div
+            class="card-header bg-light fw-semibold mx-2 d-flex justify-content-between align-items-center"
+          >
+            <span v-if="selectedParoisseId" class="text-primary">
+              {{ viewParoisses.find((x) => x.id === selectedParoisseId)?.nom }}
             </span>
             <div v-if="selectedParoisseId">
               <small class="text-muted mr-1">
                 {{ (jeunesParParoisse[selectedParoisseId] || []).length }} jeune(s)
               </small>
-              <button  
-                  class="btn btn-primary btn-sm ml-2"
-                  @click="goToPrint"
-                  :disabled="loading"
-                >
-                  <span class="icon mdi mdi-print mr-1"></span>
-                  Imprimer
+              <button class="btn btn-primary btn-sm ml-2" @click="goToPrint" :disabled="loading">
+                <span class="icon mdi mdi-print mr-1"></span>
+                Imprimer
               </button>
             </div>
             <span v-else class="text-muted">
@@ -604,10 +618,17 @@ watch(
                   </td>
                 </tr>
 
-                <tr v-else v-for="j in jeunesParParoisse[selectedParoisseId] || []" :key="j.nom + j.arrivee">
+                <tr
+                  v-else
+                  v-for="j in jeunesParParoisse[selectedParoisseId] || []"
+                  :key="j.nom + j.arrivee"
+                >
                   <td class="fw-medium">{{ j.nom }}</td>
                   <td>
-                    <span class="badge" :class="j.montantDevise === '$' ? 'bg-success' : 'bg-warning text-dark'">
+                    <span
+                      class="badge"
+                      :class="j.montantDevise === '$' ? 'bg-success' : 'bg-warning text-dark'"
+                    >
                       {{ j.montantFormatted }}
                     </span>
                   </td>
@@ -626,7 +647,7 @@ watch(
                         'bg-success text-white': j.status === 'Jeune',
                         'bg-primary text-white': j.status === 'Noyau paroissial',
                         'bg-warning text-white': j.status === 'Noyau décanal',
-                        'bg-danger text-white': j.status === 'Noyau diocésain'
+                        'bg-danger text-white': j.status === 'Noyau diocésain',
                       }"
                     >
                       {{ j.status }}
@@ -634,7 +655,9 @@ watch(
                   </td>
                 </tr>
 
-                <tr v-if="selectedParoisseId && !(jeunesParParoisse[selectedParoisseId] || []).length">
+                <tr
+                  v-if="selectedParoisseId && !(jeunesParParoisse[selectedParoisseId] || []).length"
+                >
                   <td colspan="5" class="text-center text-muted py-4">
                     <i class="fas fa-users me-2"></i>
                     Aucun jeune pour cette paroisse
@@ -657,13 +680,12 @@ watch(
           </div>
           <div class="modal-body">
             <div class="d-flex justify-content-between align-items-center mb-3">
-              <small class="text-muted">{{ (jeunesParParoisse[currentParoisse?.id] || []).length }} jeune(s)</small>
-              <button  
-                  class="btn btn-primary btn-sm"
-                  @click="goToPrint"
-                >
-                  <span class="icon mdi mdi-print mr-1"></span>
-                  Imprimer
+              <small class="text-muted"
+                >{{ (jeunesParParoisse[currentParoisse?.id] || []).length }} jeune(s)</small
+              >
+              <button class="btn btn-primary btn-sm" @click="goToPrint">
+                <span class="icon mdi mdi-print mr-1"></span>
+                Imprimer
               </button>
             </div>
             <table class="table table-hover">
@@ -677,10 +699,16 @@ watch(
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="j in jeunesParParoisse[currentParoisse?.id] || []" :key="j.nom + j.arrivee">
+                <tr
+                  v-for="j in jeunesParParoisse[currentParoisse?.id] || []"
+                  :key="j.nom + j.arrivee"
+                >
                   <td class="fw-medium">{{ j.nom }}</td>
                   <td>
-                    <span class="badge" :class="j.montantDevise === '$' ? 'bg-success' : 'bg-warning text-dark'">
+                    <span
+                      class="badge"
+                      :class="j.montantDevise === '$' ? 'bg-success' : 'bg-warning text-dark'"
+                    >
                       {{ j.montantFormatted }}
                     </span>
                   </td>
@@ -693,13 +721,16 @@ watch(
                     <span class="text-muted small" v-else>—</span>
                   </td>
                   <td>
-                    <span class="badge"
-                          :class="{
-                            'bg-success text-white': j.status === 'Jeune',
-                            'bg-primary text-white': j.status === 'Noyau paroissial',
-                            'bg-warning text-white': j.status === 'Noyau décanal',
-                            'bg-danger text-white': j.status === 'Noyau diocésain'
-                          }">{{ j.status }}</span>
+                    <span
+                      class="badge"
+                      :class="{
+                        'bg-success text-white': j.status === 'Jeune',
+                        'bg-primary text-white': j.status === 'Noyau paroissial',
+                        'bg-warning text-white': j.status === 'Noyau décanal',
+                        'bg-danger text-white': j.status === 'Noyau diocésain',
+                      }"
+                      >{{ j.status }}</span
+                    >
                   </td>
                 </tr>
                 <tr v-if="!(jeunesParParoisse[currentParoisse?.id] || []).length">
@@ -722,48 +753,48 @@ watch(
   max-height: 34rem;
   overflow-y: auto;
 }
-.selectable-row { 
-  cursor: pointer; 
+.selectable-row {
+  cursor: pointer;
   transition: all 0.2s ease;
 }
-.selectable-row:hover { 
-  background-color: #f8f9fa; 
+.selectable-row:hover {
+  background-color: #f8f9fa;
   transform: translateY(-1px);
 }
-.selectable-row.active { 
-  background-color: #e6f0ff; 
+.selectable-row.active {
+  background-color: #e6f0ff;
   font-weight: 600;
   border-left: 3px solid #0d6efd;
 }
-.modal.show { 
-  display: block; 
-  background-color: rgba(0,0,0,0.5); 
-  position: fixed; 
-  top: 0; 
-  left: 0; 
-  width: 100%; 
-  height: 100%; 
-  z-index: 1050; 
+.modal.show {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1050;
 }
-.modal-dialog { 
-  margin: 1.75rem auto; 
-  max-width: 95%; 
+.modal-dialog {
+  margin: 1.75rem auto;
+  max-width: 95%;
 }
-.modal-content { 
-  max-height: 90vh; 
-  overflow-y: auto; 
+.modal-content {
+  max-height: 90vh;
+  overflow-y: auto;
 }
-.table-container { 
-  overflow-y: auto; 
-  border-radius: 0.5rem; 
-  border: 1px solid #dee2e6; 
-  margin: 0 1rem; 
+.table-container {
+  overflow-y: auto;
+  border-radius: 0.5rem;
+  border: 1px solid #dee2e6;
+  margin: 0 1rem;
 }
-.sticky-header { 
-  position: sticky; 
-  top: 0; 
-  background: #edeff0; 
-  z-index: 2; 
+.sticky-header {
+  position: sticky;
+  top: 0;
+  background: #edeff0;
+  z-index: 2;
 }
 
 .text-muted {
@@ -779,7 +810,7 @@ watch(
   .table-container {
     max-height: 25rem;
   }
-  
+
   .card-header {
     flex-direction: column;
     gap: 0.5rem;

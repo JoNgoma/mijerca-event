@@ -80,7 +80,7 @@ const isDepenseActive = () => depenses.some(d => d.key === route.name)
     </li>
 
     <!-- DÉPENSES -->
-    <!-- <li class="nav-item dropdown">
+    <li class="nav-item dropdown">
       <a
         class="nav-link dropdown-toggle"
         href="#"
@@ -102,6 +102,6 @@ const isDepenseActive = () => depenses.some(d => d.key === route.name)
           {{ depense.name }}
         </router-link>
       </div>
-    </li> -->
+    </li>
   </ul>
 </template>
